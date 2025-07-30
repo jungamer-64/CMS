@@ -1,15 +1,10 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +17,73 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴ ProN W3", "Hiragino Sans", "メイリオ", Meiryo, "MS PGothic", sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  /* ページ遷移時の白い点滅を防ぐ */
+  min-height: 100vh;
+}
+
+/* Next.jsのルートコンテナの背景色を統一 */
+html {
+  background-color: #f9fafb; /* bg-gray-50 */
+}
+
+.dark html {
+  background-color: #111827; /* dark:bg-gray-900 */
+}
+
+/* ページ遷移時の背景色を統一 */
+#__next {
+  background-color: #f9fafb; /* bg-gray-50 */
+  min-height: 100vh;
+  transition: background-color 0.3s ease;
+}
+
+.dark #__next {
+  background-color: #111827; /* dark:bg-gray-900 */
+}
+
+/* ページタイトル用のh1（白色テキスト） */
+.page-title h1,
+body > main > div > h1,
+.container h1 {
+  font-size: 2.25rem; /* text-4xl equivalent */
+  font-weight: 700; /* font-bold */
+  line-height: 1.2;
+  margin-bottom: 1.5rem; /* mb-6 */
+  margin-top: 1rem; /* mt-4 - ヘッダーからの安全な距離を確保 */
+  padding-top: 0.5rem; /* pt-2 - 追加の上部スペース */
+  padding-bottom: 0.5rem; /* pb-2 */
+  padding-left: 1rem; /* px-4 */
+  padding-right: 1rem; /* px-4 */
+  color: #ffffff; /* 白色 */
+  min-height: 3rem; /* 統一された最小高さ */
+  display: flex;
+  align-items: center;
+}
+
+/* 投稿コンテンツ内のh1（既存のmarkdown-content内のスタイルを維持） */
+.markdown-content h1 {
+  font-size: 1.875rem !important; /* text-3xl */
+  font-weight: 700 !important; /* font-bold */
+  margin-bottom: 1.5rem !important; /* mb-6 */
+  margin-top: 2rem !important; /* mt-8 */
+  color: #111827 !important; /* text-gray-900 */
+  padding: 0 !important;
+  min-height: auto !important;
+  display: block !important;
+  align-items: normal !important;
+}
+
+/* 投稿タイトル用のh1（記事ページのタイトル） */
+.post-title {
+  font-size: 2.25rem !important; /* text-4xl */
+  font-weight: 700 !important; /* font-bold */
+  margin-bottom: 1rem !important; /* mb-4 */
+  margin-top: 0 !important;
+  color: #111827 !important; /* text-gray-900 */
+  padding: 0 !important;
+  min-height: auto !important;
+  display: block !important;
+  align-items: normal !important;
 }
