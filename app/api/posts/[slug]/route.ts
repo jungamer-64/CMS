@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPostBySlug, updatePost } from '@/app/lib/posts';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }

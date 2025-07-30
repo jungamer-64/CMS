@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { getUserById, getAllUsers, updateUserRole } from '@/app/lib/users';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+
 async function requireAdmin(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
   

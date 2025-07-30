@@ -3,6 +3,9 @@ import { authenticateUser } from '@/app/lib/users';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export async function POST(request: NextRequest) {

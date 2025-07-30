@@ -1,0 +1,22 @@
+{
+  "exportDate": "2025-07-30T19:26:58.279Z",
+  "database": "test-website",
+  "collections": [
+    {
+      "name": "users",
+      "type": "collection"
+    },
+    {
+      "name": "posts",
+      "type": "collection"
+    },
+    {
+      "name": "password_reset_tokens",
+      "type": "collection"
+    },
+    {
+      "name": "comments",
+      "type": "collection"
+    }
+  ]
+}

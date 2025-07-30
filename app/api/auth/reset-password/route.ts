@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resetPassword, validatePasswordResetToken } from '@/app/lib/users';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const { token, password } = await request.json();

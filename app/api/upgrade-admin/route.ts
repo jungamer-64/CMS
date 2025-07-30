@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/app/lib/mongodb';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const { username, secret } = await request.json();

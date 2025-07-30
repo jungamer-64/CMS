@@ -1,4 +1,8 @@
 import clientPromise from '../app/lib/mongodb';
+import { config } from 'dotenv';
+
+// .env.localファイルを読み込み
+config({ path: '.env.local' });
 
 async function testConnection() {
   try {

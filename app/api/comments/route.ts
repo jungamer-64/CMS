@@ -3,6 +3,9 @@ import { createComment } from '@/app/lib/comments';
 import { getSettings } from '@/app/lib/settings';
 import { CommentInput } from '@/app/lib/types';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // 設定を確認

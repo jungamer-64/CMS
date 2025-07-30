@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { getUserById } from '@/app/lib/users';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+
 interface Settings {
   darkMode: boolean;
   apiAccess: boolean;

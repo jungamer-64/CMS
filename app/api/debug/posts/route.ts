@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getDatabase } from '@/app/lib/mongodb';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const db = await getDatabase();
