@@ -1,0 +1,25 @@
+[
+  {
+    "id": "1753909508091",
+    "name": "test",
+    "key": "api_n1npkrgk6tmdqgfpq3",
+    "permissions": {
+      "posts": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false
+      },
+      "comments": {
+        "read": true,
+        "moderate": false
+      },
+      "settings": {
+        "read": false
+      }
+    },
+    "createdAt": "2025-07-30T21:05:08.091Z",
+    "isActive": true,
+    "lastUsed": "2025-07-30T21:18:25.120Z"
+  }
+]

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { getUserById } from '@/app/lib/users';
+import { updatePublicSettings } from '../../settings/public/route';
 
 // 動的レンダリングを強制
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,18 @@ const defaultSettings: Settings = {
 
 // 一時的な設定ストレージ（実際の実装では、データベースまたはファイルシステムを使用）
 let currentSettings: Settings = { ...defaultSettings };
+
+// アプリケーション起動時に公開設定を初期化
+const initializePublicSettings = () => {
+  updatePublicSettings({
+    allowComments: currentSettings.allowComments,
+    requireApproval: currentSettings.requireApproval,
+    maintenanceMode: currentSettings.maintenanceMode,
+  });
+};
+
+// 初期化を実行
+initializePublicSettings();
 
 async function requireAdmin(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
@@ -80,6 +93,13 @@ export async function POST(request: NextRequest) {
     // 設定をメモリに保存
     currentSettings = { ...settings };
     console.log('設定を保存しました:', currentSettings);
+    
+    // 公開設定も更新
+    updatePublicSettings({
+      allowComments: settings.allowComments,
+      requireApproval: settings.requireApproval,
+      maintenanceMode: settings.maintenanceMode,
+    });
     
     console.log('保存完了');
     return NextResponse.json({ message: '設定が正常に保存されました' });

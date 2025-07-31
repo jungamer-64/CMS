@@ -1,0 +1,34 @@
+{
+  "name": "blog-api-examples",
+  "version": "1.0.0",
+  "description": "Blog API利用サンプルコード集",
+  "main": "index.js",
+  "scripts": {
+    "start:js": "node javascript/create-post.js",
+    "start:py": "python python/create_post.py",
+    "start:ts": "npx ts-node typescript/create-post.ts",
+    "start:curl": "bash curl/examples.sh",
+    "build:ts": "tsc typescript/create-post.ts --outDir dist",
+    "install:deps": "npm install && pip install requests"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.0",
+    "@types/node": "^18.0.0",
+    "@types/node-fetch": "^2.6.0",
+    "ts-node": "^10.9.0"
+  },
+  "keywords": [
+    "api",
+    "blog",
+    "examples",
+    "javascript",
+    "typescript",
+    "python",
+    "curl"
+  ],
+  "author": "Blog API Team",
+  "license": "MIT"
+}

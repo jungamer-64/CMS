@@ -17,6 +17,211 @@ interface Post {
   isDeleted?: boolean;
 }
 
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center h-64">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-500"></div>
+  </div>
+);
+
+const ErrorMessage = ({ message }: { message: string }) => (
+  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
+    {message}
+  </div>
+);
+
+const PostInfo = ({ post, originalSlug }: { post: Post; originalSlug: string }) => (
+  <div className="mb-6">
+    <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">投稿編集</h1>
+    <p className="text-gray-600 dark:text-gray-400">
+      投稿者: <span className="font-medium">{post.author}</span> | 
+      作成日: {new Date(post.createdAt).toLocaleDateString('ja-JP')} |
+      編集中: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">/blog/{originalSlug}</code>
+    </p>
+  </div>
+);
+
+const TitleInput = ({ 
+  title, 
+  onChange, 
+  disabled 
+}: { 
+  title: string; 
+  onChange: (value: string) => void; 
+  disabled: boolean; 
+}) => (
+  <div>
+    <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      タイトル <span className="text-red-500">*</span>
+    </label>
+    <input
+      type="text"
+      id="title"
+      value={title}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+      placeholder="投稿のタイトルを入力してください"
+      required
+      disabled={disabled}
+    />
+  </div>
+);
+
+const SlugInput = ({ 
+  slug, 
+  onChange, 
+  onReset, 
+  isCustomSlug, 
+  disabled, 
+  getVariables, 
+  replaceVariables 
+}: { 
+  slug: string; 
+  onChange: (value: string) => void; 
+  onReset: () => void; 
+  isCustomSlug: boolean; 
+  disabled: boolean; 
+  getVariables: () => Record<string, string>; 
+  replaceVariables: (template: string) => string; 
+}) => (
+  <div>
+    <div className="flex items-center justify-between mb-2">
+      <label htmlFor="slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        URL スラッグ <span className="text-red-500">*</span>
+      </label>
+      {isCustomSlug && (
+        <button
+          type="button"
+          onClick={onReset}
+          className="text-sm text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+        >
+          自動生成に戻す
+        </button>
+      )}
+    </div>
+    <input
+      type="text"
+      id="slug"
+      value={slug}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent font-mono text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+      placeholder="post-{timestamp}"
+      required
+      disabled={disabled}
+    />
+    <div className="mt-2">
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+        プレビュー: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">/blog/{replaceVariables(slug)}</code>
+      </p>
+      <VariableDetails getVariables={getVariables} />
+    </div>
+  </div>
+);
+
+const VariableDetails = ({ getVariables }: { getVariables: () => Record<string, string> }) => {
+  const variables = getVariables();
+  
+  return (
+    <details className="text-xs text-gray-400 dark:text-gray-500">
+      <summary className="cursor-pointer hover:text-gray-600 dark:hover:text-gray-300">利用可能な変数</summary>
+      <div className="mt-1 ml-4">
+        {Object.entries(variables).map(([key, value]) => (
+          <p key={key}>
+            <code>{key}</code> → {value}
+          </p>
+        ))}
+      </div>
+    </details>
+  );
+};
+
+const ContentEditor = ({ 
+  content, 
+  onChange, 
+  showPreview, 
+  onTogglePreview, 
+  disabled 
+}: { 
+  content: string; 
+  onChange: (value: string) => void; 
+  showPreview: boolean; 
+  onTogglePreview: (preview: boolean) => void; 
+  disabled: boolean; 
+}) => (
+  <div>
+    <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      内容 <span className="text-red-500">*</span>
+    </label>
+    <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+      <div className="flex border-b border-gray-300 dark:border-gray-600">
+        <button
+          type="button"
+          onClick={() => onTogglePreview(false)}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            !showPreview
+              ? 'bg-slate-600 text-white'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+          }`}
+        >
+          編集
+        </button>
+        <button
+          type="button"
+          onClick={() => onTogglePreview(true)}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            showPreview
+              ? 'bg-slate-600 text-white'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+          }`}
+        >
+          プレビュー
+        </button>
+      </div>
+      {showPreview ? (
+        <div className="p-4 min-h-96 bg-white dark:bg-gray-800">
+          <PostContent content={content} />
+        </div>
+      ) : (
+        <textarea
+          id="content"
+          value={content}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full h-96 p-4 border-none focus:outline-none focus:ring-0 resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          placeholder="マークダウン形式で投稿内容を入力してください..."
+          required
+          disabled={disabled}
+        />
+      )}
+    </div>
+  </div>
+);
+
+const FormActions = ({ 
+  isSubmitting, 
+  onCancel 
+}: { 
+  isSubmitting: boolean; 
+  onCancel: () => void; 
+}) => (
+  <div className="flex space-x-4">
+    <button 
+      type="submit" 
+      className="bg-slate-600 text-white px-6 py-2 rounded-lg hover:bg-slate-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+      disabled={isSubmitting}
+    >
+      {isSubmitting ? '更新中...' : '更新する'}
+    </button>
+    
+    <button
+      type="button"
+      onClick={onCancel}
+      className="bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-6 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+      disabled={isSubmitting}
+    >
+      キャンセル
+    </button>
+  </div>
+);
+
 export default function EditPost({ params }: { readonly params: Promise<{ slug: string }> }) {
   const [post, setPost] = useState<Post | null>(null);
   const [title, setTitle] = useState('');
@@ -36,8 +241,8 @@ export default function EditPost({ params }: { readonly params: Promise<{ slug: 
     const now = new Date();
     return {
       '{timestamp}': Date.now().toString(),
-      '{date}': now.toISOString().split('T')[0], // YYYY-MM-DD
-      '{datetime}': now.toISOString().replace(/[:.]/g, '-').split('.')[0], // YYYY-MM-DDTHH-mm-ss
+      '{date}': now.toISOString().split('T')[0],
+      '{datetime}': now.toISOString().replace(/[:.]/g, '-').split('.')[0],
       '{year}': now.getFullYear().toString(),
       '{month}': (now.getMonth() + 1).toString().padStart(2, '0'),
       '{day}': now.getDate().toString().padStart(2, '0'),
@@ -51,10 +256,10 @@ export default function EditPost({ params }: { readonly params: Promise<{ slug: 
   const generateSlugFromTitle = (titleValue: string) => {
     const baseSlug = titleValue
       .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, '') // 英数字とスペースのみ
-      .replace(/\s+/g, '-') // スペースをハイフンに変換
-      .replace(/-+/g, '-') // 連続するハイフンを単一に
-      .replace(/(^-+)|(-+$)/g, '') // 先頭末尾のハイフンを削除
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/(^-+)|(-+$)/g, '')
       .trim();
     
     return baseSlug && baseSlug.length >= 3 
@@ -77,7 +282,7 @@ export default function EditPost({ params }: { readonly params: Promise<{ slug: 
   // スラッグ変更ハンドラー
   const handleSlugChange = (newSlug: string) => {
     setSlug(newSlug);
-    setIsCustomSlug(true); // 手動で変更したことを記録
+    setIsCustomSlug(true);
   };
 
   // 自動生成にリセット
@@ -87,7 +292,7 @@ export default function EditPost({ params }: { readonly params: Promise<{ slug: 
     setIsCustomSlug(false);
   };
 
-  // paramsの解決
+  // paramsの解決と投稿データ取得
   useEffect(() => {
     const resolveParams = async () => {
       try {
@@ -95,20 +300,19 @@ export default function EditPost({ params }: { readonly params: Promise<{ slug: 
         const slugValue = resolvedParams.slug;
         setOriginalSlug(slugValue);
         
-        // 投稿データを取得
         const response = await fetch(`/api/posts/${slugValue}`);
-        if (response.ok) {
-          const postData = await response.json();
-          setPost(postData);
-          setTitle(postData.title);
-          setContent(postData.content);
-          setSlug(postData.slug);
-        } else {
-          setError('投稿が見つかりません');
+        if (!response.ok) {
+          throw new Error('投稿が見つかりません');
         }
+
+        const postData = await response.json();
+        setPost(postData);
+        setTitle(postData.title);
+        setContent(postData.content);
+        setSlug(postData.slug);
       } catch (error) {
         console.error('投稿データ取得エラー:', error);
-        setError('投稿データの取得に失敗しました');
+        setError(error instanceof Error ? error.message : '投稿データの取得に失敗しました');
       } finally {
         setIsLoading(false);
       }
@@ -117,7 +321,7 @@ export default function EditPost({ params }: { readonly params: Promise<{ slug: 
     resolveParams();
   }, [params]);
 
-  // タイトル変更時のslug自動更新（カスタムでない場合のみ）
+  // タイトル変更時のslug自動更新
   useEffect(() => {
     if (!isCustomSlug && title) {
       const newSlug = generateSlugFromTitle(title);
@@ -134,7 +338,6 @@ export default function EditPost({ params }: { readonly params: Promise<{ slug: 
 
     setIsSubmitting(true);
     try {
-      // 変数を実際の値に置換してからslugを送信
       const finalSlug = replaceVariables(slug);
       
       const response = await fetch(`/api/posts/${originalSlug}`, {
@@ -149,16 +352,15 @@ export default function EditPost({ params }: { readonly params: Promise<{ slug: 
         }),
       });
 
-      if (response.ok) {
-        // 管理者の投稿管理ページにリダイレクト
-        router.push('/admin/posts');
-      } else {
+      if (!response.ok) {
         const error = await response.json();
-        alert(`エラー: ${error.error}`);
+        throw new Error(error.error || '投稿の更新に失敗しました');
       }
+
+      router.push('/admin/posts');
     } catch (error) {
       console.error('更新エラー:', error);
-      alert('投稿の更新に失敗しました');
+      alert(error instanceof Error ? error.message : '投稿の更新に失敗しました');
     } finally {
       setIsSubmitting(false);
     }
@@ -167,9 +369,7 @@ export default function EditPost({ params }: { readonly params: Promise<{ slug: 
   if (isLoading || !user) {
     return (
       <AdminLayout title="投稿編集">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
+        <LoadingSpinner />
       </AdminLayout>
     );
   }
@@ -177,9 +377,7 @@ export default function EditPost({ params }: { readonly params: Promise<{ slug: 
   if (error) {
     return (
       <AdminLayout title="投稿編集">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
+        <ErrorMessage message={error} />
       </AdminLayout>
     );
   }
@@ -187,7 +385,7 @@ export default function EditPost({ params }: { readonly params: Promise<{ slug: 
   if (!post) {
     return (
       <AdminLayout title="投稿編集">
-        <div className="text-center">投稿が見つかりません</div>
+        <div className="text-center text-gray-500 dark:text-gray-400">投稿が見つかりません</div>
       </AdminLayout>
     );
   }
@@ -195,142 +393,37 @@ export default function EditPost({ params }: { readonly params: Promise<{ slug: 
   return (
     <AdminLayout title="投稿編集">
       <div className="max-w-2xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">投稿編集</h1>
-          <p className="text-gray-600">
-            投稿者: <span className="font-medium">{post.author}</span> | 
-            作成日: {new Date(post.createdAt).toLocaleDateString()} |
-            編集中: <code className="bg-gray-100 px-1 rounded">/blog/{originalSlug}</code>
-          </p>
-        </div>
+        <PostInfo post={post} originalSlug={originalSlug} />
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              タイトル <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="投稿のタイトルを入力してください"
-              required
-              disabled={isSubmitting}
-            />
-          </div>
+          <TitleInput 
+            title={title} 
+            onChange={setTitle} 
+            disabled={isSubmitting} 
+          />
           
-          {/* Slug編集フィールド */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label htmlFor="slug" className="block text-sm font-medium text-gray-700">
-                URL スラッグ <span className="text-red-500">*</span>
-              </label>
-              {isCustomSlug && (
-                <button
-                  type="button"
-                  onClick={resetSlugToAuto}
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
-                  自動生成に戻す
-                </button>
-              )}
-            </div>
-            <input
-              type="text"
-              id="slug"
-              value={slug}
-              onChange={(e) => handleSlugChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-              placeholder="post-{timestamp}"
-              required
-              disabled={isSubmitting}
-            />
-            <div className="mt-2">
-              <p className="text-xs text-gray-500 mb-1">
-                プレビュー: <code className="bg-gray-100 px-1 rounded text-xs">/blog/{replaceVariables(slug)}</code>
-              </p>
-              <details className="text-xs text-gray-400">
-                <summary className="cursor-pointer hover:text-gray-600">利用可能な変数</summary>
-                <div className="mt-1 ml-4">
-                  <p><code>{'{timestamp}'}</code> → {getVariables()['{timestamp}']}</p>
-                  <p><code>{'{date}'}</code> → {getVariables()['{date}']}</p>
-                  <p><code>{'{datetime}'}</code> → {getVariables()['{datetime}']}</p>
-                  <p><code>{'{year}'}</code> → {getVariables()['{year}']}</p>
-                  <p><code>{'{month}'}</code> → {getVariables()['{month}']}</p>
-                  <p><code>{'{day}'}</code> → {getVariables()['{day}']}</p>
-                  <p><code>{'{author}'}</code> → {getVariables()['{author}']}</p>
-                </div>
-              </details>
-            </div>
-          </div>
+          <SlugInput 
+            slug={slug} 
+            onChange={handleSlugChange} 
+            onReset={resetSlugToAuto} 
+            isCustomSlug={isCustomSlug} 
+            disabled={isSubmitting} 
+            getVariables={getVariables} 
+            replaceVariables={replaceVariables} 
+          />
           
-          <div>
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
-              内容 <span className="text-red-500">*</span>
-            </label>
-            <div className="border border-gray-300 rounded-lg overflow-hidden">
-              <div className="flex border-b border-gray-300">
-                <button
-                  type="button"
-                  onClick={() => setShowPreview(false)}
-                  className={`px-4 py-2 text-sm font-medium ${
-                    !showPreview
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  編集
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowPreview(true)}
-                  className={`px-4 py-2 text-sm font-medium ${
-                    showPreview
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  プレビュー
-                </button>
-              </div>
-              {showPreview ? (
-                <div className="p-4 min-h-96 bg-white">
-                  <PostContent content={content} />
-                </div>
-              ) : (
-                <textarea
-                  id="content"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="w-full h-96 p-4 border-none focus:outline-none focus:ring-0 resize-none"
-                  placeholder="マークダウン形式で投稿内容を入力してください..."
-                  required
-                  disabled={isSubmitting}
-                />
-              )}
-            </div>
-          </div>
+          <ContentEditor 
+            content={content} 
+            onChange={setContent} 
+            showPreview={showPreview} 
+            onTogglePreview={setShowPreview} 
+            disabled={isSubmitting} 
+          />
           
-          <div className="flex space-x-4">
-            <button 
-              type="submit" 
-              className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? '更新中...' : '更新する'}
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => router.push('/admin/posts')}
-              className="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors"
-              disabled={isSubmitting}
-            >
-              キャンセル
-            </button>
-          </div>
+          <FormActions 
+            isSubmitting={isSubmitting} 
+            onCancel={() => router.push('/admin/posts')} 
+          />
         </form>
       </div>
     </AdminLayout>

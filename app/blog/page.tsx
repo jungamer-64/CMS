@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getAllPosts } from '@/app/lib/posts';
+import { getAllPostsSimple } from '@/app/lib/posts';
 
 const PostCard = ({ post }: { post: any }) => (
   <article className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -47,7 +47,7 @@ const ErrorState = () => (
 
 export default async function BlogList() {
   try {
-    const posts = await getAllPosts();
+    const posts = await getAllPostsSimple();
 
     return (
       <div className="container mx-auto px-4 py-8">

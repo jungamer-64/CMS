@@ -19,7 +19,9 @@ export default function Comments({ postSlug }: CommentsProps) {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
-  const [allowComments, setAllowComments] = useState(true);
+  const [allowComments, setAllowComments] = useState<boolean | null>(null); // nullで初期化
+  const [settingsLoaded, setSettingsLoaded] = useState(false); // 設定読み込み状態
+  const [settingsError, setSettingsError] = useState<string | null>(null); // 設定エラー状態
   const [formData, setFormData] = useState<CommentFormData>({
     authorName: '',
     authorEmail: '',
@@ -28,15 +30,43 @@ export default function Comments({ postSlug }: CommentsProps) {
 
   // 設定を確認
   const checkSettings = async () => {
+    console.log('コメント設定を確認中...');
     try {
-      const response = await fetch('/api/admin/settings');
+      const response = await fetch('/api/settings/public');
+      
+      if (!response.ok) {
+        const errorMsg = `設定API エラー: ${response.status} ${response.statusText}`;
+        console.warn(errorMsg);
+        setSettingsError(errorMsg);
+        setAllowComments(true); // フォールバック
+        setSettingsLoaded(true);
+        return;
+      }
+      
       const data = await response.json();
+      console.log('取得した公開設定:', data);
       
       if (data.success) {
-        setAllowComments(data.settings.allowComments);
+        const allowCommentsValue = data.settings.allowComments !== false;
+        console.log('コメント許可設定:', allowCommentsValue);
+        setAllowComments(allowCommentsValue);
+        setSettingsError(null);
+      } else {
+        // エラーレスポンスでもフォールバック設定があるかチェック
+        const allowCommentsValue = data.settings?.allowComments !== false;
+        console.log('フォールバック コメント許可設定:', allowCommentsValue);
+        setAllowComments(allowCommentsValue);
+        setSettingsError('設定の読み込みに一部失敗しました');
       }
+      setSettingsLoaded(true);
+      console.log('設定読み込み完了');
     } catch (error) {
       console.error('設定確認エラー:', error);
+      const errorMsg = error instanceof Error ? error.message : '不明なエラー';
+      setSettingsError(errorMsg);
+      // エラーの場合もデフォルトでコメントを許可
+      setAllowComments(true);
+      setSettingsLoaded(true);
     }
   };
 
@@ -57,14 +87,62 @@ export default function Comments({ postSlug }: CommentsProps) {
   };
 
   useEffect(() => {
-    loadComments();
-    checkSettings();
+    console.log('コメントコンポーネント初期化:', { postSlug });
+    
+    // 設定とコメントを並行して読み込む
+    const initializeComments = async () => {
+      try {
+        await Promise.all([
+          checkSettings(),
+          loadComments()
+        ]);
+        console.log('コメント初期化完了');
+      } catch (error) {
+        console.error('コメント初期化エラー:', error);
+        // エラーの場合はデフォルトでコメントを許可
+        setAllowComments(true);
+        setSettingsLoaded(true);
+      }
+    };
+    
+    initializeComments();
   }, [postSlug]);
 
-  // コメント機能が無効の場合は何も表示しない
-  if (!allowComments) {
+  console.log('コメントコンポーネント レンダリング:', { 
+    settingsLoaded, 
+    allowComments, 
+    loading, 
+    commentsCount: comments.length 
+  });
+
+  // 設定が読み込まれていない場合は何も表示しない
+  if (!settingsLoaded) {
+    console.log('設定未読み込みのためコメントを非表示');
     return null;
   }
+
+  // コメント機能が無効の場合は何も表示しない
+  if (allowComments === false) {
+    console.log('コメント機能が無効のため非表示');
+    return null;
+  }
+
+  // 設定エラーがある場合はエラーメッセージを表示
+  if (settingsError) {
+    console.log('設定エラーがあります:', settingsError);
+    return (
+      <div className="mt-12 border-t pt-8">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-yellow-800">
+            コメント機能の設定を読み込めませんでした。ページを再読み込みしてください。
+          </p>
+          <p className="text-sm text-yellow-600 mt-1">エラー: {settingsError}</p>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('コメントセクションを表示');
 
   // フォーム送信
   const handleSubmit = async (e: React.FormEvent) => {

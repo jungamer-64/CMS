@@ -18,7 +18,45 @@ export async function createPost(postData: PostInput): Promise<Post> {
   return { ...post, _id: result.insertedId.toString() };
 }
 
-export async function getAllPosts(): Promise<Post[]> {
+export async function getAllPosts(options?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}): Promise<{ posts: Post[]; total: number }> {
+  const collection = await getPostsCollection();
+  
+  const {
+    page = 1,
+    limit = 10,
+    search = ''
+  } = options || {};
+
+  // 検索クエリを構築
+  const query: any = { isDeleted: { $ne: true } };
+  
+  if (search) {
+    query.$or = [
+      { title: { $regex: search, $options: 'i' } },
+      { content: { $regex: search, $options: 'i' } },
+      { author: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  // 総数を取得
+  const total = await collection.countDocuments(query);
+
+  // ページネーション付きで投稿を取得
+  const posts = await collection
+    .find(query)
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .toArray();
+
+  return { posts, total };
+}
+
+export async function getAllPostsSimple(): Promise<Post[]> {
   const collection = await getPostsCollection();
   return await collection.find({ isDeleted: { $ne: true } }).toArray();
 }

@@ -5,34 +5,188 @@ import { useAuth } from '@/app/lib/auth';
 import Link from 'next/link';
 import AdminLayout from '@/app/lib/AdminLayout';
 
-interface Post {
-  id: string;
-  title: string;
-  slug: string;
-  content: string;
-  author: string;
-  createdAt: string;
-  updatedAt: string;
-  isDeleted?: boolean;
-}
-
-interface User {
-  id: string;
-  username: string;
-  displayName: string;
-  email: string;
-  role: 'user' | 'admin';
-  createdAt: string;
-}
-
 interface DashboardStats {
   totalPosts: number;
   publishedPosts: number;
   deletedPosts: number;
   totalUsers: number;
   adminUsers: number;
-  recentPosts: Post[];
+  recentPosts: Array<{
+    id: string;
+    title: string;
+    slug: string;
+    author: string;
+    createdAt: string;
+  }>;
 }
+
+const StatCard = ({ icon, label, value, color }: { 
+  icon: React.ReactNode; 
+  label: string; 
+  value: number; 
+  color: string; 
+}) => (
+  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="flex items-center">
+      <div className={`w-12 h-12 ${color} rounded-lg flex items-center justify-center`}>
+        {icon}
+      </div>
+      <div className="ml-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
+        <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+      </div>
+    </div>
+  </div>
+);
+
+const PostIcon = () => (
+  <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+
+const VisibleIcon = () => (
+  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+
+const DeleteIcon = () => (
+  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
+const UserIcon = () => (
+  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+  </svg>
+);
+
+const AdminIcon = () => (
+  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+  </svg>
+);
+
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center h-64">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-500"></div>
+  </div>
+);
+
+const ErrorMessage = ({ message }: { message: string }) => (
+  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
+    {message}
+  </div>
+);
+
+const WelcomeSection = ({ userName }: { userName: string }) => (
+  <div className="bg-gradient-to-r from-slate-600 to-slate-800 rounded-lg p-6 text-white">
+    <h1 className="text-3xl font-bold mb-2">おかえりなさい、{userName}さん</h1>
+    <p className="text-slate-100">管理者ダッシュボードへようこそ。サイトの状況を確認し、コンテンツを管理できます。</p>
+  </div>
+);
+
+const RecentPosts = ({ posts }: { posts: DashboardStats['recentPosts'] }) => (
+  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">最近の投稿</h3>
+        <Link 
+          href="/admin/posts"
+          className="text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 text-sm font-medium"
+        >
+          すべて表示 →
+        </Link>
+      </div>
+    </div>
+    <div className="p-6">
+      {posts.length === 0 ? (
+        <p className="text-gray-500 dark:text-gray-400 text-center py-4">投稿がまだありません</p>
+      ) : (
+        <div className="space-y-4">
+          {posts.map((post) => (
+            <div key={post.id} className="flex justify-between items-center">
+              <div>
+                <Link 
+                  href={`/blog/${post.slug}`}
+                  className="text-slate-900 dark:text-white hover:text-slate-600 dark:hover:text-slate-300 font-medium"
+                >
+                  {post.title}
+                </Link>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {post.author} • {new Date(post.createdAt).toLocaleDateString('ja-JP')}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+const QuickActions = () => (
+  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">クイックアクション</h3>
+    </div>
+    <div className="p-6 space-y-3">
+      <Link 
+        href="/admin/new"
+        className="block w-full px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors text-center"
+      >
+        新規投稿
+      </Link>
+      <Link 
+        href="/admin/posts"
+        className="block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-center"
+      >
+        投稿管理
+      </Link>
+      <Link 
+        href="/admin/comments"
+        className="block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-center"
+      >
+        コメント管理
+      </Link>
+      <Link 
+        href="/admin/users"
+        className="block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-center"
+      >
+        ユーザー管理
+      </Link>
+    </div>
+  </div>
+);
+
+const SystemInfo = ({ user }: { user: any }) => (
+  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">システム情報</h3>
+    </div>
+    <div className="p-6">
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600 dark:text-gray-400">最終ログイン</span>
+          <span className="text-sm font-medium text-gray-900 dark:text-white">
+            {new Date().toLocaleDateString('ja-JP')}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600 dark:text-gray-400">役割</span>
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">管理者</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-600 dark:text-gray-400">アカウント</span>
+          <span className="text-sm font-medium text-gray-900 dark:text-white">{user.email}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 export default function AdminHome() {
   const [stats, setStats] = useState<DashboardStats>({
@@ -48,7 +202,7 @@ export default function AdminHome() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user && user.role === 'admin') {
+    if (user?.role === 'admin') {
       fetchDashboardData();
     }
   }, [user]);
@@ -61,28 +215,30 @@ export default function AdminHome() {
         fetch('/api/admin/users')
       ]);
 
-      if (postsResponse.ok && usersResponse.ok) {
-        const posts = await postsResponse.json();
-        const users = await usersResponse.json();
-
-        const publishedPosts = posts.filter((post: Post) => !post.isDeleted);
-        const deletedPosts = posts.filter((post: Post) => post.isDeleted);
-        const adminUsers = users.filter((user: User) => user.role === 'admin');
-        const recentPosts = publishedPosts
-          .sort((a: Post, b: Post) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-          .slice(0, 5);
-
-        setStats({
-          totalPosts: posts.length,
-          publishedPosts: publishedPosts.length,
-          deletedPosts: deletedPosts.length,
-          totalUsers: users.length,
-          adminUsers: adminUsers.length,
-          recentPosts
-        });
-      } else {
-        setError('データの取得に失敗しました');
+      if (!postsResponse.ok || !usersResponse.ok) {
+        throw new Error('データの取得に失敗しました');
       }
+
+      const [posts, users] = await Promise.all([
+        postsResponse.json(),
+        usersResponse.json()
+      ]);
+
+      const publishedPosts = posts.filter((post: any) => !post.isDeleted);
+      const deletedPosts = posts.filter((post: any) => post.isDeleted);
+      const adminUsers = users.filter((user: any) => user.role === 'admin');
+      const recentPosts = publishedPosts
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5);
+
+      setStats({
+        totalPosts: posts.length,
+        publishedPosts: publishedPosts.length,
+        deletedPosts: deletedPosts.length,
+        totalUsers: users.length,
+        adminUsers: adminUsers.length,
+        recentPosts
+      });
     } catch (error) {
       console.error('ダッシュボードデータ取得エラー:', error);
       setError('データの取得中にエラーが発生しました');
@@ -94,9 +250,7 @@ export default function AdminHome() {
   if (isLoading || !user) {
     return (
       <AdminLayout title="読み込み中...">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
+        <LoadingSpinner />
       </AdminLayout>
     );
   }
@@ -104,244 +258,52 @@ export default function AdminHome() {
   return (
     <AdminLayout title="管理者ホーム">
       <div className="space-y-8">
-        {/* ウェルカムセクション */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg p-6 text-white">
-          <h1 className="text-3xl font-bold mb-2">おかえりなさい、{user.displayName}さん</h1>
-          <p className="text-blue-100">管理者ダッシュボードへようこそ。サイトの状況を確認し、コンテンツを管理できます。</p>
-        </div>
+        <WelcomeSection userName={user.displayName} />
 
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        )}
+        {error && <ErrorMessage message={error} />}
 
         {/* 統計カード */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">総投稿数</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalPosts}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">公開中</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.publishedPosts}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">削除済み</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.deletedPosts}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">ユーザー</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">管理者</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.adminUsers}</p>
-              </div>
-            </div>
-          </div>
+          <StatCard 
+            icon={<PostIcon />} 
+            label="総投稿数" 
+            value={stats.totalPosts} 
+            color="bg-slate-100" 
+          />
+          <StatCard 
+            icon={<VisibleIcon />} 
+            label="公開中" 
+            value={stats.publishedPosts} 
+            color="bg-green-100" 
+          />
+          <StatCard 
+            icon={<DeleteIcon />} 
+            label="削除済み" 
+            value={stats.deletedPosts} 
+            color="bg-red-100" 
+          />
+          <StatCard 
+            icon={<UserIcon />} 
+            label="ユーザー" 
+            value={stats.totalUsers} 
+            color="bg-purple-100" 
+          />
+          <StatCard 
+            icon={<AdminIcon />} 
+            label="管理者" 
+            value={stats.adminUsers} 
+            color="bg-orange-100" 
+          />
         </div>
 
         {/* メインコンテンツ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 最近の投稿 */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-900">最近の投稿</h3>
-                  <Link
-                    href="/admin/posts"
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    すべて表示 →
-                  </Link>
-                </div>
-              </div>
-              <div className="divide-y divide-gray-200">
-                {stats.recentPosts.length === 0 ? (
-                  <div className="p-6 text-center text-gray-500">
-                    投稿がありません
-                  </div>
-                ) : (
-                  stats.recentPosts.map((post) => (
-                    <div key={post.id} className="p-6 hover:bg-gray-50 transition-colors">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 mb-1">{post.title}</h4>
-                          <p className="text-sm text-gray-600 mb-2">
-                            by {post.author} • {new Date(post.createdAt).toLocaleDateString('ja-JP')}
-                          </p>
-                          {post.content && (
-                            <p className="text-sm text-gray-700 line-clamp-2">
-                              {post.content.substring(0, 100)}...
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex space-x-2 ml-4">
-                          <Link
-                            href={`/blog/${post.slug}`}
-                            className="text-xs text-blue-600 hover:text-blue-800"
-                          >
-                            表示
-                          </Link>
-                          <Link
-                            href={`/admin/posts/edit/${post.slug}`}
-                            className="text-xs text-green-600 hover:text-green-800"
-                          >
-                            編集
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+            <RecentPosts posts={stats.recentPosts} />
           </div>
-
-          {/* クイックアクション */}
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">クイックアクション</h3>
-              </div>
-              <div className="p-6 space-y-4">
-                <Link
-                  href="/admin/new"
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors group"
-                >
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="font-medium text-gray-900">新規投稿作成</p>
-                    <p className="text-sm text-gray-600">新しい記事を書く</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/admin/posts"
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors group"
-                >
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="font-medium text-gray-900">投稿管理</p>
-                    <p className="text-sm text-gray-600">記事の編集・削除</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/admin/users"
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors group"
-                >
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="font-medium text-gray-900">ユーザー管理</p>
-                    <p className="text-sm text-gray-600">権限設定・管理</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/"
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors group"
-                >
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-gray-200">
-                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="font-medium text-gray-900">サイトを表示</p>
-                    <p className="text-sm text-gray-600">公開サイトを確認</p>
-                  </div>
-                </Link>
-              </div>
-            </div>
-
-            {/* システム情報 */}
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">システム情報</h3>
-              </div>
-              <div className="p-6">
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">最終ログイン</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {new Date().toLocaleDateString('ja-JP')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">役割</span>
-                    <span className="text-sm font-medium text-blue-600">管理者</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">アカウント</span>
-                    <span className="text-sm font-medium text-gray-900">{user.email}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <QuickActions />
+            <SystemInfo user={user} />
           </div>
         </div>
       </div>
