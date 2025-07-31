@@ -12,7 +12,7 @@ marked.setOptions({
 const renderer = new marked.Renderer();
 
 // HTMLブロックをそのまま通す
-renderer.html = function(token: any) {
+renderer.html = function(token: { text?: string; raw?: string }) {
   return token.text || token.raw || '';
 };
 

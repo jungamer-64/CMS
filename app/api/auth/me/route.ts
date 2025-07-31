@@ -1,44 +1,40 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { getUserById } from '@/app/lib/users';
-
-// 動的レンダリングを強制
-export const dynamic = 'force-dynamic';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+import { getUserSessionInfo } from '@/app/lib/users';
+import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
+    const token = request.cookies.get('token')?.value;
+    console.log('認証チェック - トークン存在:', !!token);
 
     if (!token) {
-      return NextResponse.json(
-        { error: '認証が必要です' },
-        { status: 401 }
-      );
+      console.log('認証エラー: トークンが見つかりません');
+      return createErrorResponse('認証が必要です', 401);
     }
 
-    // JWTトークンの検証
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; username: string };
-    const user = await getUserById(decoded.userId);
+    // JWTトークンを検証
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as {
+      userId: string;
+      username: string;
+      role: string;
+    };
+    console.log('トークン検証成功 - ユーザー:', decoded.username);
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'ユーザーが見つかりません' },
-        { status: 404 }
-      );
+    // ユーザー情報を取得
+    const userInfo = await getUserSessionInfo(decoded.userId);
+    if (!userInfo) {
+      return createErrorResponse('ユーザーが見つかりません', 404);
     }
 
-    // パスワードハッシュを除いてユーザー情報を返す
-    const { passwordHash, ...userWithoutPassword } = user;
-    return NextResponse.json(userWithoutPassword);
+    console.log('認証レスポンス:', userInfo);
+    return createSuccessResponse(userInfo);
+
   } catch (error) {
-    console.error('認証エラー:', error);
-    return NextResponse.json(
-      { error: '認証に失敗しました' },
-      { status: 401 }
-    );
+    console.error('認証確認エラー:', error);
+    if (error instanceof jwt.JsonWebTokenError) {
+      return createErrorResponse('無効なトークンです', 401);
+    }
+    return createErrorResponse('認証確認に失敗しました', 500);
   }
 }

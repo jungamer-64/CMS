@@ -250,7 +250,7 @@ export default function PostsManagement() {
                       {!post.isDeleted ? (
                         <>
                           <Link
-                            href={`/blog/${post.slug}`}
+                            href={`/articles/${post.slug}`}
                             className="text-blue-600 hover:text-blue-900 text-sm px-2 py-1 border border-blue-300 rounded hover:bg-blue-50 text-center"
                           >
                             表示

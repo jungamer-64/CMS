@@ -9,8 +9,16 @@ export async function getPostsCollection(): Promise<Collection<Post>> {
 
 export async function createPost(postData: PostInput): Promise<Post> {
   const collection = await getPostsCollection();
+  
+  // 一意なIDとスラッグを生成
+  const id = crypto.randomUUID();
+  const slug = postData.slug || generateSlugFromTitle(postData.title);
+  
   const post: Post = {
+    id,
     ...postData,
+    slug,
+    createdAt: new Date(),
     updatedAt: new Date(),
   };
   
@@ -32,7 +40,7 @@ export async function getAllPosts(options?: {
   } = options || {};
 
   // 検索クエリを構築
-  const query: any = { isDeleted: { $ne: true } };
+  const query: Record<string, unknown> = { isDeleted: { $ne: true } };
   
   if (search) {
     query.$or = [
@@ -115,10 +123,41 @@ export async function updatePost(id: string, updateData: Partial<Post>): Promise
   return result;
 }
 
+export async function updatePostBySlug(slug: string, updateData: Partial<Post>): Promise<Post | null> {
+  const decodedSlug = decodeURIComponent(slug);
+  const collection = await getPostsCollection();
+  const result = await collection.findOneAndUpdate(
+    { slug: decodedSlug },
+    { 
+      $set: { 
+        ...updateData, 
+        updatedAt: new Date() 
+      } 
+    },
+    { returnDocument: 'after' }
+  );
+  return result;
+}
+
 export async function deletePost(id: string): Promise<boolean> {
   const collection = await getPostsCollection();
   const result = await collection.updateOne(
     { id },
+    { 
+      $set: { 
+        isDeleted: true,
+        updatedAt: new Date()
+      }
+    }
+  );
+  return result.modifiedCount > 0;
+}
+
+export async function deletePostBySlug(slug: string): Promise<boolean> {
+  const decodedSlug = decodeURIComponent(slug);
+  const collection = await getPostsCollection();
+  const result = await collection.updateOne(
+    { slug: decodedSlug },
     { 
       $set: { 
         isDeleted: true,
@@ -147,4 +186,36 @@ export async function permanentlyDeletePost(id: string): Promise<boolean> {
   const collection = await getPostsCollection();
   const result = await collection.deleteOne({ id });
   return result.deletedCount > 0;
+}
+
+// バリデーション関数
+export function validatePostData(postData: PostInput): string[] {
+  const errors: string[] = [];
+  
+  if (!postData.title || postData.title.trim().length === 0) {
+    errors.push('タイトルは必須です');
+  }
+  
+  if (!postData.content || postData.content.trim().length === 0) {
+    errors.push('内容は必須です');
+  }
+  
+  if (!postData.author || postData.author.trim().length === 0) {
+    errors.push('作者は必須です');
+  }
+  
+  if (postData.title && postData.title.length > 200) {
+    errors.push('タイトルは200文字以内にしてください');
+  }
+  
+  return errors;
+}
+
+// ヘルパー関数
+function generateSlugFromTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf-]/g, '-') // 日本語対応
+    .replace(/-+/g, '-')
+    .replace(/(^-+|-+$)/g, '');
 }

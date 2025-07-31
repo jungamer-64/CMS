@@ -1,16 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPostBySlug, updatePost, deletePost } from '@/app/lib/posts';
-import { validateApiKey } from '@/app/lib/api-auth';
+import { getPostBySlug, updatePostBySlug, deletePostBySlug } from '@/app/lib/posts';
+import { validateApiKey, checkRateLimit, validateUserSession } from '@/app/lib/api-auth';
 
 // 動的レンダリングを強制
 export const dynamic = 'force-dynamic';
 
+// 特定の投稿を取得
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = await params;
   try {
+    const resolvedParams = await params;
+    const { slug } = resolvedParams;
+    
+    if (!slug) {
+      return NextResponse.json(
+        { error: 'スラッグが必要です' },
+        { status: 400 }
+      );
+    }
+
     const post = await getPostBySlug(slug);
     
     if (!post) {
@@ -30,33 +40,62 @@ export async function GET(
   }
 }
 
+// 投稿を更新
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug: paramSlug } = await params;
   try {
-    // API認証
-    const authResult = validateApiKey(request);
-    if (!authResult.valid) {
+    const resolvedParams = await params;
+    const { slug } = resolvedParams;
+    
+    if (!slug) {
       return NextResponse.json(
-        { error: authResult.error },
-        { status: 401 }
+        { error: 'スラッグが必要です' },
+        { status: 400 }
       );
     }
 
-    const body = await request.json();
-    const { title, content, slug } = body;
+    // クライアントIPを取得
+    const ip = request.headers.get('x-forwarded-for') || 
+              request.headers.get('x-real-ip') || 
+              '127.0.0.1';
 
-    if (!title || !content || !slug) {
+    // レート制限チェック（1分間に10更新まで）
+    const rateLimitResult = checkRateLimit(ip, 10, 60000);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.error },
+        { status: 429 }
+      );
+    }
+
+    // ユーザーセッション認証を試行（ウェブインターフェース用）
+    const userValidation = await validateUserSession(request);
+    
+    // セッション認証が失敗した場合、APIキー認証を試行
+    if (!userValidation.valid) {
+      const authResult = await validateApiKey(request, { resource: 'posts', action: 'update' });
+      if (!authResult.valid) {
+        return NextResponse.json(
+          { error: authResult.error },
+          { status: 401 }
+        );
+      }
+    }
+
+    const body = await request.json();
+    const { title, content, slug: newSlug } = body;
+
+    if (!title || !content || !newSlug) {
       return NextResponse.json(
         { error: 'タイトル、内容、スラッグは必須です' },
         { status: 400 }
       );
     }
 
-    // 現在の投稿を取得
-    const existingPost = await getPostBySlug(paramSlug);
+    // 既存の投稿を確認
+    const existingPost = await getPostBySlug(slug);
     if (!existingPost) {
       return NextResponse.json(
         { error: '投稿が見つかりません' },
@@ -64,14 +103,13 @@ export async function PUT(
       );
     }
 
-    const updateData = {
+    const updatedPost = await updatePostBySlug(slug, {
       title,
       content,
-      slug,
+      slug: newSlug,
       updatedAt: new Date(),
-    };
+    });
 
-    const updatedPost = await updatePost(existingPost.id, updateData);
     return NextResponse.json({
       success: true,
       message: '投稿が正常に更新されました',
@@ -86,23 +124,51 @@ export async function PUT(
   }
 }
 
-// 投稿を削除（API認証必要）
+// 投稿を削除
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = await params;
   try {
-    // API認証
-    const authResult = validateApiKey(request);
-    if (!authResult.valid) {
+    const resolvedParams = await params;
+    const { slug } = resolvedParams;
+    
+    if (!slug) {
       return NextResponse.json(
-        { error: authResult.error },
-        { status: 401 }
+        { error: 'スラッグが必要です' },
+        { status: 400 }
       );
     }
 
-    // 投稿の存在確認
+    // クライアントIPを取得
+    const ip = request.headers.get('x-forwarded-for') || 
+              request.headers.get('x-real-ip') || 
+              '127.0.0.1';
+
+    // レート制限チェック（1分間に5削除まで）
+    const rateLimitResult = checkRateLimit(ip, 5, 60000);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.error },
+        { status: 429 }
+      );
+    }
+
+    // ユーザーセッション認証を試行（ウェブインターフェース用）
+    const userValidation = await validateUserSession(request);
+    
+    // セッション認証が失敗した場合、APIキー認証を試行
+    if (!userValidation.valid) {
+      const authResult = await validateApiKey(request, { resource: 'posts', action: 'delete' });
+      if (!authResult.valid) {
+        return NextResponse.json(
+          { error: authResult.error },
+          { status: 401 }
+        );
+      }
+    }
+
+    // 既存の投稿を確認
     const existingPost = await getPostBySlug(slug);
     if (!existingPost) {
       return NextResponse.json(
@@ -111,8 +177,7 @@ export async function DELETE(
       );
     }
 
-    // 投稿を削除
-    await deletePost(existingPost.id);
+    await deletePostBySlug(slug);
 
     return NextResponse.json({
       success: true,

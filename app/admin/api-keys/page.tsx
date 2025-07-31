@@ -1,13 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/app/lib/auth';
-import AdminLayout from '@/app/lib/AdminLayout';
-import { ApiKey, ApiKeyPermissions, defaultPermissions, fullPermissions, readOnlyPermissions } from '@/app/lib/api-keys';
+import { useAuth } from '../../lib/auth';
+import AdminLayout from '../../lib/AdminLayout';
+import { ApiKeyPermissions } from '../../lib/types';
 
-interface ApiKeyForm {
+interface APIKey {
+  _id: string;
+  keyPrefix: string;
   name: string;
   permissions: ApiKeyPermissions;
+  lastUsed?: Date;
+  expiresAt?: Date;
+  createdAt: Date;
 }
 
 const LoadingSpinner = () => (
@@ -16,455 +21,188 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const Message = ({ message, type }: { message: string; type: 'success' | 'error' }) => (
-  <div className={`p-4 rounded-lg ${
-    type === 'success' 
-      ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-600' 
-      : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-600'
-  }`}>
+const ErrorMessage = ({ message }: { message: string }) => (
+  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
     {message}
   </div>
 );
 
-const PermissionToggle = ({ 
-  label, 
-  checked, 
-  onChange, 
-  description 
-}: { 
-  label: string; 
-  checked: boolean; 
-  onChange: (checked: boolean) => void; 
-  description?: string;
+const StatsCard = ({ title, value, icon, bgColor }: { 
+  title: string; 
+  value: number; 
+  icon: React.ReactNode;
+  bgColor: string; 
 }) => (
-  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-    <div>
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
-      {description && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{description}</p>
-      )}
-    </div>
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={(e) => onChange(e.target.checked)}
-      className="rounded border-gray-300 text-slate-600 focus:ring-slate-500"
-    />
-  </div>
-);
-
-const PermissionEditor = ({ 
-  permissions, 
-  onChange 
-}: { 
-  permissions: ApiKeyPermissions; 
-  onChange: (permissions: ApiKeyPermissions) => void; 
-}) => {
-  const updatePermission = (resource: keyof ApiKeyPermissions, action: string, value: boolean) => {
-    const newPermissions = {
-      ...permissions,
-      [resource]: {
-        ...permissions[resource],
-        [action]: value
-      }
-    };
-    onChange(newPermissions);
-  };
-
-  const setPresetPermissions = (preset: ApiKeyPermissions) => {
-    onChange(preset);
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* プリセット選択 */}
-      <div>
-        <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">クイック設定</h4>
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => setPresetPermissions(readOnlyPermissions)}
-            className="px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800"
-          >
-            読み取り専用
-          </button>
-          <button
-            onClick={() => setPresetPermissions(defaultPermissions)}
-            className="px-3 py-1 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-md hover:bg-green-200 dark:hover:bg-green-800"
-          >
-            標準権限
-          </button>
-          <button
-            onClick={() => setPresetPermissions(fullPermissions)}
-            className="px-3 py-1 text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-md hover:bg-red-200 dark:hover:bg-red-800"
-          >
-            全権限
-          </button>
-        </div>
+  <div className={`${bgColor} dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700`}>
+    <div className="flex items-center">
+      <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+        {icon}
       </div>
-
-      {/* 投稿権限 */}
-      <div>
-        <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">投稿権限</h4>
-        <div className="space-y-2">
-          <PermissionToggle
-            label="投稿作成"
-            description="新しい投稿を作成する権限"
-            checked={permissions.posts.create}
-            onChange={(checked) => updatePermission('posts', 'create', checked)}
-          />
-          <PermissionToggle
-            label="投稿読み取り"
-            description="投稿一覧と詳細を取得する権限"
-            checked={permissions.posts.read}
-            onChange={(checked) => updatePermission('posts', 'read', checked)}
-          />
-          <PermissionToggle
-            label="投稿更新"
-            description="既存の投稿を編集する権限"
-            checked={permissions.posts.update}
-            onChange={(checked) => updatePermission('posts', 'update', checked)}
-          />
-          <PermissionToggle
-            label="投稿削除"
-            description="投稿を削除する権限"
-            checked={permissions.posts.delete}
-            onChange={(checked) => updatePermission('posts', 'delete', checked)}
-          />
-        </div>
+      <div className="ml-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400">{title}</p>
+        <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
       </div>
-
-      {/* コメント権限 */}
-      <div>
-        <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">コメント権限</h4>
-        <div className="space-y-2">
-          <PermissionToggle
-            label="コメント読み取り"
-            description="コメント一覧を取得する権限"
-            checked={permissions.comments.read}
-            onChange={(checked) => updatePermission('comments', 'read', checked)}
-          />
-          <PermissionToggle
-            label="コメント管理"
-            description="コメントの承認・削除を行う権限"
-            checked={permissions.comments.moderate}
-            onChange={(checked) => updatePermission('comments', 'moderate', checked)}
-          />
-        </div>
-      </div>
-
-      {/* 設定権限 */}
-      <div>
-        <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">設定権限</h4>
-        <div className="space-y-2">
-          <PermissionToggle
-            label="設定読み取り"
-            description="システム設定を読み取る権限"
-            checked={permissions.settings.read}
-            onChange={(checked) => updatePermission('settings', 'read', checked)}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ApiKeyCard = ({ 
-  apiKey, 
-  onEdit, 
-  onDelete, 
-  onToggleActive 
-}: { 
-  apiKey: ApiKey; 
-  onEdit: (apiKey: ApiKey) => void; 
-  onDelete: (id: string) => void;
-  onToggleActive: (id: string, isActive: boolean) => void;
-}) => (
-  <div className={`p-6 rounded-lg border ${apiKey.isActive 
-    ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700' 
-    : 'bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600'
-  }`}>
-    <div className="flex items-start justify-between mb-4">
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{apiKey.name}</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 font-mono mt-1">{apiKey.key}</p>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className={`px-2 py-1 text-xs rounded-full ${apiKey.isActive 
-          ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
-          : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-        }`}>
-          {apiKey.isActive ? 'アクティブ' : '無効'}
-        </span>
-      </div>
-    </div>
-
-    <div className="mb-4">
-      <p className="text-xs text-gray-500 dark:text-gray-400">
-        作成日: {new Date(apiKey.createdAt).toLocaleString('ja-JP')}
-      </p>
-      {apiKey.lastUsed && (
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          最終使用: {new Date(apiKey.lastUsed).toLocaleString('ja-JP')}
-        </p>
-      )}
-    </div>
-
-    <div className="mb-4">
-      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">権限</h4>
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <div>
-          <span className="font-medium">投稿:</span>
-          <span className="ml-1 text-gray-600 dark:text-gray-400">
-            {[
-              apiKey.permissions.posts.create && '作成',
-              apiKey.permissions.posts.read && '読取',
-              apiKey.permissions.posts.update && '更新',
-              apiKey.permissions.posts.delete && '削除'
-            ].filter(Boolean).join(', ') || 'なし'}
-          </span>
-        </div>
-        <div>
-          <span className="font-medium">コメント:</span>
-          <span className="ml-1 text-gray-600 dark:text-gray-400">
-            {[
-              apiKey.permissions.comments.read && '読取',
-              apiKey.permissions.comments.moderate && '管理'
-            ].filter(Boolean).join(', ') || 'なし'}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <div className="flex gap-2">
-      <button
-        onClick={() => onEdit(apiKey)}
-        className="px-3 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
-      >
-        編集
-      </button>
-      <button
-        onClick={() => onToggleActive(apiKey.id, !apiKey.isActive)}
-        className={`px-3 py-1 text-xs rounded-md transition-colors ${apiKey.isActive
-          ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-          : 'bg-green-500 hover:bg-green-600 text-white'
-        }`}
-      >
-        {apiKey.isActive ? '無効化' : '有効化'}
-      </button>
-      <button
-        onClick={() => onDelete(apiKey.id)}
-        className="px-3 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
-      >
-        削除
-      </button>
     </div>
   </div>
 );
 
-export default function ApiKeysPage() {
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+const KeyIcon = () => (
+  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+  </svg>
+);
+
+export default function APIKeysPage() {
+  const { user, isLoading } = useAuth();
+  const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingKey, setEditingKey] = useState<ApiKey | null>(null);
-  const [formData, setFormData] = useState<ApiKeyForm>({
-    name: '',
-    permissions: defaultPermissions
+  const [newKeyName, setNewKeyName] = useState('');
+  const [newKeyPermissions, setNewKeyPermissions] = useState<ApiKeyPermissions>({
+    posts: {
+      create: false,
+      read: true,
+      update: false,
+      delete: false
+    },
+    comments: {
+      read: true,
+      moderate: false,
+      delete: false
+    },
+    users: {
+      read: false,
+      create: false,
+      update: false,
+      delete: false
+    },
+    settings: {
+      read: false,
+      update: false
+    },
+    uploads: {
+      create: false,
+      read: true,
+      delete: false
+    }
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newKeyValue, setNewKeyValue] = useState<string>('');
-  const { user } = useAuth();
 
   useEffect(() => {
-    if (user?.role === 'admin') {
-      loadApiKeys();
+    if (!isLoading && user) {
+      fetchAPIKeys();
     }
-  }, [user]);
+  }, [user, isLoading]);
 
-  const loadApiKeys = async () => {
-    setIsLoading(true);
+  const fetchAPIKeys = async () => {
     try {
-      const response = await fetch('/api/admin/api-keys', {
-        credentials: 'include',
-      });
-      
+      const response = await fetch('/api/admin/api-keys');
       if (!response.ok) {
-        throw new Error('APIキーの読み込みに失敗しました');
+        throw new Error('APIキーの取得に失敗しました');
       }
-      
       const data = await response.json();
-      setApiKeys(data.apiKeys);
-    } catch (error) {
-      console.error('APIキー読み込みエラー:', error);
-      setMessage('APIキーの読み込みに失敗しました');
-      setMessageType('error');
+      setApiKeys(data.apiKeys || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const createApiKey = async () => {
-    setIsSubmitting(true);
+  const createAPIKey = async () => {
+    if (!newKeyName.trim()) {
+      setError('APIキー名を入力してください');
+      return;
+    }
+
+    setCreating(true);
+    setError(null);
+
     try {
       const response = await fetch('/api/admin/api-keys', {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: newKeyName,
+          permissions: newKeyPermissions
+        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'APIキーの作成に失敗しました');
+        const data = await response.json();
+        throw new Error(data.error || 'APIキーの作成に失敗しました');
       }
 
       const data = await response.json();
-      setNewKeyValue(data.apiKey.key);
-      setMessage('APIキーが正常に作成されました');
-      setMessageType('success');
-      setShowCreateForm(false);
-      setFormData({ name: '', permissions: defaultPermissions });
-      await loadApiKeys();
-    } catch (error) {
-      console.error('APIキー作成エラー:', error);
-      setMessage(error instanceof Error ? error.message : 'APIキーの作成中にエラーが発生しました');
-      setMessageType('error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const updateApiKey = async () => {
-    if (!editingKey) return;
-    
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(`/api/admin/api-keys/${editingKey.id}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
+      
+      // 新しいキーを表示するためのアラート
+      alert(`新しいAPIキーが作成されました:\n${data.apiKey}\n\nこのキーは二度と表示されません。安全な場所に保存してください。`);
+      
+      // フォームをリセット
+      setNewKeyName('');
+      setNewKeyPermissions({
+        posts: {
+          create: false,
+          read: true,
+          update: false,
+          delete: false
         },
-        body: JSON.stringify(formData),
+        comments: {
+          read: true,
+          moderate: false,
+          delete: false
+        },
+        users: {
+          read: false,
+          create: false,
+          update: false,
+          delete: false
+        },
+        settings: {
+          read: false,
+          update: false
+        },
+        uploads: {
+          create: false,
+          read: true,
+          delete: false
+        }
       });
+      setShowCreateForm(false);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'APIキーの更新に失敗しました');
-      }
-
-      setMessage('APIキーが正常に更新されました');
-      setMessageType('success');
-      setEditingKey(null);
-      setFormData({ name: '', permissions: defaultPermissions });
-      await loadApiKeys();
-    } catch (error) {
-      console.error('APIキー更新エラー:', error);
-      setMessage(error instanceof Error ? error.message : 'APIキーの更新中にエラーが発生しました');
-      setMessageType('error');
+      // APIキーリストを更新
+      await fetchAPIKeys();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
-      setIsSubmitting(false);
+      setCreating(false);
     }
   };
 
-  const deleteApiKey = async (id: string) => {
-    if (!confirm('このAPIキーを削除してもよろしいですか？この操作は取り消せません。')) {
+  const deleteAPIKey = async (keyId: string) => {
+    if (!confirm('このAPIキーを削除しますか？')) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/admin/api-keys/${id}`, {
+      const response = await fetch(`/api/admin/api-keys/${keyId}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'APIキーの削除に失敗しました');
+        throw new Error('APIキーの削除に失敗しました');
       }
 
-      setMessage('APIキーが正常に削除されました');
-      setMessageType('success');
-      await loadApiKeys();
-    } catch (error) {
-      console.error('APIキー削除エラー:', error);
-      setMessage(error instanceof Error ? error.message : 'APIキーの削除中にエラーが発生しました');
-      setMessageType('error');
+      await fetchAPIKeys();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
     }
   };
 
-  const toggleApiKeyActive = async (id: string, isActive: boolean) => {
-    try {
-      const response = await fetch(`/api/admin/api-keys/${id}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isActive }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'APIキーの更新に失敗しました');
-      }
-
-      setMessage(`APIキーが${isActive ? '有効' : '無効'}になりました`);
-      setMessageType('success');
-      await loadApiKeys();
-    } catch (error) {
-      console.error('APIキー状態変更エラー:', error);
-      setMessage(error instanceof Error ? error.message : 'APIキーの状態変更中にエラーが発生しました');
-      setMessageType('error');
-    }
-  };
-
-  const startEdit = (apiKey: ApiKey) => {
-    setEditingKey(apiKey);
-    setFormData({
-      name: apiKey.name,
-      permissions: apiKey.permissions
-    });
-    setShowCreateForm(true);
-  };
-
-  const cancelEdit = () => {
-    setEditingKey(null);
-    setShowCreateForm(false);
-    setFormData({ name: '', permissions: defaultPermissions });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingKey) {
-      updateApiKey();
-    } else {
-      createApiKey();
-    }
-  };
-
-  const clearMessage = () => {
-    setMessage('');
-  };
-
-  const getSubmitButtonText = () => {
-    if (isSubmitting) {
-      return editingKey ? '更新中...' : '作成中...';
-    }
-    return editingKey ? 'APIキーを更新' : 'APIキーを作成';
-  };
-
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => setMessage(''), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
-
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
       <AdminLayout title="APIキー管理">
         <LoadingSpinner />
@@ -472,108 +210,468 @@ export default function ApiKeysPage() {
     );
   }
 
+  if (!user) {
+    return (
+      <AdminLayout title="APIキー管理">
+        <div className="flex justify-center items-center min-h-screen">認証が必要です</div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout title="APIキー管理">
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">APIキー管理</h1>
-            <p className="text-gray-600 dark:text-gray-400">外部アプリケーション用のAPIキーを管理します</p>
-          </div>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="px-4 py-2 bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800 text-white rounded-lg transition-colors"
-          >
-            新しいAPIキーを作成
-          </button>
-        </div>
-
-        {message && <Message message={message} type={messageType} />}
-
-        {newKeyValue && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-400 mb-2">新しいAPIキーが作成されました</h3>
-            <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
-              このAPIキーは一度だけ表示されます。安全な場所に保存してください。
-            </p>
-            <div className="bg-white dark:bg-gray-800 p-3 rounded border font-mono text-sm break-all">
-              {newKeyValue}
+        {/* ページヘッダー */}
+        <div className="bg-gradient-to-r from-slate-600 to-slate-800 rounded-lg p-6 text-white">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold mb-2">APIキー管理</h1>
+              <p className="text-slate-100">アカウントのAPIキーを管理し、権限を設定できます。</p>
             </div>
             <button
-              onClick={() => setNewKeyValue('')}
-              className="mt-3 px-3 py-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white rounded-md"
+              onClick={() => setShowCreateForm(true)}
+              className="bg-white text-slate-800 px-4 py-2 rounded-md hover:bg-slate-100 transition-colors font-medium"
             >
-              確認しました
+              + 新しいAPIキーを作成
             </button>
           </div>
-        )}
+        </div>
 
+        {/* 統計カード */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatsCard
+            title="総APIキー数"
+            value={apiKeys.length}
+            icon={<KeyIcon />}
+            bgColor="bg-white"
+          />
+          <StatsCard
+            title="アクティブキー"
+            value={apiKeys.filter(key => !key.expiresAt || new Date(key.expiresAt) > new Date()).length}
+            icon={<KeyIcon />}
+            bgColor="bg-white"
+          />
+          <StatsCard
+            title="管理権限キー"
+            value={apiKeys.filter(key => 
+              key.permissions.users.create || 
+              key.permissions.users.update || 
+              key.permissions.users.delete ||
+              key.permissions.settings.update
+            ).length}
+            icon={<KeyIcon />}
+            bgColor="bg-white"
+          />
+        </div>
+
+        {error && <ErrorMessage message={error} />}
+
+        {/* APIキー作成フォーム（モーダル風） */}
         {showCreateForm && (
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-              {editingKey ? 'APIキーを編集' : '新しいAPIキーを作成'}
-            </h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="keyName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  APIキー名
-                </label>
-                <input
-                  id="keyName"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="例: モバイルアプリ用キー"
-                  required
-                />
-              </div>
+          <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">新しいAPIキーを作成</h2>
+              <button
+                onClick={() => setShowCreateForm(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="keyName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    APIキー名
+                  </label>
+                  <input
+                    type="text"
+                    id="keyName"
+                    value={newKeyName}
+                    onChange={(e) => setNewKeyName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="例: 本番環境用キー"
+                  />
+                </div>
 
-              <PermissionEditor
-                permissions={formData.permissions}
-                onChange={(permissions) => setFormData(prev => ({ ...prev, permissions }))}
-              />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* 投稿管理権限 */}
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      投稿管理
+                    </h4>
+                    <div className="space-y-2">
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.posts.read}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            posts: { ...prev.posts, read: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        投稿を読み取り
+                      </label>
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.posts.create}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            posts: { ...prev.posts, create: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        投稿を作成
+                      </label>
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.posts.update}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            posts: { ...prev.posts, update: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        投稿を更新
+                      </label>
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.posts.delete}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            posts: { ...prev.posts, delete: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        投稿を削除
+                      </label>
+                    </div>
+                  </div>
 
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    isSubmitting
-                      ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
-                      : 'bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800 text-white'
-                  }`}
-                >
-                  {getSubmitButtonText()}
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelEdit}
-                  className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                >
-                  キャンセル
-                </button>
+                  {/* コメント管理権限 */}
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      コメント管理
+                    </h4>
+                    <div className="space-y-2">
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.comments.read}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            comments: { ...prev.comments, read: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        コメントを読み取り
+                      </label>
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.comments.moderate}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            comments: { ...prev.comments, moderate: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        コメントを承認
+                      </label>
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.comments.delete}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            comments: { ...prev.comments, delete: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        コメントを削除
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* ユーザー管理権限 */}
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                      </svg>
+                      ユーザー管理
+                    </h4>
+                    <div className="space-y-2">
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.users.read}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            users: { ...prev.users, read: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        ユーザー情報を読み取り
+                      </label>
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.users.create}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            users: { ...prev.users, create: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        ユーザーを作成
+                      </label>
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.users.update}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            users: { ...prev.users, update: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        ユーザー情報を更新
+                      </label>
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.users.delete}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            users: { ...prev.users, delete: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        ユーザーを削除
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* 画像管理権限 */}
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      画像管理
+                    </h4>
+                    <div className="space-y-2">
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.uploads.read}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            uploads: { ...prev.uploads, read: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        画像を読み取り
+                      </label>
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.uploads.create}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            uploads: { ...prev.uploads, create: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        画像をアップロード
+                      </label>
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.uploads.delete}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            uploads: { ...prev.uploads, delete: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        画像を削除
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* 設定管理権限 */}
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      設定管理
+                    </h4>
+                    <div className="space-y-2">
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.settings.read}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            settings: { ...prev.settings, read: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        設定を読み取り
+                      </label>
+                      <label className="flex items-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={newKeyPermissions.settings.update}
+                          onChange={(e) => setNewKeyPermissions(prev => ({
+                            ...prev,
+                            settings: { ...prev.settings, update: e.target.checked }
+                          }))}
+                          className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        設定を更新
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    onClick={() => setShowCreateForm(false)}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={createAPIKey}
+                    disabled={creating}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {creating ? '作成中...' : 'APIキーを作成'}
+                  </button>
+                </div>
               </div>
-            </form>
+            </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {apiKeys.length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400">APIキーがまだ作成されていません。</p>
-            </div>
+        {/* 既存のAPIキー一覧 */}
+        <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">既存のAPIキー</h2>
+          </div>
+
+          {loading ? (
+            <LoadingSpinner />
           ) : (
-            apiKeys.map((apiKey) => (
-              <ApiKeyCard
-                key={apiKey.id}
-                apiKey={apiKey}
-                onEdit={startEdit}
-                onDelete={deleteApiKey}
-                onToggleActive={toggleApiKeyActive}
-              />
-            ))
+            <>
+              {apiKeys.length === 0 ? (
+                <div className="p-6 text-center text-gray-500 dark:text-gray-400">APIキーが見つかりません</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          名前
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          キープレフィックス
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          権限
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          最終使用
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          作成日時
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          操作
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      {apiKeys.map((key) => (
+                        <tr key={key._id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                            {key.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-mono">
+                            {key.keyPrefix}...
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            <div className="flex flex-wrap gap-1">
+                              {/* 投稿管理権限 */}
+                              {(key.permissions.posts.create || key.permissions.posts.read || key.permissions.posts.update || key.permissions.posts.delete) && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200">
+                                  投稿管理
+                                </span>
+                              )}
+                              {/* コメント管理権限 */}
+                              {(key.permissions.comments.read || key.permissions.comments.moderate || key.permissions.comments.delete) && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200">
+                                  コメント管理
+                                </span>
+                              )}
+                              {/* ユーザー管理権限 */}
+                              {(key.permissions.users.create || key.permissions.users.read || key.permissions.users.update || key.permissions.users.delete) && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200">
+                                  ユーザー管理
+                                </span>
+                              )}
+                              {/* 画像管理権限 */}
+                              {(key.permissions.uploads.create || key.permissions.uploads.read || key.permissions.uploads.delete) && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200">
+                                  画像管理
+                                </span>
+                              )}
+                              {/* 設定管理権限 */}
+                              {(key.permissions.settings.read || key.permissions.settings.update) && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200">
+                                  設定管理
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {key.lastUsed ? new Date(key.lastUsed).toLocaleString() : '未使用'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {new Date(key.createdAt).toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button
+                              onClick={() => deleteAPIKey(key._id)}
+                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              削除
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

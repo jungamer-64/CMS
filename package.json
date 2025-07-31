@@ -3,15 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
+    "dev:turbo": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "create-user": "ts-node scripts/create-initial-user.ts",
-    "list-users": "ts-node scripts/list-users.ts",
-    "pages:build": "NEXT_STATIC_EXPORT=true npx @cloudflare/next-on-pages",
-    "preview": "npm run pages:build && wrangler pages dev",
-    "deploy": "npm run pages:build && wrangler pages deploy"
+    "list-users": "ts-node scripts/list-users.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -27,18 +25,16 @@
     "tailwindcss": "^3.4.0"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.13",
+    "@eslint/eslintrc": "^3.3.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/dompurify": "^3.0.5",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/react": "^19",
-    "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.4.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5",
-    "wrangler": "^4.26.1"
+    "typescript": "^5"
   }
 }

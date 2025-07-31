@@ -10,9 +10,34 @@ interface Variables {
   [key: string]: string;
 }
 
+interface UploadedImage {
+  url: string;
+  fileName: string;
+  originalName: string;
+  alt: string;
+  size: number;
+  type: string;
+}
+
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-500"></div>
+    <div className="anima  const handleClearAllImages = () => {
+    if (images.length > 0 && confirm('すべての画像を削除しますか？この操作は元に戻せません。')) {
+      setImages([]);
+      clearImagesFromStorage();
+    }
+  };
+
+  const handleCancel = () => {
+    // 画像がある場合は確認を求める
+    if (images.length > 0) {
+      if (confirm('アップロードした画像がありますが、キャンセルしますか？画像データは保持されます。')) {
+        router.push('/admin');
+      }
+    } else {
+      router.push('/admin');
+    }
+  };-full h-12 w-12 border-b-2 border-slate-500"></div>
   </div>
 );
 
@@ -173,7 +198,7 @@ const ContentEditor = ({
           value={content}
           onChange={(e) => onChange(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          rows={12}
+          rows={20}
           placeholder="投稿の内容を入力してください..."
           required
           disabled={disabled}
@@ -183,7 +208,7 @@ const ContentEditor = ({
         </p>
       </>
     ) : (
-      <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 min-h-[300px] bg-gray-50 dark:bg-gray-800">
+      <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 min-h-[500px] bg-gray-50 dark:bg-gray-800">
         {content ? (
           <PostContent content={content} />
         ) : (
@@ -221,6 +246,227 @@ const FormActions = ({
   </div>
 );
 
+const MediaTab = ({ 
+  images, 
+  onImageUpload, 
+  onImageUpdate, 
+  onImageDelete, 
+  onInsertImage,
+  onClearAll,
+  isUploading 
+}: { 
+  images: UploadedImage[]; 
+  onImageUpload: (file: File) => Promise<void>; 
+  onImageUpdate: (index: number, updates: Partial<UploadedImage>) => void; 
+  onImageDelete: (index: number) => void; 
+  onInsertImage: (image: UploadedImage) => void;
+  onClearAll: () => void;
+  isUploading: boolean; 
+}) => {
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files?.[0]) {
+      onImageUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      onImageUpload(e.target.files[0]);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const generateMarkdown = (image: UploadedImage) => {
+    return `![${image.alt || image.originalName}](${image.url})`;
+  };
+
+  return (
+    <div className="h-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">メディア</h3>
+          {images.length > 0 && (
+            <button
+              type="button"
+              onClick={onClearAll}
+              className="text-xs px-2 py-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 border border-red-300 dark:border-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              title="すべての画像を削除"
+            >
+              すべて削除
+            </button>
+          )}
+        </div>
+      </div>
+      
+      <div className="p-4 space-y-4">
+        {/* アップロードエリア */}
+        <button
+          type="button"
+          className={`w-full border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+            dragActive 
+              ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' 
+              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+          }`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          onClick={() => document.getElementById('file-upload')?.click()}
+          disabled={isUploading}
+        >
+          <div className="flex flex-col items-center space-y-2">
+            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              ドラッグ&ドロップまたはクリックして画像をアップロード
+            </p>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+              id="file-upload"
+              disabled={isUploading}
+            />
+            <label
+              htmlFor="file-upload"
+              className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm transition-colors disabled:opacity-50"
+            >
+              {isUploading ? 'アップロード中...' : 'ファイルを選択'}
+            </label>
+          </div>
+        </button>
+
+        {/* アップロード済み画像リスト */}
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {images.map((image, index) => (
+            <div key={`${image.fileName}-${index}`} className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 space-y-2">
+              {/* デバッグ情報 */}
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded text-xs text-gray-600 dark:text-gray-400 border border-yellow-200 dark:border-yellow-800">
+                <p><strong>URL:</strong> {image.url}</p>
+                <p><strong>ファイル名:</strong> {image.fileName}</p>
+                <p><strong>元の名前:</strong> {image.originalName}</p>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <img 
+                  src={image.url} 
+                  alt={image.alt || image.originalName}
+                  className="w-16 h-16 object-cover rounded border"
+                  onError={(e) => {
+                    console.error('=== Image Load Error ===');
+                    console.error('Failed to load image:', image.url);
+                    console.error('Full URL:', window.location.origin + image.url);
+                    console.error('Image object:', image);
+                    console.error('Error event:', e);
+                    console.error('Current src attribute:', e.currentTarget.src);
+                    e.currentTarget.style.border = '2px solid red';
+                    e.currentTarget.style.background = '#ffebee';
+                    // エラー時の代替表示
+                    e.currentTarget.style.display = 'flex';
+                    e.currentTarget.style.alignItems = 'center';
+                    e.currentTarget.style.justifyContent = 'center';
+                    e.currentTarget.style.fontSize = '10px';
+                    e.currentTarget.style.color = 'red';
+                    e.currentTarget.innerHTML = 'エラー';
+                  }}
+                  onLoad={() => {
+                    console.log('=== Image Load Success ===');
+                    console.log('Image loaded successfully:', image.url);
+                    console.log('Full URL:', window.location.origin + image.url);
+                    console.log('Image object:', image);
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {image.originalName}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {formatFileSize(image.size)}
+                  </p>
+                </div>
+                <div className="flex space-x-1">
+                  <button
+                    type="button"
+                    onClick={() => onInsertImage(image)}
+                    className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                    title="エディタに挿入"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onImageDelete(index)}
+                    className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                    title="削除"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor={`alt-${image.fileName}-${index}`} className="block text-xs text-gray-700 dark:text-gray-300 mb-1">
+                  Alt属性 (代替テキスト)
+                </label>
+                <input
+                  id={`alt-${image.fileName}-${index}`}
+                  type="text"
+                  value={image.alt}
+                  onChange={(e) => onImageUpdate(index, { alt: e.target.value })}
+                  className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="画像の説明を入力..."
+                />
+              </div>
+              
+              <div className="bg-gray-50 dark:bg-gray-700 p-2 rounded text-xs">
+                <p className="text-gray-600 dark:text-gray-400 mb-1">Markdownコード:</p>
+                <code className="text-gray-800 dark:text-gray-200 break-all">
+                  {generateMarkdown(image)}
+                </code>
+              </div>
+            </div>
+          ))}
+          
+          {images.length === 0 && (
+            <p className="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
+              アップロードされた画像はありません
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function NewPost() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -228,8 +474,55 @@ export default function NewPost() {
   const [isCustomSlug, setIsCustomSlug] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [images, setImages] = useState<UploadedImage[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
+
+  // LocalStorageキー
+  const STORAGE_KEY = 'new-post-images';
+
+  // 画像データをLocalStorageに保存
+  const saveImagesToStorage = (imagesToSave: UploadedImage[]) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(imagesToSave));
+    } catch (error) {
+      console.error('Failed to save images to localStorage:', error);
+    }
+  };
+
+  // LocalStorageから画像データを読み込み
+  const loadImagesFromStorage = (): UploadedImage[] => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+      console.error('Failed to load images from localStorage:', error);
+      return [];
+    }
+  };
+
+  // LocalStorageから画像データをクリア
+  const clearImagesFromStorage = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error('Failed to clear images from localStorage:', error);
+    }
+  };
+
+  // コンポーネントマウント時にLocalStorageから画像を復元
+  useEffect(() => {
+    const savedImages = loadImagesFromStorage();
+    if (savedImages.length > 0) {
+      setImages(savedImages);
+    }
+  }, []);
+
+  // 画像リストが変更されるたびにLocalStorageに保存
+  useEffect(() => {
+    saveImagesToStorage(images);
+  }, [images]);
 
   const getVariables = (): Variables => {
     const now = new Date();
@@ -298,11 +591,15 @@ export default function NewPost() {
     try {
       const finalSlug = replaceVariables(slug);
       
+      console.log('Sending post request...');
+      console.log('User:', user);
+      
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Cookieを含めて送信
         body: JSON.stringify({ 
           title, 
           content, 
@@ -311,11 +608,17 @@ export default function NewPost() {
         }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
       if (!response.ok) {
         const error = await response.json();
+        console.error('Post creation error:', error);
         throw new Error(error.error || '投稿の保存に失敗しました');
       }
 
+      // 投稿が成功したら保存された画像データをクリア
+      clearImagesFromStorage();
       router.push('/admin/posts');
     } catch (error) {
       console.error('投稿エラー:', error);
@@ -325,8 +628,80 @@ export default function NewPost() {
     }
   };
 
+  const handleClearAllImages = () => {
+    if (images.length > 0 && confirm('すべての画像を削除しますか？この操作は元に戻せません。')) {
+      setImages([]);
+      clearImagesFromStorage();
+    }
+  };
+
   const handleCancel = () => {
-    router.push('/admin');
+    // 画像がある場合は確認を求める
+    if (images.length > 0) {
+      if (confirm('アップロードした画像がありますが、キャンセルしますか？画像データは保持されます。')) {
+        router.push('/admin');
+      }
+    } else {
+      router.push('/admin');
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'アップロードに失敗しました');
+      }
+
+      const result = await response.json();
+      console.log('=== Upload Response Analysis ===');
+      console.log('Raw upload result:', result);
+      console.log('Result URL:', result.url);
+      console.log('Result fileName:', result.fileName);
+      console.log('Result originalName:', result.originalName);
+      console.log('Full URL path: http://localhost:3000' + result.url);
+      
+      const newImage: UploadedImage = {
+        url: result.url,
+        fileName: result.fileName,
+        originalName: result.originalName,
+        alt: '',
+        size: result.size,
+        type: result.type,
+      };
+      
+      console.log('=== New Image Object ===');
+      console.log('New image object:', newImage);
+      console.log('Image URL that will be used:', newImage.url);
+      setImages(prev => [...prev, newImage]);
+    } catch (error) {
+      console.error('アップロードエラー:', error);
+      alert(error instanceof Error ? error.message : 'アップロードに失敗しました');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleImageUpdate = (index: number, updates: Partial<UploadedImage>) => {
+    setImages(prev => prev.map((img, i) => i === index ? { ...img, ...updates } : img));
+  };
+
+  const handleImageDelete = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleInsertImage = (image: UploadedImage) => {
+    const markdown = `![${image.alt || image.originalName}](${image.url})`;
+    setContent(prev => prev + '\n\n' + markdown);
   };
 
   if (!user) {
@@ -339,43 +714,59 @@ export default function NewPost() {
 
   return (
     <AdminLayout title="新規投稿作成">
-      <div className="max-w-2xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">新規投稿作成</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            投稿者: <span className="font-medium">{user.displayName}</span>
-          </p>
+      <div className="flex gap-6 h-full">
+        {/* 左側: メインフォーム */}
+        <div className="flex-1 max-w-2xl">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">新規投稿作成</h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              投稿者: <span className="font-medium">{user.displayName}</span>
+            </p>
+          </div>
+        
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <TitleInput 
+              value={title} 
+              onChange={setTitle} 
+              disabled={isSubmitting} 
+            />
+            
+            <SlugInput 
+              value={slug}
+              onChange={handleSlugChange}
+              onReset={resetSlugToAuto}
+              isCustom={isCustomSlug}
+              variables={getVariables()}
+              disabled={isSubmitting}
+            />
+            
+            <ContentEditor 
+              content={content}
+              onChange={setContent}
+              showPreview={showPreview}
+              onTogglePreview={setShowPreview}
+              disabled={isSubmitting}
+            />
+            
+            <FormActions 
+              isSubmitting={isSubmitting} 
+              onCancel={handleCancel} 
+            />
+          </form>
         </div>
-      
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <TitleInput 
-            value={title} 
-            onChange={setTitle} 
-            disabled={isSubmitting} 
+
+        {/* 右側: メディアタブ */}
+        <div className="w-80 sticky top-6 h-screen">
+          <MediaTab
+            images={images}
+            onImageUpload={handleImageUpload}
+            onImageUpdate={handleImageUpdate}
+            onImageDelete={handleImageDelete}
+            onInsertImage={handleInsertImage}
+            onClearAll={handleClearAllImages}
+            isUploading={isUploading}
           />
-          
-          <SlugInput 
-            value={slug}
-            onChange={handleSlugChange}
-            onReset={resetSlugToAuto}
-            isCustom={isCustomSlug}
-            variables={getVariables()}
-            disabled={isSubmitting}
-          />
-          
-          <ContentEditor 
-            content={content}
-            onChange={setContent}
-            showPreview={showPreview}
-            onTogglePreview={setShowPreview}
-            disabled={isSubmitting}
-          />
-          
-          <FormActions 
-            isSubmitting={isSubmitting} 
-            onCancel={handleCancel} 
-          />
-        </form>
+        </div>
       </div>
     </AdminLayout>
   );

@@ -25,7 +25,9 @@ export function AuthProvider({ children }: { readonly children: React.ReactNode 
     try {
       const response = await fetch('/api/auth/me');
       if (response.ok) {
-        const userData = await response.json();
+        const responseData = await response.json();
+        // APIレスポンスのdata部分を取得
+        const userData = responseData.data || responseData;
         setUser(userData);
       }
     } catch (error) {
@@ -46,7 +48,9 @@ export function AuthProvider({ children }: { readonly children: React.ReactNode 
       });
 
       if (response.ok) {
-        const userData = await response.json();
+        const responseData = await response.json();
+        // APIレスポンスのdata部分を取得
+        const userData = responseData.data || responseData;
         setUser(userData);
         return true;
       } else {

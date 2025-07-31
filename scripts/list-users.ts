@@ -1,8 +1,9 @@
-import { getUsersCollection } from '../app/lib/users';
 import { config } from 'dotenv';
 
-// .env.localファイルを読み込み
+// 最初に.env.localファイルを読み込み
 config({ path: '.env.local' });
+
+import { getUsersCollection } from '../app/lib/users';
 
 async function listUsers() {
   try {

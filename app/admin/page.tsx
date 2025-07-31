@@ -70,6 +70,18 @@ const AdminIcon = () => (
   </svg>
 );
 
+const ChevronUpIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+  </svg>
+);
+
+const ChevronDownIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-500"></div>
@@ -83,8 +95,10 @@ const ErrorMessage = ({ message }: { message: string }) => (
 );
 
 const WelcomeSection = ({ userName }: { userName: string }) => (
-  <div className="bg-gradient-to-r from-slate-600 to-slate-800 rounded-lg p-6 text-white">
-    <h1 className="text-3xl font-bold mb-2">おかえりなさい、{userName}さん</h1>
+  <div className="bg-gradient-to-r from-slate-600 to-slate-800 rounded-lg p-8 text-white">
+    <h1 className="text-3xl font-bold mb-2">
+      おかえりなさい、{userName || 'ユーザー'}さん
+    </h1>
     <p className="text-slate-100">管理者ダッシュボードへようこそ。サイトの状況を確認し、コンテンツを管理できます。</p>
   </div>
 );
@@ -111,7 +125,7 @@ const RecentPosts = ({ posts }: { posts: DashboardStats['recentPosts'] }) => (
             <div key={post.id} className="flex justify-between items-center">
               <div>
                 <Link 
-                  href={`/blog/${post.slug}`}
+                  href={`/articles/${post.slug}`}
                   className="text-slate-900 dark:text-white hover:text-slate-600 dark:hover:text-slate-300 font-medium"
                 >
                   {post.title}
@@ -128,41 +142,62 @@ const RecentPosts = ({ posts }: { posts: DashboardStats['recentPosts'] }) => (
   </div>
 );
 
-const QuickActions = () => (
-  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-    <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">クイックアクション</h3>
-    </div>
-    <div className="p-6 space-y-3">
-      <Link 
-        href="/admin/new"
-        className="block w-full px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors text-center"
-      >
-        新規投稿
-      </Link>
-      <Link 
-        href="/admin/posts"
-        className="block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-center"
-      >
-        投稿管理
-      </Link>
-      <Link 
-        href="/admin/comments"
-        className="block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-center"
-      >
-        コメント管理
-      </Link>
-      <Link 
-        href="/admin/users"
-        className="block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-center"
-      >
-        ユーザー管理
-      </Link>
-    </div>
-  </div>
-);
+const QuickActions = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-const SystemInfo = ({ user }: { user: any }) => (
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">クイックアクション</h3>
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+            aria-label={isCollapsed ? 'リストを展開' : 'リストを閉じる'}
+          >
+            {isCollapsed ? <ChevronDownIcon /> : <ChevronUpIcon />}
+          </button>
+        </div>
+      </div>
+      {!isCollapsed && (
+        <div className="p-6 space-y-3">
+          <Link 
+            href="/admin/new"
+            className="block w-full px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors text-center"
+          >
+            新規投稿
+          </Link>
+          <Link 
+            href="/admin/posts"
+            className="block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-center"
+          >
+            投稿管理
+          </Link>
+          <Link 
+            href="/admin/comments"
+            className="block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-center"
+          >
+            コメント管理
+          </Link>
+          <Link 
+            href="/admin/images"
+            className="block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-center"
+          >
+            画像管理
+          </Link>
+          <Link 
+            href="/admin/users"
+            className="block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-center"
+          >
+            ユーザー管理
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SystemInfo = ({ user }: { user: { lastLogin?: string; role: string; id: string; email?: string } }) => (
   <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
     <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">システム情報</h3>
@@ -202,34 +237,120 @@ export default function AdminHome() {
   const { user } = useAuth();
 
   useEffect(() => {
+    console.log('useEffect triggered - user:', user);
     if (user?.role === 'admin') {
+      console.log('管理者ユーザーを確認、データ取得開始');
       fetchDashboardData();
+    } else {
+      console.log('非管理者ユーザーまたはユーザー情報なし');
+      setIsLoading(false);
     }
   }, [user]);
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
+      console.log('ダッシュボードデータ取得開始...');
+      
       const [postsResponse, usersResponse] = await Promise.all([
         fetch('/api/admin/posts'),
         fetch('/api/admin/users')
       ]);
 
-      if (!postsResponse.ok || !usersResponse.ok) {
-        throw new Error('データの取得に失敗しました');
+      console.log('Posts Response Status:', postsResponse.status);
+      console.log('Users Response Status:', usersResponse.status);
+
+      if (!postsResponse.ok) {
+        const errorText = await postsResponse.text();
+        console.error('Posts API Error:', errorText);
+        throw new Error(`投稿データの取得に失敗しました: ${postsResponse.status}`);
       }
 
-      const [posts, users] = await Promise.all([
+      if (!usersResponse.ok) {
+        const errorText = await usersResponse.text();
+        console.error('Users API Error:', errorText);
+        throw new Error(`ユーザーデータの取得に失敗しました: ${usersResponse.status}`);
+      }
+
+      const [postsData, usersData] = await Promise.all([
         postsResponse.json(),
         usersResponse.json()
       ]);
 
-      const publishedPosts = posts.filter((post: any) => !post.isDeleted);
-      const deletedPosts = posts.filter((post: any) => post.isDeleted);
-      const adminUsers = users.filter((user: any) => user.role === 'admin');
+      console.log('取得した投稿データ:', postsData);
+      console.log('取得したユーザーデータ:', usersData);
+
+      // APIレスポンスの構造に合わせてデータを取得
+      let posts = [];
+      if (postsData.success) {
+        // 成功時のレスポンス構造
+        if (Array.isArray(postsData.data?.posts)) {
+          posts = postsData.data.posts;
+        } else if (Array.isArray(postsData.data)) {
+          posts = postsData.data;
+        }
+      } else if (Array.isArray(postsData)) {
+        posts = postsData;
+      }
+
+      let users = [];
+      if (usersData.success) {
+        // 成功時のレスポンス構造
+        if (Array.isArray(usersData.data?.users)) {
+          users = usersData.data.users;
+        } else if (Array.isArray(usersData.data)) {
+          users = usersData.data;
+        }
+      } else if (Array.isArray(usersData)) {
+        users = usersData;
+      }
+
+      console.log('処理後の投稿配列:', posts);
+      console.log('処理後のユーザー配列:', users);
+
+      if (posts.length === 0 && users.length === 0) {
+        console.warn('データベースからデータが取得できませんでした。データベース接続を確認してください。');
+        setError('データベースからデータを取得できませんでした。データベース接続を確認してください。');
+        return;
+      }
+
+      interface PostData {
+        id: string;
+        title: string;
+        slug: string;
+        author: string;
+        isDeleted: boolean;
+        createdAt: string;
+      }
+
+      interface UserData {
+        id: string;
+        username: string;
+        role: string;
+      }
+
+      const publishedPosts = posts.filter((post: PostData) => !post.isDeleted);
+      const deletedPosts = posts.filter((post: PostData) => post.isDeleted);
+      const adminUsers = users.filter((user: UserData) => user.role === 'admin');
       const recentPosts = publishedPosts
-        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 5);
+        .sort((a: PostData, b: PostData) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
+        .map((post: PostData) => ({
+          id: post.id,
+          title: post.title,
+          slug: post.slug,
+          author: post.author,
+          createdAt: post.createdAt
+        }));
+
+      console.log('統計データ:', {
+        totalPosts: posts.length,
+        publishedPosts: publishedPosts.length,
+        deletedPosts: deletedPosts.length,
+        totalUsers: users.length,
+        adminUsers: adminUsers.length,
+        recentPosts: recentPosts.length
+      });
 
       setStats({
         totalPosts: posts.length,
@@ -239,9 +360,13 @@ export default function AdminHome() {
         adminUsers: adminUsers.length,
         recentPosts
       });
+
+      // データ取得成功時はエラーをクリア
+      setError('');
     } catch (error) {
       console.error('ダッシュボードデータ取得エラー:', error);
-      setError('データの取得中にエラーが発生しました');
+      const errorMessage = error instanceof Error ? error.message : 'データの取得中にエラーが発生しました';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -250,7 +375,25 @@ export default function AdminHome() {
   if (isLoading || !user) {
     return (
       <AdminLayout title="読み込み中...">
-        <LoadingSpinner />
+        <div className="space-y-4">
+          <LoadingSpinner />
+          {!user && !isLoading && (
+            <div className="text-center text-red-600">
+              認証されていないか、管理者権限がありません。
+            </div>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (user.role !== 'admin') {
+    return (
+      <AdminLayout title="アクセス拒否">
+        <div className="text-center py-8">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">アクセス拒否</h2>
+          <p className="text-gray-600">管理者権限が必要です。</p>
+        </div>
       </AdminLayout>
     );
   }
@@ -258,7 +401,7 @@ export default function AdminHome() {
   return (
     <AdminLayout title="管理者ホーム">
       <div className="space-y-8">
-        <WelcomeSection userName={user.displayName} />
+        <WelcomeSection userName={user.displayName || user.username || 'ユーザー'} />
 
         {error && <ErrorMessage message={error} />}
 

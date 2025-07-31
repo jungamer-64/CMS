@@ -1,15 +1,19 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-
-// 動的レンダリングを強制
-export const dynamic = 'force-dynamic';
 
 export async function POST() {
   try {
-    const cookieStore = await cookies();
-    cookieStore.delete('auth_token');
+    const response = NextResponse.json({ message: 'ログアウトしました' });
     
-    return NextResponse.json({ message: 'ログアウトしました' });
+    // Cookieを削除
+    response.cookies.set('token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0
+    });
+
+    return response;
+
   } catch (error) {
     console.error('ログアウトエラー:', error);
     return NextResponse.json(

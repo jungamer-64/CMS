@@ -55,11 +55,22 @@ const CommentFilters = ({
   onFilterChange: (filter: FilterType) => void; 
   comments: Comment[]; 
 }) => {
-  const getCounts = () => ({
-    all: comments.filter(c => !c.isDeleted).length,
-    pending: comments.filter(c => !c.isApproved && !c.isDeleted).length,
-    approved: comments.filter(c => c.isApproved && !c.isDeleted).length,
-  });
+  const getCounts = () => {
+    // commentsが未定義またはnullの場合はデフォルト値を返す
+    if (!comments || !Array.isArray(comments)) {
+      return {
+        all: 0,
+        pending: 0,
+        approved: 0,
+      };
+    }
+    
+    return {
+      all: comments.filter(c => !c.isDeleted).length,
+      pending: comments.filter(c => !c.isApproved && !c.isDeleted).length,
+      approved: comments.filter(c => c.isApproved && !c.isDeleted).length,
+    };
+  };
 
   const counts = getCounts();
 
@@ -236,11 +247,24 @@ export default function CommentsManagement() {
       }
       
       const data = await response.json();
-      if (data.success) {
-        setComments(data.comments);
+      console.log('管理者コメントAPIレスポンス:', data);
+      
+      if (data.success && data.data?.comments) {
+        // 新しいレスポンス形式: { success: true, data: { comments: [...] } }
+        setComments(Array.isArray(data.data.comments) ? data.data.comments : []);
+      } else if (data.success && data.comments) {
+        // 旧レスポンス形式: { success: true, comments: [...] }
+        setComments(Array.isArray(data.comments) ? data.comments : []);
+      } else if (data.comments) {
+        // 直接comments配列
+        setComments(Array.isArray(data.comments) ? data.comments : []);
+      } else {
+        console.warn('予期しないコメントデータ形式:', data);
+        setComments([]);
       }
     } catch (error) {
       console.error('コメント読み込みエラー:', error);
+      setComments([]); // エラー時も空配列を設定
     } finally {
       setLoading(false);
     }

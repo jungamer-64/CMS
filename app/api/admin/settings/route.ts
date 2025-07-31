@@ -1,110 +1,61 @@
-import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-import { getUserById } from '@/app/lib/users';
-import { updatePublicSettings } from '../../settings/public/route';
+import { NextRequest } from 'next/server';
+import { withAuth, createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { getSettings, updateSettings } from '@/app/lib/settings';
 
-// 動的レンダリングを強制
-export const dynamic = 'force-dynamic';
-
-interface Settings {
-  darkMode: boolean;
-  apiAccess: boolean;
-  apiKey: string;
-  emailNotifications: boolean;
-  maintenanceMode: boolean;
-  maxPostsPerPage: number;
-  allowComments: boolean;
-  requireApproval: boolean;
-}
-
-// デフォルト設定
-const defaultSettings: Settings = {
-  darkMode: false,
-  apiAccess: true,
-  apiKey: '',
-  emailNotifications: true,
-  maintenanceMode: false,
-  maxPostsPerPage: 10,
-  allowComments: true,
-  requireApproval: false,
-};
-
-// 一時的な設定ストレージ（実際の実装では、データベースまたはファイルシステムを使用）
-let currentSettings: Settings = { ...defaultSettings };
-
-// アプリケーション起動時に公開設定を初期化
-const initializePublicSettings = () => {
-  updatePublicSettings({
-    allowComments: currentSettings.allowComments,
-    requireApproval: currentSettings.requireApproval,
-    maintenanceMode: currentSettings.maintenanceMode,
-  });
-};
-
-// 初期化を実行
-initializePublicSettings();
-
-async function requireAdmin(request: NextRequest) {
-  const token = request.cookies.get('auth_token')?.value;
+// 設定取得（GET）
+export const GET = withAuth(async (request: NextRequest, user) => {
+  console.log('設定取得API呼び出し - ユーザー:', user.username);
   
-  if (!token) {
-    throw new Error('認証が必要です');
-  }
-
-  const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
-  const user = await getUserById(decoded.userId);
-  
-  if (!user || user.role !== 'admin') {
-    throw new Error('管理者権限が必要です');
-  }
-  
-  return user;
-}
-
-export async function GET(request: NextRequest) {
   try {
-    console.log('設定取得API呼び出し');
-    const user = await requireAdmin(request);
-    console.log('認証成功:', user.id);
-    
-    // 現在の設定を返す
-    console.log('Returning settings:', currentSettings);
-    return NextResponse.json(currentSettings);
+    const settings = await getSettings();
+    console.log('設定を返します:', settings);
+    return createSuccessResponse({ settings });
   } catch (error) {
     console.error('設定取得エラー:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : '設定の取得に失敗しました' }, { status: 401 });
+    return createErrorResponse('設定の取得中にエラーが発生しました', 500);
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+// 設定保存（POST）
+export const POST = withAuth(async (request: NextRequest, user) => {
+  console.log('設定保存API呼び出し - ユーザー:', user.username);
+  
   try {
-    console.log('設定保存API呼び出し');
-    const user = await requireAdmin(request);
-    const settings: Settings = await request.json();
-    console.log('受信した設定:', settings);
+    const newSettings = await request.json();
+    console.log('受信した設定:', newSettings);
 
-    // 入力値の検証
-    if (typeof settings.maxPostsPerPage !== 'number' || settings.maxPostsPerPage < 5 || settings.maxPostsPerPage > 50) {
-      return NextResponse.json({ error: 'ページあたりの投稿数は5-50の範囲で指定してください' }, { status: 400 });
+    // 設定の検証
+    const validationError = validateSettings(newSettings);
+    if (validationError) {
+      return createErrorResponse(validationError, 400);
     }
 
-    console.log('認証成功、設定を保存:', user.id);
+    // 設定を保存
+    const updatedSettings = await updateSettings(newSettings);
+    console.log('設定保存成功:', updatedSettings);
     
-    // 設定をメモリに保存
-    currentSettings = { ...settings };
-    console.log('設定を保存しました:', currentSettings);
-    
-    // 公開設定も更新
-    updatePublicSettings({
-      allowComments: settings.allowComments,
-      requireApproval: settings.requireApproval,
-      maintenanceMode: settings.maintenanceMode,
-    });
-    
-    console.log('保存完了');
-    return NextResponse.json({ message: '設定が正常に保存されました' });
+    return createSuccessResponse(updatedSettings, '設定が正常に保存されました');
   } catch (error) {
     console.error('設定保存エラー:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : '設定の保存に失敗しました' }, { status: 401 });
+    return createErrorResponse('設定の保存中にエラーが発生しました', 500);
   }
+});
+
+// 設定バリデーション関数
+function validateSettings(settings: any): string | null {
+  const booleanFields = ['darkMode', 'apiAccess', 'emailNotifications', 'maintenanceMode', 'allowComments', 'requireApproval'];
+  
+  for (const field of booleanFields) {
+    if (typeof settings[field] !== 'boolean') {
+      return `${field}はboolean値である必要があります`;
+    }
+  }
+
+  if (typeof settings.maxPostsPerPage !== 'number' || 
+      settings.maxPostsPerPage < 5 || 
+      settings.maxPostsPerPage > 50) {
+    return 'maxPostsPerPageは5から50の間の数値である必要があります';
+  }
+
+  return null;
 }

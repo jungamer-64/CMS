@@ -1,0 +1,111 @@
+import { NextRequest } from 'next/server';
+import { getUserById, updateUser, deleteUser } from '@/app/lib/users';
+import { withAuth, createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { UserUpdateInput } from '@/app/lib/types';
+
+interface RouteParams {
+  params: { id: string };
+}
+
+export const GET = withAuth(async (request: NextRequest, user, { params }: RouteParams) => {
+  try {
+    const { id } = params;
+
+    if (!id) {
+      return createErrorResponse('ユーザーIDが必要です', 400);
+    }
+
+    const targetUser = await getUserById(id);
+    if (!targetUser) {
+      return createErrorResponse('ユーザーが見つかりません', 404);
+    }
+
+    // パスワードハッシュを除外してレスポンス
+    const safeUser = {
+      id: targetUser.id,
+      username: targetUser.username,
+      email: targetUser.email,
+      displayName: targetUser.displayName,
+      role: targetUser.role,
+      darkMode: targetUser.darkMode,
+      createdAt: targetUser.createdAt,
+      updatedAt: targetUser.updatedAt
+    };
+
+    return createSuccessResponse(safeUser);
+  } catch (error) {
+    console.error('ユーザー取得エラー:', error);
+    return createErrorResponse('ユーザー情報の取得に失敗しました', 500);
+  }
+});
+
+export const PUT = withAuth(async (request: NextRequest, user, { params }: RouteParams) => {
+  try {
+    const { id } = params;
+
+    if (!id) {
+      return createErrorResponse('ユーザーIDが必要です', 400);
+    }
+
+    // 自分自身の役割変更を防ぐ
+    if (id === user.userId) {
+      const updateData: UserUpdateInput = await request.json();
+      if (updateData.role && updateData.role !== user.role) {
+        return createErrorResponse('自分自身の役割は変更できません', 403);
+      }
+    }
+
+    const updateData: UserUpdateInput = await request.json();
+    
+    const success = await updateUser(id, updateData);
+    if (!success) {
+      return createErrorResponse('ユーザーの更新に失敗しました', 400);
+    }
+
+    // 更新されたユーザー情報を取得
+    const updatedUser = await getUserById(id);
+    const safeUser = {
+      id: updatedUser!.id,
+      username: updatedUser!.username,
+      email: updatedUser!.email,
+      displayName: updatedUser!.displayName,
+      role: updatedUser!.role,
+      darkMode: updatedUser!.darkMode,
+      createdAt: updatedUser!.createdAt,
+      updatedAt: updatedUser!.updatedAt
+    };
+
+    console.log('ユーザー更新成功 - ID:', id);
+    return createSuccessResponse(safeUser, 'ユーザーが正常に更新されました');
+  } catch (error) {
+    console.error('ユーザー更新エラー:', error);
+    const errorMessage = error instanceof Error ? error.message : 'ユーザーの更新に失敗しました';
+    return createErrorResponse(errorMessage, 400);
+  }
+});
+
+export const DELETE = withAuth(async (request: NextRequest, user, { params }: RouteParams) => {
+  try {
+    const { id } = params;
+
+    if (!id) {
+      return createErrorResponse('ユーザーIDが必要です', 400);
+    }
+
+    // 自分自身の削除を防ぐ
+    if (id === user.userId) {
+      return createErrorResponse('自分自身は削除できません', 403);
+    }
+
+    const success = await deleteUser(id);
+    if (!success) {
+      return createErrorResponse('ユーザーの削除に失敗しました', 400);
+    }
+
+    console.log('ユーザー削除成功 - ID:', id);
+    return createSuccessResponse(null, 'ユーザーが正常に削除されました');
+  } catch (error) {
+    console.error('ユーザー削除エラー:', error);
+    return createErrorResponse('ユーザーの削除に失敗しました', 500);
+  }
+});

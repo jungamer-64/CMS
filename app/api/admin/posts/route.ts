@@ -1,143 +1,96 @@
-import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-import { getUserById } from '@/app/lib/users';
-import { getAllPostsForAdmin, deletePost, restorePost, permanentlyDeletePost } from '@/app/lib/posts';
+import { NextRequest } from 'next/server';
+import { getAllPostsForAdmin } from '@/app/lib/posts';
+import { withAuth, createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
 
-// 動的レンダリングを強制
-export const dynamic = 'force-dynamic';
-
-async function requireAdmin(request: NextRequest) {
-  const token = request.cookies.get('auth_token')?.value;
-  
-  if (!token) {
-    throw new Error('認証が必要です');
-  }
-
-  const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
-  const user = await getUserById(decoded.userId);
-  
-  if (!user || user.role !== 'admin') {
-    throw new Error('管理者権限が必要です');
-  }
-  
-  return user;
-}
-
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, user) => {
   try {
-    await requireAdmin(request);
-    
-    const posts = await getAllPostsForAdmin();
-    return NextResponse.json(posts);
-  } catch (error) {
-    console.error('投稿一覧取得エラー:', error);
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.message.includes('認証') ? 401 : 403 }
-      );
-    }
-    return NextResponse.json(
-      { error: '投稿一覧の取得に失敗しました' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    await requireAdmin(request);
+    console.log('管理者投稿API呼び出し - ユーザー:', user.username);
     
     const { searchParams } = new URL(request.url);
-    const postId = searchParams.get('id');
-    const permanent = searchParams.get('permanent') === 'true';
-
-    if (!postId) {
-      return NextResponse.json(
-        { error: '投稿IDが必要です' },
-        { status: 400 }
-      );
-    }
-
-    let success;
-    if (permanent) {
-      success = await permanentlyDeletePost(postId);
-    } else {
-      success = await deletePost(postId);
-    }
-
-    if (!success) {
-      return NextResponse.json(
-        { error: '投稿の削除に失敗しました' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ 
-      message: permanent ? '投稿を完全に削除しました' : '投稿を削除しました' 
-    });
-  } catch (error) {
-    console.error('投稿削除エラー:', error);
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.message.includes('認証') ? 401 : 403 }
-      );
-    }
-    return NextResponse.json(
-      { error: '投稿の削除に失敗しました' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PATCH(request: NextRequest) {
-  try {
-    await requireAdmin(request);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const type = searchParams.get('type') || 'all';
+    const search = searchParams.get('search') || '';
+    const author = searchParams.get('author') || '';
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
     
-    const { action, postId } = await request.json();
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+      return createErrorResponse('Invalid pagination parameters', 400);
+    }
+    
+    // 削除された投稿も含めて全投稿を取得
+    const allPosts = await getAllPostsForAdmin();
+    console.log('取得した投稿数:', allPosts.length);
+    
+    // Sort posts before filtering and pagination for better performance
+    allPosts.sort((a, b) => {
+      const aValue = a[sortBy as keyof typeof a];
+      const bValue = b[sortBy as keyof typeof b];
+      
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+      
+      let comparison = 0;
+      if (aValue < bValue) comparison = -1;
+      if (aValue > bValue) comparison = 1;
+      
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
 
-    if (!postId || !action) {
-      return NextResponse.json(
-        { error: '投稿IDとアクションが必要です' },
-        { status: 400 }
+    // Filter posts based on type
+    let filteredPosts = allPosts;
+    if (type === 'published') {
+      filteredPosts = allPosts.filter(post => !post.isDeleted);
+    } else if (type === 'deleted') {
+      filteredPosts = allPosts.filter(post => post.isDeleted);
+    }
+    
+    // Apply search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredPosts = filteredPosts.filter(post => 
+        post.title.toLowerCase().includes(searchLower) ||
+        post.content.toLowerCase().includes(searchLower) ||
+        post.author.toLowerCase().includes(searchLower)
       );
     }
-
-    let success = false;
-    let message = '';
-
-    switch (action) {
-      case 'restore':
-        success = await restorePost(postId);
-        message = '投稿を復元しました';
-        break;
-      default:
-        return NextResponse.json(
-          { error: '無効なアクションです' },
-          { status: 400 }
-        );
+    
+    // Apply author filter
+    if (author) {
+      filteredPosts = filteredPosts.filter(post => post.author === author);
     }
-
-    if (!success) {
-      return NextResponse.json(
-        { error: 'アクションの実行に失敗しました' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ message });
+    
+    // Calculate pagination
+    const total = filteredPosts.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
+    
+    // Return paginated response with metadata
+    return createSuccessResponse({
+      posts: paginatedPosts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: endIndex < total,
+        hasPrev: page > 1
+      },
+      filters: {
+        type,
+        search,
+        author,
+        sortBy,
+        sortOrder
+      }
+    });
+    
   } catch (error) {
-    console.error('投稿操作エラー:', error);
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.message.includes('認証') ? 401 : 403 }
-      );
-    }
-    return NextResponse.json(
-      { error: 'アクションの実行に失敗しました' },
-      { status: 500 }
-    );
+    console.error('管理者投稿API エラー:', error);
+    return createErrorResponse('投稿の取得に失敗しました', 500);
   }
-}
+});

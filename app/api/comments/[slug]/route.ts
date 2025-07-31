@@ -1,34 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { createSuccessResponse, createErrorResponse, getParams } from '@/app/lib/api-utils';
 import { getCommentsByPostSlug } from '@/app/lib/comments';
 
-// 動的レンダリングを強制
-export const dynamic = 'force-dynamic';
-
+// 特定の投稿のコメントを取得（GET）
 export async function GET(
-  request: NextRequest,
+  request: NextRequest, 
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  console.log('コメント取得API呼び出し');
+  
   try {
-    const { slug } = await params;
-    
-    // 承認済みのコメントのみを取得
+    const { slug } = await getParams(params);
+    console.log('投稿スラッグ:', slug);
+
+    if (!slug) {
+      return createErrorResponse('投稿スラッグが必要です', 400);
+    }
+
+    // データベースから該当する投稿のコメントを取得（承認済みのみ）
     const comments = await getCommentsByPostSlug(slug, false);
 
-    return NextResponse.json({
-      success: true,
-      comments: comments.map(comment => ({
-        id: comment.id,
-        authorName: comment.authorName,
-        content: comment.content,
-        createdAt: comment.createdAt
-      }))
-    });
-
+    console.log(`投稿 "${slug}" のコメント数: ${comments.length}`);
+    
+    return createSuccessResponse(
+      { comments }, 
+      'コメント一覧を正常に取得しました'
+    );
   } catch (error) {
     console.error('コメント取得エラー:', error);
-    return NextResponse.json(
-      { error: 'コメントの取得に失敗しました' },
-      { status: 500 }
-    );
+    return createErrorResponse('コメントの取得中にエラーが発生しました', 500);
   }
 }

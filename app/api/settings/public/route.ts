@@ -1,47 +1,33 @@
-import { NextResponse } from 'next/server';
+import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { getSettings } from '@/app/lib/settings';
 
-// 動的レンダリングを強制
-export const dynamic = 'force-dynamic';
-
-// 一時的な設定ストレージ（実際の実装では、データベースまたはファイルシステムを使用）
-// この値は admin/settings API と同期する必要があります
-let publicSettings = {
-  allowComments: true,
-  requireApproval: false,
-  maintenanceMode: false,
-};
-
+// パブリック設定を取得（GET）- 認証不要
 export async function GET() {
+  console.log('パブリック設定API呼び出し');
+  
   try {
-    // 管理者設定から必要な設定のみを取得して返す
-    // 実際の実装では、データベースから取得する
-    console.log('公開設定取得:', publicSettings);
+    // 管理者設定から公開可能な情報を取得
+    const adminSettings = await getSettings();
     
-    return NextResponse.json({
-      success: true,
-      settings: publicSettings
-    });
-  } catch (error) {
-    console.error('公開設定取得エラー:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: '設定の取得に失敗しました',
-      // フォールバック設定
-      settings: {
-        allowComments: true,
-        requireApproval: false,
-        maintenanceMode: false,
-      }
-    }, { status: 500 });
-  }
-}
+    // 管理者設定から公開可能な情報のみを抽出
+    const publicSettings = {
+      allowComments: adminSettings.allowComments,
+      requireApproval: adminSettings.requireApproval,
+      siteName: 'テストブログ',
+      siteDescription: 'Next.js 15で構築された動的ブログサイト',
+      maxCommentLength: 1000,
+      commentsPerPage: 10,
+      maxPostsPerPage: adminSettings.maxPostsPerPage
+    };
 
-// 管理者設定更新時に呼び出される内部関数
-export function updatePublicSettings(newSettings: {
-  allowComments: boolean;
-  requireApproval: boolean;
-  maintenanceMode: boolean;
-}) {
-  publicSettings = { ...newSettings };
-  console.log('公開設定を更新:', publicSettings);
+    console.log('パブリック設定を返します:', publicSettings);
+    
+    return createSuccessResponse(
+      { settings: publicSettings }, 
+      'パブリック設定を正常に取得しました'
+    );
+  } catch (error) {
+    console.error('パブリック設定取得エラー:', error);
+    return createErrorResponse('設定の取得中にエラーが発生しました', 500);
+  }
 }

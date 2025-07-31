@@ -46,16 +46,21 @@ export default function Comments({ postSlug }: CommentsProps) {
       const data = await response.json();
       console.log('取得した公開設定:', data);
       
-      if (data.success) {
-        const allowCommentsValue = data.settings.allowComments !== false;
+      if (data.success && data.data?.settings) {
+        const settings = data.data.settings;
+        const allowCommentsValue = settings.allowComments !== false;
         console.log('コメント許可設定:', allowCommentsValue);
         setAllowComments(allowCommentsValue);
         setSettingsError(null);
-      } else {
-        // エラーレスポンスでもフォールバック設定があるかチェック
-        const allowCommentsValue = data.settings?.allowComments !== false;
-        console.log('フォールバック コメント許可設定:', allowCommentsValue);
+      } else if (data.settings) {
+        // 直接settingsオブジェクトが返される場合
+        const allowCommentsValue = data.settings.allowComments !== false;
+        console.log('コメント許可設定(直接):', allowCommentsValue);
         setAllowComments(allowCommentsValue);
+        setSettingsError(null);
+      } else {
+        console.warn('設定データの形式が予期しないものです:', data);
+        setAllowComments(true); // フォールバック
         setSettingsError('設定の読み込みに一部失敗しました');
       }
       setSettingsLoaded(true);
@@ -74,13 +79,23 @@ export default function Comments({ postSlug }: CommentsProps) {
   const loadComments = async () => {
     try {
       const response = await fetch(`/api/comments/${postSlug}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       
       if (data.success) {
-        setComments(data.comments);
+        setComments(data.data?.comments || data.comments || []);
+        console.log('コメント読み込み成功:', data.data?.comments || data.comments);
+      } else {
+        throw new Error(data.error || 'コメントの読み込みに失敗しました');
       }
     } catch (error) {
       console.error('コメント読み込みエラー:', error);
+      throw error; // エラーを再スローして上位でキャッチできるように
     } finally {
       setLoading(false);
     }
@@ -163,6 +178,7 @@ export default function Comments({ postSlug }: CommentsProps) {
       });
 
       const data = await response.json();
+      console.log('コメント投稿APIレスポンス:', data);
 
       if (data.success) {
         setMessage(data.message);
@@ -170,7 +186,8 @@ export default function Comments({ postSlug }: CommentsProps) {
         setFormData({ authorName: '', authorEmail: '', content: '' });
         
         // 承認不要の場合は即座にコメントを再読み込み
-        if (data.comment.isApproved) {
+        // data.data.commentが存在し、isApprovedがtrueの場合のみ再読み込み
+        if (data.data?.comment?.isApproved) {
           await loadComments();
         }
       } else {

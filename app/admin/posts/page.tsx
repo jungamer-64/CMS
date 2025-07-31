@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/app/lib/auth';
 import Link from 'next/link';
 import AdminLayout from '@/app/lib/AdminLayout';
@@ -153,60 +153,33 @@ const PostCard = ({
   </li>
 );
 
-const PostsList = ({ 
-  posts, 
-  filter, 
-  onDelete, 
-  onRestore 
-}: { 
-  posts: Post[]; 
-  filter: FilterType; 
-  onDelete: (postId: string, permanent?: boolean) => void; 
-  onRestore: (postId: string) => void; 
-}) => {
-  const filteredPosts = posts.filter(post => {
-    switch (filter) {
-      case 'published':
-        return !post.isDeleted;
-      case 'deleted':
-        return post.isDeleted;
-      default:
-        return true;
-    }
-  });
-
-  const getEmptyMessage = () => {
-    if (filter === 'all') return '投稿がありません';
-    if (filter === 'published') return '公開中の投稿がありません';
-    return '削除済みの投稿がありません';
-  };
-
-  return (
-    <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg border border-gray-200 dark:border-gray-700">
-      {filteredPosts.length === 0 ? (
-        <p className="p-4 text-gray-500 dark:text-gray-400 text-center">{getEmptyMessage()}</p>
-      ) : (
-        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-          {filteredPosts.map((post) => (
-            <PostCard 
-              key={post.id} 
-              post={post} 
-              onDelete={onDelete} 
-              onRestore={onRestore} 
-            />
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-};
-
 export default function PostsManagement() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const { user } = useAuth();
+
+  // メモ化された統計とフィルタリング済み投稿
+  const { publishedCount, deletedCount, filteredPosts } = useMemo(() => {
+    const published = posts.filter(post => !post.isDeleted).length;
+    const deleted = posts.filter(post => post.isDeleted).length;
+    
+    let filtered = [...posts];
+    
+    // フィルタリング適用
+    if (filter === 'published') {
+      filtered = posts.filter(post => !post.isDeleted);
+    } else if (filter === 'deleted') {
+      filtered = posts.filter(post => post.isDeleted);
+    }
+    
+    return {
+      publishedCount: published,
+      deletedCount: deleted,
+      filteredPosts: filtered
+    };
+  }, [posts, filter]);
 
   useEffect(() => {
     if (user?.role === 'admin') {
@@ -223,7 +196,9 @@ export default function PostsManagement() {
         throw new Error(errorData.error || '投稿データの取得に失敗しました');
       }
       const data = await response.json();
-      setPosts(data);
+      // 新しいレスポンス形式に対応
+      const postsData = data.success ? data.data.posts : (data.posts || data);
+      setPosts(Array.isArray(postsData) ? postsData : []);
     } catch (error) {
       console.error('投稿データ取得エラー:', error);
       setError(error instanceof Error ? error.message : '投稿データの取得中にエラーが発生しました');
@@ -232,18 +207,19 @@ export default function PostsManagement() {
     }
   };
 
-  const handleDeletePost = async (postId: string, permanent = false) => {
+  // 最適化された削除関数（楽観的更新付き）
+  const handleDeletePost = useCallback(async (postId: string, permanent = false) => {
     if (permanent && !confirm('投稿を完全に削除しますか？この操作は取り消せません。')) {
       return;
     }
 
     try {
-      const url = permanent 
-        ? `/api/admin/posts/${postId}?permanent=true` 
-        : `/api/admin/posts/${postId}`;
-      
-      const response = await fetch(url, {
+      const response = await fetch(`/api/admin/posts/${postId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ permanent }),
       });
 
       if (!response.ok) {
@@ -251,17 +227,30 @@ export default function PostsManagement() {
         throw new Error(error.error || '投稿削除に失敗しました');
       }
       
-      await fetchPosts();
+      // 楽観的更新: サーバーレスポンスを待たずにUIを更新
+      setPosts(prev => {
+        if (permanent) {
+          return prev.filter(post => post.id !== postId);
+        } else {
+          return prev.map(post => 
+            post.id === postId ? { ...post, isDeleted: true } : post
+          );
+        }
+      });
+      
     } catch (error) {
       console.error('投稿削除エラー:', error);
       alert(error instanceof Error ? error.message : '投稿削除に失敗しました');
+      // エラー時は再フェッチして状態を修正
+      await fetchPosts();
     }
-  };
+  }, [fetchPosts]);
 
-  const handleRestorePost = async (postId: string) => {
+  // 最適化された復元関数（楽観的更新付き）
+  const handleRestorePost = useCallback(async (postId: string) => {
     try {
       const response = await fetch(`/api/admin/posts/${postId}/restore`, {
-        method: 'POST',
+        method: 'PATCH',
       });
 
       if (!response.ok) {
@@ -269,12 +258,18 @@ export default function PostsManagement() {
         throw new Error(error.error || '投稿復元に失敗しました');
       }
       
-      await fetchPosts();
+      // 楽観的更新: サーバーレスポンスを待たずにUIを更新
+      setPosts(prev => prev.map(post => 
+        post.id === postId ? { ...post, isDeleted: false } : post
+      ));
+      
     } catch (error) {
       console.error('投稿復元エラー:', error);
       alert(error instanceof Error ? error.message : '投稿復元に失敗しました');
+      // エラー時は再フェッチして状態を修正
+      await fetchPosts();
     }
-  };
+  }, [fetchPosts]);
 
   if (isLoading || !user) {
     return (
@@ -283,9 +278,6 @@ export default function PostsManagement() {
       </AdminLayout>
     );
   }
-
-  const publishedCount = posts.filter(post => !post.isDeleted).length;
-  const deletedCount = posts.filter(post => post.isDeleted).length;
 
   return (
     <AdminLayout title="投稿管理">
@@ -362,12 +354,27 @@ export default function PostsManagement() {
             </div>
           </div>
           
-          <PostsList 
-            posts={posts} 
-            filter={filter} 
-            onDelete={handleDeletePost} 
-            onRestore={handleRestorePost} 
-          />
+          {/* 投稿リスト */}
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            {filteredPosts.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                {filter === 'all' && '投稿がありません'}
+                {filter === 'published' && '公開中の投稿がありません'}
+                {filter === 'deleted' && '削除された投稿がありません'}
+              </div>
+            ) : (
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredPosts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onDelete={handleDeletePost}
+                    onRestore={handleRestorePost}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
     </AdminLayout>

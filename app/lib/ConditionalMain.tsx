@@ -13,7 +13,7 @@ export default function ConditionalMain({ children }: ConditionalMainProps) {
   const isAdminPage = pathname.startsWith('/admin');
   
   return (
-    <main className={isAdminPage ? '' : 'pt-32'}>
+    <main className={isAdminPage ? '' : 'pt-16'}>
       {children}
     </main>
   );

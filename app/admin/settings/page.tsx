@@ -267,7 +267,13 @@ const SystemInfo = () => (
   </SettingCard>
 );
 
-const DangerZone = () => (
+const DangerZone = ({ 
+  onCacheClear, 
+  isCacheClearing 
+}: { 
+  onCacheClear: () => void; 
+  isCacheClearing: boolean; 
+}) => (
   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-6 rounded-lg">
     <h2 className="text-lg font-semibold mb-4 text-red-800 dark:text-red-400">危険な操作</h2>
     <div className="space-y-4">
@@ -276,8 +282,16 @@ const DangerZone = () => (
           <h3 className="text-sm font-medium text-red-700 dark:text-red-400">キャッシュをクリア</h3>
           <p className="text-xs text-red-600 dark:text-red-500">アプリケーションのキャッシュを削除します</p>
         </div>
-        <button className="px-4 py-2 bg-red-500 dark:bg-red-600 text-white rounded-md hover:bg-red-600 dark:hover:bg-red-700 transition-colors">
-          キャッシュクリア
+        <button 
+          onClick={onCacheClear}
+          disabled={isCacheClearing}
+          className={`px-4 py-2 text-white rounded-md transition-colors ${
+            isCacheClearing
+              ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
+              : 'bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-700'
+          }`}
+        >
+          {isCacheClearing ? 'クリア中...' : 'キャッシュクリア'}
         </button>
       </div>
       <div className="flex items-center justify-between">
@@ -306,6 +320,7 @@ export default function SettingsPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCacheClearing, setIsCacheClearing] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
   const { user } = useAuth();
@@ -319,6 +334,8 @@ export default function SettingsPage() {
 
   const loadSettings = async () => {
     setIsLoading(true);
+    console.log('設定読み込み開始 - 現在のダークモード状態:', isDarkMode);
+    
     try {
       const response = await fetch('/api/admin/settings', {
         credentials: 'include',
@@ -332,10 +349,56 @@ export default function SettingsPage() {
       }
       
       const data = await response.json();
-      setSettings(data);
+      console.log('設定読み込みレスポンス:', data);
       
-      if (data.darkMode !== isDarkMode) {
-        setDarkMode(data.darkMode);
+      // 新しいレスポンス形式に対応
+      let settingsData;
+      if (data.success && data.data?.settings) {
+        settingsData = data.data.settings;
+      } else if (data.settings) {
+        settingsData = data.settings;
+      } else {
+        // 直接設定オブジェクトが返された場合
+        settingsData = data;
+      }
+      
+      console.log('設定データ:', settingsData);
+      
+      // settingsDataが正しいオブジェクト形式かチェック
+      if (settingsData && typeof settingsData === 'object' && !settingsData.success) {
+        // 正しい設定オブジェクトの場合のみ状態を更新
+        const validSettings = {
+          darkMode: Boolean(settingsData.darkMode),
+          apiAccess: Boolean(settingsData.apiAccess),
+          apiKey: String(settingsData.apiKey || ''),
+          emailNotifications: Boolean(settingsData.emailNotifications),
+          maintenanceMode: Boolean(settingsData.maintenanceMode),
+          maxPostsPerPage: Number(settingsData.maxPostsPerPage) || 10,
+          allowComments: Boolean(settingsData.allowComments),
+          requireApproval: Boolean(settingsData.requireApproval),
+        };
+        
+        console.log('正規化された設定:', validSettings);
+        console.log('現在のダークモード状態:', isDarkMode);
+        
+        // 現在のテーマ状態を保持し、設定画面でのダークモード設定を現在の状態に合わせる
+        const finalSettings = {
+          ...validSettings,
+          darkMode: isDarkMode // 現在のダークモード状態を優先
+        };
+        
+        setSettings(finalSettings);
+        
+        // サーバー設定と現在の状態が異なる場合のみ通知（強制変更はしない）
+        if (validSettings.darkMode !== isDarkMode) {
+          console.log('サーバー設定とクライアント設定が異なります:', {
+            server: validSettings.darkMode,
+            client: isDarkMode
+          });
+        }
+      } else {
+        console.error('設定データの形式が不正です:', settingsData);
+        throw new Error('設定データの形式が不正です');
       }
     } catch (error) {
       console.error('設定読み込みエラー:', error);
@@ -348,6 +411,8 @@ export default function SettingsPage() {
 
   const saveSettings = async () => {
     setIsSaving(true);
+    console.log('保存する設定:', settings);
+    
     try {
       const response = await fetch('/api/admin/settings', {
         method: 'POST',
@@ -363,7 +428,8 @@ export default function SettingsPage() {
         throw new Error(errorData.error || '設定の保存に失敗しました');
       }
 
-      setMessage('設定が正常に保存されました');
+      const data = await response.json();
+      setMessage(data.message || '設定が正常に保存されました');
       setMessageType('success');
       setDarkMode(settings.darkMode);
     } catch (error) {
@@ -385,6 +451,42 @@ export default function SettingsPage() {
       startPreview(3000);
     } catch (error) {
       console.error('プレビューエラー:', error);
+    }
+  };
+
+  const handleCacheClear = async () => {
+    if (!confirm('キャッシュをクリアしますか？この操作により、サイトのパフォーマンスが一時的に低下する可能性があります。')) {
+      return;
+    }
+
+    setIsCacheClearing(true);
+    console.log('キャッシュクリア開始');
+    
+    try {
+      const response = await fetch('/api/admin/cache', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'キャッシュクリアに失敗しました');
+      }
+
+      const data = await response.json();
+      setMessage(data.message || 'キャッシュが正常にクリアされました');
+      setMessageType('success');
+      console.log('キャッシュクリア完了');
+    } catch (error) {
+      console.error('キャッシュクリアエラー:', error);
+      setMessage(error instanceof Error ? error.message : 'キャッシュクリア中にエラーが発生しました');
+      setMessageType('error');
+    } finally {
+      setIsCacheClearing(false);
+      setTimeout(() => setMessage(''), 3000);
     }
   };
 
@@ -441,7 +543,10 @@ export default function SettingsPage() {
         </div>
 
         <SystemInfo />
-        <DangerZone />
+        <DangerZone 
+          onCacheClear={handleCacheClear}
+          isCacheClearing={isCacheClearing}
+        />
       </div>
     </AdminLayout>
   );

@@ -23,7 +23,7 @@ export async function createComment(commentData: CommentInput, autoApprove = fal
 
 export async function getCommentsByPostSlug(postSlug: string, includeUnapproved = false): Promise<Comment[]> {
   const collection = await getCommentsCollection();
-  const filter: any = { 
+  const filter: Record<string, unknown> = { 
     postSlug, 
     isDeleted: { $ne: true } 
   };

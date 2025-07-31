@@ -133,7 +133,9 @@ export default function UsersManagement() {
         throw new Error(errorData.error || 'ユーザーデータの取得に失敗しました');
       }
       const data = await response.json();
-      setUsers(data);
+      // 新しいレスポンス形式に対応
+      const usersData = data.success ? data.data.users : (data.users || data);
+      setUsers(Array.isArray(usersData) ? usersData : []);
     } catch (error) {
       console.error('ユーザーデータ取得エラー:', error);
       setError(error instanceof Error ? error.message : 'ユーザーデータの取得中にエラーが発生しました');

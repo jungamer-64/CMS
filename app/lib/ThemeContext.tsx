@@ -18,133 +18,248 @@ export function ThemeProvider({ children }: { readonly children: React.ReactNode
   const [isPreviewActive, setIsPreviewActive] = useState(false);
   const [savedTheme, setSavedTheme] = useState(false);
   const [previewTimer, setPreviewTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const pathname = usePathname();
   const previousPathnameRef = useRef(pathname);
   const savedThemeRef = useRef(savedTheme);
   const isPreviewActiveRef = useRef(isPreviewActive);
   const previewTimerRef = useRef(previewTimer);
 
-  useEffect(() => {
-    console.log('ThemeProvider initializing...');
-    // ローカルストレージからダークモード設定を読み込み
-    const savedThemeValue = localStorage.getItem('darkMode');
-    let darkModeEnabled = false;
-    
-    if (savedThemeValue !== null) {
-      darkModeEnabled = JSON.parse(savedThemeValue);
-      console.log('Found saved theme:', darkModeEnabled);
-    } else {
-      // システムの設定を確認
-      darkModeEnabled = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      console.log('Using system theme:', darkModeEnabled);
+  // 認証状態の確認
+  const checkAuthStatus = useCallback(async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        const responseData = await response.json();
+        const userData = responseData.data || responseData;
+        console.log('認証されたユーザーのダークモード設定:', userData.darkMode);
+        setIsAuthenticated(true);
+        return userData.darkMode ?? false;
+      } else {
+        setIsAuthenticated(false);
+        return null;
+      }
+    } catch (error) {
+      console.error('認証状態確認エラー:', error);
+      setIsAuthenticated(false);
+      return null;
     }
+  }, []); // 依存関係を削除して無限ループを防ぐ
+
+  // サーバーにダークモード設定を保存
+  const saveThemeToServer = useCallback(async (darkMode: boolean) => {
+    if (!isAuthenticated) {
+      console.log('未認証のため、サーバーに保存しません');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/user/theme', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ darkMode }),
+      });
+
+      if (response.ok) {
+        console.log('ダークモード設定をサーバーに保存しました:', darkMode);
+      } else {
+        console.error('サーバーへの保存に失敗しました');
+      }
+    } catch (error) {
+      console.error('サーバー保存エラー:', error);
+    }
+  }, [isAuthenticated]);
+
+  // テーマの適用
+  const applyTheme = useCallback((darkMode: boolean) => {
+    if (typeof window === 'undefined') return;
     
-    console.log('Setting initial dark mode:', darkModeEnabled);
-    setIsDarkMode(darkModeEnabled);
-    setSavedTheme(darkModeEnabled);
-    applyTheme(darkModeEnabled);
+    const html = document.documentElement;
+    if (darkMode) {
+      html.classList.add('dark');
+    } else {
+      html.classList.remove('dark');
+    }
+    console.log('Applied theme:', darkMode ? 'dark' : 'light');
   }, []);
 
-  // savedThemeRefを最新の値に同期
+  // 初期化処理
+  useEffect(() => {
+    console.log('ThemeProvider initializing...');
+    
+    // ブラウザ環境でのみ実行
+    if (typeof window === 'undefined') {
+      console.log('Server-side rendering, skipping initialization');
+      return;
+    }
+    
+    const initializeTheme = async () => {
+      // まず認証状態を確認
+      const serverDarkMode = await checkAuthStatus();
+      
+      let darkModeEnabled = false;
+      
+      if (serverDarkMode !== null) {
+        // 認証済み: サーバーの設定を使用
+        console.log('認証済み - サーバー設定を使用:', serverDarkMode);
+        darkModeEnabled = serverDarkMode;
+      } else {
+        // 未認証: ローカルストレージまたはシステム設定を使用
+        console.log('未認証 - ローカル設定を使用');
+        try {
+          const savedThemeValue = localStorage.getItem('darkMode');
+          if (savedThemeValue !== null && savedThemeValue !== undefined && savedThemeValue !== 'undefined') {
+            darkModeEnabled = JSON.parse(savedThemeValue);
+            console.log('Found saved local theme:', darkModeEnabled);
+          } else {
+            // システムの設定を確認
+            darkModeEnabled = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            console.log('Using system theme:', darkModeEnabled);
+          }
+        } catch (error) {
+          console.error('Error parsing saved theme:', error);
+          darkModeEnabled = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+      }
+      
+      // 初期設定を適用
+      console.log('Setting initial dark mode:', darkModeEnabled);
+      setIsDarkMode(darkModeEnabled);
+      setSavedTheme(darkModeEnabled);
+      applyTheme(darkModeEnabled);
+      
+      // 初期化完了
+      setIsInitialized(true);
+    };
+    
+    initializeTheme();
+  }, [checkAuthStatus, applyTheme]);
+
+  // 認証状態が変わった時の処理（ログイン/ログアウト）
+  useEffect(() => {
+    if (!isInitialized) return;
+    
+    console.log('認証状態変更:', isAuthenticated);
+    
+    if (!isAuthenticated) {
+      // ログアウト時: ローカルストレージに現在の設定を保存
+      console.log('ログアウト検出 - ローカルストレージに保存');
+      try {
+        localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+      } catch (error) {
+        console.error('ローカルストレージ保存エラー:', error);
+      }
+    }
+  }, [isAuthenticated, isDarkMode, isInitialized]); // 認証状態とダークモードの変更を監視
+
+  // ダークモード切り替え時の保存処理
+  useEffect(() => {
+    if (!isInitialized) return;
+    
+    // プレビュー中は保存しない
+    if (isPreviewActive) {
+      console.log('プレビュー中のため保存をスキップ');
+      return;
+    }
+    
+    if (isAuthenticated) {
+      // 認証済み: サーバーに保存
+      saveThemeToServer(isDarkMode);
+    } else {
+      // 未認証: ローカルストレージに保存
+      try {
+        localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+        console.log('ローカルストレージに保存:', isDarkMode);
+      } catch (error) {
+        console.error('ローカルストレージ保存エラー:', error);
+      }
+    }
+    
+    // 保存されたテーマを更新（プレビュー中でない場合のみ）
+    setSavedTheme(isDarkMode);
+  }, [isDarkMode, isAuthenticated, isInitialized, isPreviewActive, saveThemeToServer]);
+
+  // RefをCurrentValueで更新
   useEffect(() => {
     savedThemeRef.current = savedTheme;
   }, [savedTheme]);
 
-  // 状態をrefに同期
+  // プレビュー状態管理
   useEffect(() => {
     isPreviewActiveRef.current = isPreviewActive;
     previewTimerRef.current = previewTimer;
   }, [isPreviewActive, previewTimer]);
 
-  // プレビュータイマーのクリーンアップ
+  // ページ遷移時の処理
   useEffect(() => {
-    return () => {
-      if (previewTimer) {
-        console.log('Cleaning up preview timer on unmount');
-        clearTimeout(previewTimer);
+    const currentPathname = pathname;
+    const previousPathname = previousPathnameRef.current;
+    
+    console.log('Route change detected:', { from: previousPathname, to: currentPathname });
+    
+    if (currentPathname === '/admin/settings' && previousPathname !== '/admin/settings') {
+      // 設定ページに入る時は現在のテーマを保持
+      console.log('Entering settings page, preserving current theme');
+    } else if (previousPathname === '/admin/settings' && currentPathname !== '/admin/settings') {
+      // 設定ページから出る時の処理
+      if (isPreviewActiveRef.current) {
+        console.log('Leaving settings page during preview, reverting to saved theme');
+        setIsDarkMode(savedThemeRef.current);
+        applyTheme(savedThemeRef.current);
+        setIsPreviewActive(false);
+        if (previewTimerRef.current) {
+          clearTimeout(previewTimerRef.current);
+          setPreviewTimer(null);
+        }
       }
-    };
-  }, [previewTimer]);
+    }
+    
+    previousPathnameRef.current = currentPathname;
+  }, [pathname, applyTheme]);
 
-  // パス変更を監視してプレビューを終了
+  // テーマの適用
   useEffect(() => {
-    if (pathname !== previousPathnameRef.current && isPreviewActiveRef.current) {
-      console.log('Pathname changed from', previousPathnameRef.current, 'to', pathname, '- ending preview');
-      
-      // タイマーをクリア
-      if (previewTimerRef.current) {
-        clearTimeout(previewTimerRef.current);
-        setPreviewTimer(null);
-      }
-      
-      // 保存されたテーマに戻す
-      const currentSavedTheme = savedThemeRef.current;
-      setIsDarkMode(currentSavedTheme);
-      applyTheme(currentSavedTheme);
-      setIsPreviewActive(false);
-    }
-    previousPathnameRef.current = pathname;
-  }, [pathname]); // 依存配列を最小限に
+    applyTheme(isDarkMode);
+  }, [isDarkMode, applyTheme]);
 
-  const applyTheme = (darkMode: boolean) => {
-    console.log('Applying theme:', darkMode);
-    const htmlElement = document.documentElement;
-    if (darkMode) {
-      htmlElement.classList.add('dark');
-      console.log('Added dark class to html element');
-    } else {
-      htmlElement.classList.remove('dark');
-      console.log('Removed dark class from html element');
-    }
-  };
+  // ダークモード切り替え関数
+  const toggleDarkMode = useCallback(() => {
+    console.log('Toggling dark mode from', isDarkMode, 'to', !isDarkMode);
+    setIsDarkMode(prev => !prev);
+  }, [isDarkMode]);
 
-  const toggleDarkMode = () => {
-    const newDarkMode = !isDarkMode;
-    console.log('Toggling dark mode:', isDarkMode, '->', newDarkMode);
-    setIsDarkMode(newDarkMode);
-    localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
-    applyTheme(newDarkMode);
-  };
-
-  const setDarkMode = (enabled: boolean) => {
-    console.log('Setting dark mode:', enabled);
+  // ダークモード設定関数
+  const setDarkMode = useCallback((enabled: boolean) => {
+    console.log('Setting dark mode to:', enabled);
     setIsDarkMode(enabled);
-    setSavedTheme(enabled);
-    localStorage.setItem('darkMode', JSON.stringify(enabled));
-    applyTheme(enabled);
-    
-    // プレビューモードを終了
-    if (previewTimer) {
-      clearTimeout(previewTimer);
-      setPreviewTimer(null);
-    }
-    setIsPreviewActive(false);
-  };
+  }, []);
 
-  const startPreview = useCallback((duration: number = 3000) => {
-    console.log('Starting preview mode');
+  // プレビュー開始関数
+  const startPreview = useCallback((duration: number = 5000) => {
+    console.log('Starting theme preview for', duration, 'ms');
     
-    // 既存のプレビューをクリア
+    // 現在のテーマを保存テーマとして記録
+    setSavedTheme(isDarkMode);
+    setIsPreviewActive(true);
+    
+    // 既存のタイマーをクリア
     if (previewTimer) {
       clearTimeout(previewTimer);
     }
     
-    setIsPreviewActive(true);
-    const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
-    applyTheme(newMode);
-    
-    // 指定時間後に元に戻す
+    // 新しいタイマーを設定
     const timer = setTimeout(() => {
-      console.log('Reverting preview to saved theme:', savedTheme);
+      console.log('Preview timeout, reverting to saved theme');
       setIsDarkMode(savedTheme);
-      applyTheme(savedTheme);
       setIsPreviewActive(false);
       setPreviewTimer(null);
     }, duration);
     
     setPreviewTimer(timer);
-  }, [isDarkMode, previewTimer, savedTheme]);
+  }, [previewTimer, isDarkMode, savedTheme]);
 
   const contextValue = useMemo(() => ({
     isDarkMode,
@@ -152,7 +267,7 @@ export function ThemeProvider({ children }: { readonly children: React.ReactNode
     setDarkMode,
     startPreview,
     isPreviewActive,
-  }), [isDarkMode, isPreviewActive]);
+  }), [isDarkMode, toggleDarkMode, setDarkMode, startPreview, isPreviewActive]);
 
   return (
     <ThemeContext.Provider value={contextValue}>
@@ -161,7 +276,7 @@ export function ThemeProvider({ children }: { readonly children: React.ReactNode
   );
 }
 
-export function useTheme() {
+export function useTheme(): ThemeContextType {
   const context = useContext(ThemeContext);
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider');

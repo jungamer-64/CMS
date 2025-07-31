@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { ApiKey, ApiKeyPermissions } from './api-keys';
+import { ApiKeyManager } from './api-keys-manager';
+import { ApiKeyPermissions } from './types';
 
 interface Settings {
   darkMode: boolean;
@@ -26,69 +25,14 @@ const defaultSettings: Settings = {
   requireApproval: false,
 };
 
-// 設定ファイルのパス
-const settingsPath = path.join(process.cwd(), 'data', 'settings.json');
-const apiKeysPath = path.join(process.cwd(), 'data', 'api-keys.json');
-
-// 設定を読み込む
-function loadSettings(): Settings {
-  try {
-    if (fs.existsSync(settingsPath)) {
-      const settingsData = fs.readFileSync(settingsPath, 'utf8');
-      const settings = JSON.parse(settingsData);
-      return { ...defaultSettings, ...settings };
-    }
-  } catch (error) {
-    console.error('設定読み込みエラー:', error);
-  }
-  return defaultSettings;
-}
-
-// APIキーを読み込む
-function loadApiKeys(): ApiKey[] {
-  try {
-    if (fs.existsSync(apiKeysPath)) {
-      const data = fs.readFileSync(apiKeysPath, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.error('APIキー読み込みエラー:', error);
-  }
-  return [];
-}
-
-// APIキーの最終使用日時を更新
-function updateApiKeyLastUsed(keyId: string): void {
-  try {
-    const apiKeys = loadApiKeys();
-    const keyIndex = apiKeys.findIndex(key => key.id === keyId);
-    if (keyIndex !== -1) {
-      apiKeys[keyIndex].lastUsed = new Date();
-      const dir = path.dirname(apiKeysPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      fs.writeFileSync(apiKeysPath, JSON.stringify(apiKeys, null, 2));
-    }
-  } catch (error) {
-    console.error('APIキー最終使用日時更新エラー:', error);
-  }
-}
-
 // APIキー認証と権限チェック
-export function validateApiKey(
+export async function validateApiKey(
   request: NextRequest, 
   requiredPermission?: { 
-    resource: 'posts' | 'comments' | 'settings', 
-    action: 'create' | 'read' | 'update' | 'delete' | 'moderate' 
+    resource: keyof ApiKeyPermissions, 
+    action: string
   }
-): { valid: boolean; error?: string; apiKey?: ApiKey } {
-  const settings = loadSettings();
-  
-  // APIアクセスが無効の場合
-  if (!settings.apiAccess) {
-    return { valid: false, error: 'API access is disabled' };
-  }
+): Promise<{ valid: boolean; error?: string; userId?: string; permissions?: ApiKeyPermissions }> {
   
   // リクエストからAPIキーを取得
   const providedKey = request.headers.get('x-api-key') || request.headers.get('authorization')?.replace('Bearer ', '');
@@ -97,14 +41,22 @@ export function validateApiKey(
     return { valid: false, error: 'API key is required. Use X-API-Key header or Authorization: Bearer <key>' };
   }
 
-  // 新しいAPIキーシステムをチェック
-  const apiKeys = loadApiKeys();
-  const foundApiKey = apiKeys.find(key => key.key === providedKey && key.isActive);
-  
-  if (foundApiKey) {
+  try {
+    // 新しいAPIキーシステムで認証
+    const validation = await ApiKeyManager.validateApiKey(providedKey);
+    
+    if (!validation) {
+      return { valid: false, error: 'Invalid API key' };
+    }
+
     // 権限チェック
     if (requiredPermission) {
-      const hasPermission = checkPermission(foundApiKey.permissions, requiredPermission);
+      const hasPermission = ApiKeyManager.hasPermission(
+        validation.permissions,
+        requiredPermission.resource,
+        requiredPermission.action
+      );
+      
       if (!hasPermission) {
         return { 
           valid: false, 
@@ -112,40 +64,17 @@ export function validateApiKey(
         };
       }
     }
-
-    // 最終使用日時を更新（非同期で実行）
-    setTimeout(() => updateApiKeyLastUsed(foundApiKey.id), 0);
     
-    return { valid: true, apiKey: foundApiKey };
-  }
-
-  // レガシーAPIキー（設定ファイル）をチェック
-  if (settings.apiKey && providedKey === settings.apiKey) {
-    return { valid: true };
-  }
-  
-  return { valid: false, error: 'Invalid API key' };
-}
-
-// 権限チェック関数
-function checkPermission(
-  permissions: ApiKeyPermissions,
-  required: { resource: 'posts' | 'comments' | 'settings', action: string }
-): boolean {
-  const { resource, action } = required;
-  
-  switch (resource) {
-    case 'posts':
-      return permissions.posts[action as keyof typeof permissions.posts] || false;
-    case 'comments':
-      return permissions.comments[action as keyof typeof permissions.comments] || false;
-    case 'settings':
-      return permissions.settings[action as keyof typeof permissions.settings] || false;
-    default:
-      return false;
+    return { 
+      valid: true, 
+      userId: validation.userId,
+      permissions: validation.permissions
+    };
+  } catch (error) {
+    console.error('API key validation error:', error);
+    return { valid: false, error: 'API key validation failed' };
   }
 }
-
 // レート制限（簡易版）
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
 
@@ -167,4 +96,58 @@ export function checkRateLimit(ip: string, limit: number = 10, windowMs: number 
   
   current.count++;
   return { allowed: true };
+}
+
+// ユーザーセッションベースの認証
+export async function validateUserSession(request: NextRequest): Promise<{ valid: boolean; user?: any; error?: string }> {
+  try {
+    console.log('validateUserSession: Starting validation...');
+    console.log('validateUserSession: All cookies:', request.cookies.getAll());
+    
+    // Cookieからトークンを取得（roleが含まれているtokenを優先）
+    const tokenCookie = request.cookies.get('token')?.value;
+    const authTokenCookie = request.cookies.get('auth_token')?.value;
+    
+    console.log('validateUserSession: token cookie:', tokenCookie ? 'Found' : 'Not found');
+    console.log('validateUserSession: auth_token cookie:', authTokenCookie ? 'Found' : 'Not found');
+    
+    const authToken = tokenCookie || authTokenCookie;
+    console.log('validateUserSession: Using token:', tokenCookie ? 'token' : 'auth_token');
+    
+    if (!authToken) {
+      console.log('validateUserSession: No auth token found');
+      return { valid: false, error: 'セッションが見つかりません' };
+    }
+
+    // JWTトークンを検証（既存の認証システムを使用）
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+    
+    try {
+      const decoded = jwt.verify(authToken, JWT_SECRET);
+      console.log('validateUserSession: Token verified, user:', decoded);
+      
+      // typeofチェックでオブジェクトであることを確認
+      if (typeof decoded === 'object' && decoded !== null) {
+        const user = decoded as { userId?: string; username?: string; role?: string };
+        return { 
+          valid: true, 
+          user: {
+            id: user.userId,
+            username: user.username,
+            role: user.role
+          }
+        };
+      } else {
+        console.log('validateUserSession: Invalid token format');
+        return { valid: false, error: 'トークンの形式が無効です' };
+      }
+    } catch (jwtError) {
+      console.log('validateUserSession: JWT verification failed:', jwtError);
+      return { valid: false, error: 'トークンが無効です' };
+    }
+  } catch (error) {
+    console.log('validateUserSession: Error:', error);
+    return { valid: false, error: '認証エラーが発生しました' };
+  }
 }
