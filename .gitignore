@@ -22,6 +22,7 @@ pnpm-debug.log*
 # next.js
 /.next/
 /out/
+.turbo/
 
 # production
 /build

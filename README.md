@@ -25,6 +25,7 @@ ADMIN_EMAIL=admin@example.com
 ## 🚀 特徴
 
 - **Next.js 15** - 最新のReact フレームワーク
+- **Turbopack** - 超高速バンドラー（Webpackの最大10倍高速）
 - **TypeScript** - 型安全性の確保
 - **MongoDB** - NoSQLデータベース
 - **Tailwind CSS** - ユーティリティファーストCSS
@@ -50,8 +51,12 @@ cd test-website
 ### 2. 依存関係のインストール
 
 ```bash
-# pnpmがインストールされていない場合
-npm install -g pnpm
+# pnpmのインストール（npmを使わずに直接インストール）
+curl -fsSL https://get.pnpm.io/install.sh | sh -
+
+# または、corepackが利用可能な場合
+corepack enable
+corepack prepare pnpm@latest --activate
 
 # 依存関係をインストール
 pnpm install
@@ -77,21 +82,30 @@ ADMIN_EMAIL=admin@example.com
 ### 4. 開発サーバーの起動
 
 ```bash
-# 開発サーバー起動
+# 開発サーバー起動（Turbopack使用 - デフォルト）
 pnpm dev
 
-# Turbopack使用（高速開発）
+# 従来のWebpack使用
+pnpm dev:webpack
+
+# 明示的にTurbopack使用
 pnpm dev:turbo
 ```
 
 [http://localhost:3000](http://localhost:3000)でアプリケーションにアクセスできます。
 
+**🚀 Turbopack について**
+- このプロジェクトではTurbopackがデフォルトで有効化されています
+- Webpackと比較して最大10倍高速な開発体験を提供
+- Hot Module Replacement (HMR) が大幅に高速化
+
 ## 📝 利用可能なスクリプト
 
 ```bash
 # 開発サーバー
-pnpm dev              # 通常の開発サーバー
-pnpm dev:turbo        # Turbopack使用
+pnpm dev              # Turbopack使用（高速）
+pnpm dev:webpack      # 従来のWebpack使用
+pnpm dev:turbo        # 明示的にTurbopack使用
 
 # ビルド
 pnpm build            # プロダクションビルド

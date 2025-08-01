@@ -19,8 +19,8 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   },
   
-  // 本番環境での出力設定
-  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  // 本番環境での出力設定（Windows権限問題でスタンドアロンを無効化）
+  // output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   
   // pnpm対応の実験的機能
   experimental: {
@@ -32,8 +32,9 @@ const nextConfig: NextConfig = {
     // pnpmのホイスティングに対応
     esmExternals: 'loose',
     
-    // Turbopackの有効化（開発時のパフォーマンス向上）
+    // Turbopackの最適化設定
     turbo: {
+      // 解決する拡張子の優先順位を設定
       resolveExtensions: [
         '.mdx',
         '.tsx',
@@ -43,11 +44,33 @@ const nextConfig: NextConfig = {
         '.mjs',
         '.json',
       ],
+      // Turbopackのルール設定
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+      // 静的ファイルの処理設定
+      resolveAlias: {
+        '@': './app',
+        '@/components': './app/components',
+        '@/lib': './app/lib',
+        '@/styles': './app/styles',
+      },
     },
+    
+    // Turbopackを使用した場合の最適化
+    optimizePackageImports: [
+      'react',
+      'react-dom',
+      'next',
+      'tailwindcss',
+    ],
   },
   
   // Webpack設定（pnpm対応）
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     // pnpmのシンボリックリンクに対応
     config.resolve.symlinks = false;
     

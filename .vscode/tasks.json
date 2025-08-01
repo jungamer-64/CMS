@@ -1,0 +1,75 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dev Server (Turbopack)",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "nextjs",
+        "pattern": [
+          {
+            "regexp": "^(.*):(\\d+):(\\d+)\\s+-\\s+(error|warning|info)\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "▲ Next.js",
+          "endsPattern": "(Local:|ready|compiled)"
+        }
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      }
+    },
+    {
+      "label": "Dev Server (Webpack)",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev:webpack"],
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "Build Production",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["build"],
+      "group": "build",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "Type Check",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["type-check"],
+      "group": "test",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "Lint",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["lint"],
+      "group": "test",
+      "problemMatcher": "$eslint-stylish"
+    }
+  ]
+}
