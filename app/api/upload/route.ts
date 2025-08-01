@@ -1,20 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { withApiAuth } from '@/app/lib/auth-middleware';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
-export async function POST(request: NextRequest) {
+interface UploadResponse {
+  uploadedFiles: Array<{
+    message: string;
+    url: string;
+    fileName: string;
+    originalName: string;
+    size: number;
+    type: string;
+  }>;
+  errors?: string[];
+  totalUploaded: number;
+  totalErrors: number;
+}
+
+// ファイルアップロード（POST）
+export const POST = withApiAuth(async (request: NextRequest, context) => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証情報がありません', 401);
+  }
+
+  console.log('ファイルアップロードAPI - ユーザー:', user.username);
+
   try {
     const formData = await request.formData();
     const files = formData.getAll('files') as File[];
     
     if (!files || files.length === 0) {
-      return NextResponse.json({ error: 'ファイルが選択されていません' }, { status: 400 });
+      return createErrorResponse('ファイルが選択されていません', 400);
     }
 
     // ファイル数の制限 (一度に10ファイルまで)
     if (files.length > 10) {
-      return NextResponse.json({ error: '一度にアップロードできるファイル数は10個までです' }, { status: 400 });
+      return createErrorResponse('一度にアップロードできるファイル数は10個までです', 400);
     }
 
     const uploadedFiles = [];
@@ -28,17 +52,21 @@ export async function POST(request: NextRequest) {
 
     for (const file of files) {
       try {
-        // ファイルタイプの検証
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        // ファイルタイプの検証（画像＋動画）
+        const allowedTypes = [
+          'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+          'video/mp4', 'video/webm', 'video/quicktime', 'video/avi', 
+          'video/x-m4v', 'video/x-matroska', 'video/ogg', 'video/3gpp', 'video/3gpp2'
+        ];
         if (!allowedTypes.includes(file.type)) {
           errors.push(`${file.name}: 許可されていないファイル形式です`);
           continue;
         }
 
-        // ファイルサイズの検証 (5MB)
-        const maxSize = 5 * 1024 * 1024;
+        // ファイルサイズの検証 (100MB)
+        const maxSize = 100 * 1024 * 1024;
         if (file.size > maxSize) {
-          errors.push(`${file.name}: ファイルサイズが大きすぎます (最大5MB)`);
+          errors.push(`${file.name}: ファイルサイズが大きすぎます (最大100MB)`);
           continue;
         }
 
@@ -55,7 +83,7 @@ export async function POST(request: NextRequest) {
         const safeName = nameWithoutExt
           .normalize('NFD') // Unicode正規化
           .replace(/[\u0300-\u036f]/g, '') // アクセント記号を除去
-          .replace(/[^\w.\-_]/g, '-') // 英数字、ハイフン、アンダースコア、ドット以外をハイフンに変換
+          .replace(/[^\w._-]/g, '-') // 英数字、ハイフン、アンダースコア、ドット以外をハイフンに変換
           .replace(/-+/g, '-') // 連続するハイフンを単一に
           .replace(/(^-+)|(-+$)/g, '') // 先頭末尾のハイフンを削除
           .toLowerCase(); // 小文字に変換
@@ -89,8 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     // レスポンス
-    const response = {
-      message: `${uploadedFiles.length}個のファイルをアップロードしました`,
+    const response: UploadResponse = {
       uploadedFiles,
       errors: errors.length > 0 ? errors : undefined,
       totalUploaded: uploadedFiles.length,
@@ -98,10 +125,11 @@ export async function POST(request: NextRequest) {
     };
     
     console.log('Upload response:', response);
-    return NextResponse.json(response);
+    const message = `${uploadedFiles.length}個のファイルをアップロードしました`;
+    return createSuccessResponse(response, message);
 
   } catch (error) {
     console.error('アップロードエラー:', error);
-    return NextResponse.json({ error: 'ファイルのアップロードに失敗しました' }, { status: 500 });
+    return createErrorResponse('ファイルのアップロードに失敗しました', 500);
   }
-}
+});

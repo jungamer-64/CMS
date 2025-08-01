@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/app/lib/auth';
-import PostContent from '@/app/blog/[slug]/PostContent';
+import PostContent from '@/app/articles/[slug]/PostContent';
 import AdminLayout from '@/app/lib/AdminLayout';
 
 interface Variables {
@@ -373,34 +374,24 @@ const MediaTab = ({
               </div>
               
               <div className="flex items-start space-x-3">
-                <img 
-                  src={image.url} 
-                  alt={image.alt || image.originalName}
-                  className="w-16 h-16 object-cover rounded border"
-                  onError={(e) => {
-                    console.error('=== Image Load Error ===');
-                    console.error('Failed to load image:', image.url);
-                    console.error('Full URL:', window.location.origin + image.url);
-                    console.error('Image object:', image);
-                    console.error('Error event:', e);
-                    console.error('Current src attribute:', e.currentTarget.src);
-                    e.currentTarget.style.border = '2px solid red';
-                    e.currentTarget.style.background = '#ffebee';
-                    // エラー時の代替表示
-                    e.currentTarget.style.display = 'flex';
-                    e.currentTarget.style.alignItems = 'center';
-                    e.currentTarget.style.justifyContent = 'center';
-                    e.currentTarget.style.fontSize = '10px';
-                    e.currentTarget.style.color = 'red';
-                    e.currentTarget.innerHTML = 'エラー';
-                  }}
-                  onLoad={() => {
-                    console.log('=== Image Load Success ===');
-                    console.log('Image loaded successfully:', image.url);
-                    console.log('Full URL:', window.location.origin + image.url);
-                    console.log('Image object:', image);
-                  }}
-                />
+                <div className="relative w-16 h-16">
+                  <Image 
+                    src={image.url} 
+                    alt={image.alt || image.originalName}
+                    className="object-cover rounded border"
+                    fill
+                    sizes="64px"
+                    onError={() => {
+                      console.error('=== Image Load Error ===');
+                      console.error('Failed to load image:', image.url);
+                      console.error('Image object:', image);
+                    }}
+                    onLoad={() => {
+                      console.log('=== Image Load Success ===');
+                      console.log('Image loaded successfully:', image.url);
+                    }}
+                  />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                     {image.originalName}

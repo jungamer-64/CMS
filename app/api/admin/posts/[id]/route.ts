@@ -1,22 +1,42 @@
 import { NextRequest } from 'next/server';
-import { withAuth, createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { withApiAuth } from '@/app/lib/auth-middleware';
 import { deletePost, restorePost, permanentlyDeletePost } from '@/app/lib/posts';
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
+// URLからIDを抽出するヘルパー関数
+function extractIdFromUrl(url: string): string {
+  const pathSegments = url.split('/');
+  return pathSegments[pathSegments.length - 1];
 }
 
-export const DELETE = withAuth(async (request: NextRequest, user, { params }: RouteParams) => {
+// 型ガード関数
+function isDeleteRequest(obj: unknown): obj is { permanent?: boolean } {
+  if (!obj || typeof obj !== 'object') return true; // 空のオブジェクトも許可
+  const req = obj as Record<string, unknown>;
+  return req.permanent === undefined || typeof req.permanent === 'boolean';
+}
+
+// 投稿を削除（DELETE）
+export const DELETE = withApiAuth(async (request: NextRequest, context) => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証情報がありません', 401);
+  }
+
   try {
-    const { id } = params;
+    const id = extractIdFromUrl(request.url);
     
     if (!id) {
       return createErrorResponse('投稿IDが必要です', 400);
     }
     
     const body = await request.json().catch(() => ({}));
+    
+    // 型ガードによる検証
+    if (!isDeleteRequest(body)) {
+      return createErrorResponse('無効なリクエストデータです', 400);
+    }
+    
     const permanent = body.permanent === true;
     
     console.log(`投稿削除API - ユーザー: ${user.username}, 投稿ID: ${id}, 永続削除: ${permanent}`);
@@ -41,9 +61,15 @@ export const DELETE = withAuth(async (request: NextRequest, user, { params }: Ro
   }
 });
 
-export const PATCH = withAuth(async (request: NextRequest, user, { params }: RouteParams) => {
+// 投稿を復元（PATCH）
+export const PATCH = withApiAuth(async (request: NextRequest, context) => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証情報がありません', 401);
+  }
+
   try {
-    const { id } = params;
+    const id = extractIdFromUrl(request.url);
     
     if (!id) {
       return createErrorResponse('投稿IDが必要です', 400);

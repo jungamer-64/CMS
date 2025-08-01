@@ -1,19 +1,204 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import { 
   ApiSuccess, 
   ApiError, 
   ApiErrorCode, 
-  AuthenticatedUser, 
-  AuthContext, 
   ValidationSchema, 
   ValidationResult, 
   ValidationError,
-  RequiredPermission,
-  RateLimitConfig,
+  ValidationRule,
   PaginationMeta
 } from './api-types';
-import { validateApiKey, validateUserSession, checkRateLimit } from './api-auth';
+
+// レート制限用のメモリストア
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+// =============================================================================
+// 認証ミドルウェア
+// =============================================================================
+
+export interface AuthContext {
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    displayName: string;
+    role: 'user' | 'admin';
+  };
+}
+
+export interface AuthOptions {
+  resource?: string;
+  action?: string;
+  requireAdmin?: boolean;
+}
+
+// 動的インポートによる認証関数
+async function validateUserSession(request: NextRequest) {
+  const { validateUserSession: validate } = await import('./api-auth');
+  return validate(request);
+}
+
+export interface AuthenticatedUser {
+  id: string;
+  userId?: string; // 後方互換性のため
+  username: string;
+  email: string;
+  displayName: string;
+  role: 'user' | 'admin';
+}
+
+export function withAuth(
+  handler: (request: NextRequest, user: AuthenticatedUser, context?: { params: Record<string, string> }) => Promise<NextResponse>,
+  options: AuthOptions = {}
+) {
+  return async (
+    request: NextRequest, 
+    context: { params: Promise<Record<string, string>> }
+  ): Promise<NextResponse> => {
+    try {
+      const authResult = await validateUserSession(request);
+      
+      if (!authResult.valid || !authResult.user) {
+        return createErrorResponse(
+          authResult.error || '認証が必要です',
+          401,
+          ApiErrorCode.UNAUTHORIZED
+        );
+      }
+
+      // 管理者権限が必要な場合
+      if (options.requireAdmin && authResult.user.role !== 'admin') {
+        return createErrorResponse(
+          '管理者権限が必要です',
+          403,
+          ApiErrorCode.FORBIDDEN
+        );
+      }
+
+      // パラメータがPromiseの場合は解決する
+      const resolvedParams = await context.params;
+
+      // ハンドラーに適切な引数を渡す
+      return await handler(request, authResult.user, { params: resolvedParams });
+    } catch (error) {
+      return handleApiError(error);
+    }
+  };
+}
+
+// =============================================================================
+// レート制限ミドルウェア
+// =============================================================================
+
+export interface RateLimitOptions {
+  maxRequests: number;
+  windowMs: number;
+  message?: string;
+  keyGenerator?: (request: NextRequest) => string;
+}
+
+export function withRateLimit(
+  handler: (request: NextRequest) => Promise<NextResponse>,
+  options: RateLimitOptions
+): (request: NextRequest) => Promise<NextResponse>;
+export function withRateLimit(
+  handler: (request: NextRequest, context: { params: Promise<Record<string, string>> }) => Promise<NextResponse>,
+  options: RateLimitOptions
+): (request: NextRequest, context: { params: Promise<Record<string, string>> }) => Promise<NextResponse>;
+export function withRateLimit(
+  handler: ((request: NextRequest) => Promise<NextResponse>) | ((request: NextRequest, context: { params: Promise<Record<string, string>> }) => Promise<NextResponse>),
+  options: RateLimitOptions
+) {
+  return async (
+    request: NextRequest, 
+    context?: { params: Promise<Record<string, string>> }
+  ): Promise<NextResponse> => {
+    const key = options.keyGenerator ? options.keyGenerator(request) : getClientIP(request);
+    const now = Date.now();
+    
+    // 古いエントリをクリーンアップ
+    for (const [k, v] of rateLimitStore.entries()) {
+      if (v.resetTime < now) {
+        rateLimitStore.delete(k);
+      }
+    }
+    
+    const current = rateLimitStore.get(key);
+    
+    if (!current || current.resetTime < now) {
+      // 新しいエントリまたはリセット時間を過ぎた場合
+      rateLimitStore.set(key, {
+        count: 1,
+        resetTime: now + options.windowMs
+      });
+    } else if (current.count >= options.maxRequests) {
+      return createErrorResponse(
+        options.message || 'レート制限に達しました',
+        429,
+        ApiErrorCode.RATE_LIMIT_EXCEEDED
+      );
+    } else {
+      current.count++;
+    }
+    
+    return context 
+      ? await (handler as (request: NextRequest, context: { params: Promise<Record<string, string>> }) => Promise<NextResponse>)(request, context)
+      : await (handler as (request: NextRequest) => Promise<NextResponse>)(request);
+  };
+}
+
+// =============================================================================
+// 統合認証ミドルウェア（認証 + 権限チェック）
+// =============================================================================
+
+export function withIntegratedAuth(
+  handler: (request: NextRequest, authContext?: AuthContext) => Promise<NextResponse>,
+  options: AuthOptions = {}
+) {
+  return async (
+    request: NextRequest
+  ): Promise<NextResponse> => {
+    try {
+      // 公開APIの場合は認証をスキップ
+      if (options.resource === 'posts' && options.action === 'read') {
+        return await handler(request);
+      }
+
+      const authResult = await validateUserSession(request);
+      
+      if (!authResult.valid || !authResult.user) {
+        return createErrorResponse(
+          authResult.error || '認証が必要です',
+          401,
+          ApiErrorCode.UNAUTHORIZED
+        );
+      }
+
+      // 管理者権限が必要な場合
+      if (options.requireAdmin && authResult.user.role !== 'admin') {
+        return createErrorResponse(
+          '管理者権限が必要です',
+          403,
+          ApiErrorCode.FORBIDDEN
+        );
+      }
+
+      const authContext: AuthContext = { 
+        user: {
+          id: authResult.user.id,
+          username: authResult.user.username,
+          email: authResult.user.email || '',
+          displayName: authResult.user.displayName || authResult.user.username,
+          role: authResult.user.role
+        }
+      };
+      return await handler(request, authContext);
+    } catch (error) {
+      return handleApiError(error);
+    }
+  };
+}
 
 // =============================================================================
 // レスポンス作成ユーティリティ
@@ -68,177 +253,6 @@ export function createPaginatedResponse<T>(
 }
 
 // =============================================================================
-// 認証・認可ユーティリティ
-// =============================================================================
-
-export function verifyAdminToken(request: NextRequest): AuthenticatedUser | null {
-  const token = request.cookies.get('token')?.value;
-  
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as {
-      userId: string;
-      username: string;
-      role: string;
-    };
-
-    if (decoded.role !== 'admin') {
-      return null;
-    }
-
-    return {
-      userId: decoded.userId,
-      username: decoded.username,
-      role: decoded.role as 'user' | 'admin'
-    };
-  } catch {
-    return null;
-  }
-}
-
-// 統合認証（セッション + APIキー対応）
-export async function authenticateRequest(
-  request: NextRequest,
-  requiredPermission?: RequiredPermission
-): Promise<{ success: boolean; context?: AuthContext; error?: string }> {
-  // 1. セッション認証を試行
-  const sessionValidation = await validateUserSession(request);
-  
-  if (sessionValidation.valid && sessionValidation.user) {
-    const context: AuthContext = {
-      isAuthenticated: true,
-      authMethod: 'session',
-      user: {
-        userId: sessionValidation.user.id,
-        username: sessionValidation.user.username,
-        role: sessionValidation.user.role,
-        email: sessionValidation.user.email,
-        displayName: sessionValidation.user.displayName
-      }
-    };
-
-    // 管理者は全ての権限を持つ
-    if (context.user?.role === 'admin') {
-      return { success: true, context };
-    }
-
-    return { success: true, context };
-  }
-
-  // 2. APIキー認証を試行
-  const apiKeyValidation = await validateApiKey(request, requiredPermission);
-  
-  if (apiKeyValidation.valid) {
-    const context: AuthContext = {
-      isAuthenticated: true,
-      authMethod: 'apikey',
-      apiKey: {
-        userId: apiKeyValidation.userId!,
-        permissions: apiKeyValidation.permissions!
-      }
-    };
-
-    return { success: true, context };
-  }
-
-  return {
-    success: false,
-    error: sessionValidation.error || apiKeyValidation.error || '認証が必要です'
-  };
-}
-
-// =============================================================================
-// 認証付きAPIハンドラーラッパー
-// =============================================================================
-
-export function withAuth<T extends unknown[]>(
-  handler: (request: NextRequest, user: AuthenticatedUser, ...args: T) => Promise<NextResponse>
-) {
-  return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
-    try {
-      const user = verifyAdminToken(request);
-      
-      if (!user) {
-        return createErrorResponse(
-          '管理者権限が必要です', 
-          403, 
-          ApiErrorCode.FORBIDDEN
-        );
-      }
-
-      return await handler(request, user, ...args);
-    } catch (error) {
-      console.error('API Error:', error);
-      return createErrorResponse(
-        error instanceof Error ? error.message : 'サーバーエラーが発生しました',
-        500,
-        ApiErrorCode.INTERNAL_ERROR
-      );
-    }
-  };
-}
-
-// 統合認証付きAPIハンドラーラッパー
-export function withIntegratedAuth<T extends unknown[]>(
-  handler: (request: NextRequest, context: AuthContext, ...args: T) => Promise<NextResponse>,
-  requiredPermission?: RequiredPermission
-) {
-  return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
-    try {
-      const authResult = await authenticateRequest(request, requiredPermission);
-      
-      if (!authResult.success) {
-        return createErrorResponse(
-          authResult.error || '認証が必要です', 
-          401, 
-          ApiErrorCode.UNAUTHORIZED
-        );
-      }
-
-      return await handler(request, authResult.context!, ...args);
-    } catch (error) {
-      console.error('API Error:', error);
-      return createErrorResponse(
-        error instanceof Error ? error.message : 'サーバーエラーが発生しました',
-        500,
-        ApiErrorCode.INTERNAL_ERROR
-      );
-    }
-  };
-}
-
-// レート制限付きAPIハンドラーラッパー
-export function withRateLimit<T extends unknown[]>(
-  handler: (request: NextRequest, ...args: T) => Promise<NextResponse>,
-  config: RateLimitConfig
-) {
-  return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
-    try {
-      const ip = getClientIP(request);
-      const rateLimitResult = checkRateLimit(ip, config.maxRequests, config.windowMs);
-      
-      if (!rateLimitResult.allowed) {
-        return createErrorResponse(
-          config.message || 'レート制限に達しました',
-          429,
-          ApiErrorCode.RATE_LIMIT_EXCEEDED
-        );
-      }
-
-      return await handler(request, ...args);
-    } catch (error) {
-      console.error('API Error:', error);
-      return createErrorResponse(
-        error instanceof Error ? error.message : 'サーバーエラーが発生しました',
-        500,
-        ApiErrorCode.INTERNAL_ERROR
-      );
-    }
-  };
-}
 
 // =============================================================================
 // バリデーションユーティリティ
@@ -273,7 +287,7 @@ export function validateData<T extends Record<string, unknown>>(
   };
 }
 
-function validateField(field: string, value: unknown, rule: any): ValidationError[] {
+function validateField(field: string, value: unknown, rule: ValidationRule): ValidationError[] {
   const errors: ValidationError[] = [];
 
   // 必須チェック
@@ -323,10 +337,16 @@ function validateField(field: string, value: unknown, rule: any): ValidationErro
   // カスタムバリデーション
   if (rule.custom) {
     const result = rule.custom(value);
-    if (result !== true) {
+    if (typeof result === 'string') {
       errors.push({
         field,
-        message: typeof result === 'string' ? result : `${field}のバリデーションに失敗しました`,
+        message: result,
+        code: ApiErrorCode.INVALID_FORMAT
+      });
+    } else if (result === false) {
+      errors.push({
+        field,
+        message: `${field}のバリデーションに失敗しました`,
         code: ApiErrorCode.VALIDATION_ERROR
       });
     }
@@ -335,7 +355,7 @@ function validateField(field: string, value: unknown, rule: any): ValidationErro
   return errors;
 }
 
-function validateStringField(field: string, value: string, rule: any): ValidationError[] {
+function validateStringField(field: string, value: string, rule: ValidationRule): ValidationError[] {
   const errors: ValidationError[] = [];
 
   if (rule.minLength && value.length < rule.minLength) {
@@ -357,7 +377,7 @@ function validateStringField(field: string, value: string, rule: any): Validatio
   return errors;
 }
 
-function validateNumberField(field: string, value: number, rule: any): ValidationError[] {
+function validateNumberField(field: string, value: number, rule: ValidationRule): ValidationError[] {
   const errors: ValidationError[] = [];
 
   if (rule.min !== undefined && value < rule.min) {
@@ -482,4 +502,14 @@ export function handleApiError(error: unknown): NextResponse {
     500, 
     ApiErrorCode.INTERNAL_ERROR
   );
+}
+
+// =============================
+// ファイルサイズ変換ユーティリティ
+// =============================
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }

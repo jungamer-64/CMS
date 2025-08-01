@@ -1,8 +1,15 @@
 import { NextRequest } from 'next/server';
 import { getAllUsersWithFilters } from '@/app/lib/users';
-import { withAuth, createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { withApiAuth } from '@/app/lib/auth-middleware';
 
-export const GET = withAuth(async (request: NextRequest, user) => {
+// ユーザー統計を取得（GET）
+export const GET = withApiAuth(async (request: NextRequest, context) => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証情報がありません', 401);
+  }
+
   console.log('アカウント統計API呼び出し - ユーザー:', user.username);
   
   try {
@@ -30,7 +37,7 @@ export const GET = withAuth(async (request: NextRequest, user) => {
     };
 
     console.log('アカウント統計:', stats);
-    return createSuccessResponse(stats);
+    return createSuccessResponse(stats, 'ユーザー統計を取得しました');
   } catch (error) {
     console.error('アカウント統計取得エラー:', error);
     return createErrorResponse('アカウント統計の取得に失敗しました', 500);

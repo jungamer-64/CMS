@@ -1,6 +1,29 @@
+// 記事一覧をシンプルに取得しApiResponse<PostsListResponse>で返す
+import type { ApiResponse, PostResponse, PostsListResponse } from './api-types';
+
+export async function getAllPostsSimple(): Promise<ApiResponse<PostsListResponse>> {
+  try {
+    const collection = await getPostsCollection();
+    const posts = await collection.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).toArray();
+    return {
+      success: true,
+      data: {
+        posts,
+        total: posts.length,
+        filters: undefined
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '記事一覧の取得に失敗しました'
+    };
+  }
+}
 import { Collection } from 'mongodb';
 import { getDatabase } from './mongodb';
 import { Post, PostInput } from './types';
+
 
 export async function getPostsCollection(): Promise<Collection<Post>> {
   const db = await getDatabase();
@@ -64,10 +87,7 @@ export async function getAllPosts(options?: {
   return { posts, total };
 }
 
-export async function getAllPostsSimple(): Promise<Post[]> {
-  const collection = await getPostsCollection();
-  return await collection.find({ isDeleted: { $ne: true } }).toArray();
-}
+
 
 export async function getAllPostsForAdmin(): Promise<Post[]> {
   const collection = await getPostsCollection();
@@ -94,18 +114,28 @@ export async function getPostById(id: string): Promise<Post | null> {
   };
 }
 
-export async function getPostBySlug(slug: string): Promise<Post | null> {
-  // URLエンコードされたslugをデコード
+
+export async function getPostBySlug(slug: string): Promise<ApiResponse<PostResponse>> {
   const decodedSlug = decodeURIComponent(slug);
   const collection = await getPostsCollection();
-  const post = await collection.findOne({ slug: decodedSlug });
-  
-  // 削除された投稿は返さない
-  if (post && post.isDeleted) {
-    return null;
+  try {
+    const post = await collection.findOne({ slug: decodedSlug });
+    if (!post || post.isDeleted) {
+      return {
+        success: false,
+        error: '投稿が見つかりません'
+      };
+    }
+    return {
+      success: true,
+      data: { post }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '投稿の取得に失敗しました'
+    };
   }
-  
-  return post;
 }
 
 export async function updatePost(id: string, updateData: Partial<Post>): Promise<Post | null> {

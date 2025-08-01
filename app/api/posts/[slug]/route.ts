@@ -1,193 +1,142 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { 
+  createGetHandler, 
+  createPutHandler, 
+  createDeleteHandler 
+} from '@/app/lib/api-factory';
+import { 
+  createApiSuccess, 
+  createApiError, 
+  ApiErrorCode 
+} from '@/app/lib/api-types';
 import { getPostBySlug, updatePostBySlug, deletePostBySlug } from '@/app/lib/posts';
-import { validateApiKey, checkRateLimit, validateUserSession } from '@/app/lib/api-auth';
+import { validationSchemas } from '@/app/lib/validation-schemas-enhanced';
+import type { 
+  PostResponse, 
+  PostUpdateRequest 
+} from '@/app/lib/api-types';
 
 // 動的レンダリングを強制
 export const dynamic = 'force-dynamic';
 
-// 特定の投稿を取得
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
-) {
-  try {
-    const resolvedParams = await params;
-    const { slug } = resolvedParams;
-    
-    if (!slug) {
-      return NextResponse.json(
-        { error: 'スラッグが必要です' },
-        { status: 400 }
-      );
-    }
-
-    const post = await getPostBySlug(slug);
-    
-    if (!post) {
-      return NextResponse.json(
-        { error: '投稿が見つかりません' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(post);
-  } catch (error) {
-    console.error('投稿取得エラー:', error);
-    return NextResponse.json(
-      { error: '投稿の取得に失敗しました' },
-      { status: 500 }
-    );
-  }
-}
-
-// 投稿を更新
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
-) {
-  try {
-    const resolvedParams = await params;
-    const { slug } = resolvedParams;
-    
-    if (!slug) {
-      return NextResponse.json(
-        { error: 'スラッグが必要です' },
-        { status: 400 }
-      );
-    }
-
-    // クライアントIPを取得
-    const ip = request.headers.get('x-forwarded-for') || 
-              request.headers.get('x-real-ip') || 
-              '127.0.0.1';
-
-    // レート制限チェック（1分間に10更新まで）
-    const rateLimitResult = checkRateLimit(ip, 10, 60000);
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: rateLimitResult.error },
-        { status: 429 }
-      );
-    }
-
-    // ユーザーセッション認証を試行（ウェブインターフェース用）
-    const userValidation = await validateUserSession(request);
-    
-    // セッション認証が失敗した場合、APIキー認証を試行
-    if (!userValidation.valid) {
-      const authResult = await validateApiKey(request, { resource: 'posts', action: 'update' });
-      if (!authResult.valid) {
-        return NextResponse.json(
-          { error: authResult.error },
-          { status: 401 }
-        );
+// 特定の投稿を取得（公開API）
+export const GET = createGetHandler<PostResponse>(
+  async (request, user, params) => {
+    try {
+      const { slug } = params || {};
+      
+      if (!slug) {
+        return createApiError('スラッグが必要です', ApiErrorCode.VALIDATION_ERROR);
       }
-    }
 
-    const body = await request.json();
-    const { title, content, slug: newSlug } = body;
-
-    if (!title || !content || !newSlug) {
-      return NextResponse.json(
-        { error: 'タイトル、内容、スラッグは必須です' },
-        { status: 400 }
-      );
-    }
-
-    // 既存の投稿を確認
-    const existingPost = await getPostBySlug(slug);
-    if (!existingPost) {
-      return NextResponse.json(
-        { error: '投稿が見つかりません' },
-        { status: 404 }
-      );
-    }
-
-    const updatedPost = await updatePostBySlug(slug, {
-      title,
-      content,
-      slug: newSlug,
-      updatedAt: new Date(),
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: '投稿が正常に更新されました',
-      post: updatedPost
-    });
-  } catch (error) {
-    console.error('投稿更新エラー:', error);
-    return NextResponse.json(
-      { error: '投稿の更新に失敗しました' },
-      { status: 500 }
-    );
-  }
-}
-
-// 投稿を削除
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
-) {
-  try {
-    const resolvedParams = await params;
-    const { slug } = resolvedParams;
-    
-    if (!slug) {
-      return NextResponse.json(
-        { error: 'スラッグが必要です' },
-        { status: 400 }
-      );
-    }
-
-    // クライアントIPを取得
-    const ip = request.headers.get('x-forwarded-for') || 
-              request.headers.get('x-real-ip') || 
-              '127.0.0.1';
-
-    // レート制限チェック（1分間に5削除まで）
-    const rateLimitResult = checkRateLimit(ip, 5, 60000);
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: rateLimitResult.error },
-        { status: 429 }
-      );
-    }
-
-    // ユーザーセッション認証を試行（ウェブインターフェース用）
-    const userValidation = await validateUserSession(request);
-    
-    // セッション認証が失敗した場合、APIキー認証を試行
-    if (!userValidation.valid) {
-      const authResult = await validateApiKey(request, { resource: 'posts', action: 'delete' });
-      if (!authResult.valid) {
-        return NextResponse.json(
-          { error: authResult.error },
-          { status: 401 }
-        );
+      const postResult = await getPostBySlug(slug);
+      
+      if (!postResult.success || !postResult.data) {
+        return createApiError('投稿が見つかりません', ApiErrorCode.NOT_FOUND);
       }
-    }
 
-    // 既存の投稿を確認
-    const existingPost = await getPostBySlug(slug);
-    if (!existingPost) {
-      return NextResponse.json(
-        { error: '投稿が見つかりません' },
-        { status: 404 }
+      return createApiSuccess(postResult.data, '投稿を取得しました');
+    } catch (error) {
+      console.error('投稿取得エラー:', error);
+      return createApiError(
+        '投稿の取得に失敗しました',
+        ApiErrorCode.INTERNAL_ERROR
       );
     }
-
-    await deletePostBySlug(slug);
-
-    return NextResponse.json({
-      success: true,
-      message: '投稿が正常に削除されました'
-    });
-  } catch (error) {
-    console.error('投稿削除エラー:', error);
-    return NextResponse.json(
-      { error: '投稿の削除に失敗しました' },
-      { status: 500 }
-    );
+  },
+  {
+    requireAuth: false // 公開API
   }
-}
+);
+
+// 投稿を更新（認証必須）
+export const PUT = createPutHandler<PostUpdateRequest, PostResponse>(
+  async (request, body, user, params) => {
+    try {
+      if (!user) {
+        return createApiError('認証が必要です', ApiErrorCode.UNAUTHORIZED);
+      }
+
+      const { slug } = params || {};
+      
+      if (!slug) {
+        return createApiError('スラッグが必要です', ApiErrorCode.VALIDATION_ERROR);
+      }
+
+      const { title, content, slug: newSlug, author } = body;
+
+      // 必須フィールドの検証
+      if (!title || !content || !author) {
+        return createApiError('必須フィールドが不足しています', ApiErrorCode.VALIDATION_ERROR);
+      }
+
+      // 投稿を更新
+      const updatedPost = await updatePostBySlug(slug, {
+        title: title.trim(),
+        content: content.trim(),
+        slug: newSlug?.trim() || slug,
+        author: author.trim()
+      });
+
+      if (!updatedPost) {
+        return createApiError('投稿が見つかりません', ApiErrorCode.NOT_FOUND);
+      }
+
+      const response: PostResponse = { post: updatedPost };
+      return createApiSuccess(response, '投稿が正常に更新されました');
+    } catch (error) {
+      console.error('投稿更新エラー:', error);
+      return createApiError(
+        '投稿の更新に失敗しました',
+        ApiErrorCode.INTERNAL_ERROR
+      );
+    }
+  },
+  {
+    requireAuth: true,
+    validationSchema: validationSchemas.post.update,
+    rateLimit: {
+      maxRequests: 10,
+      windowMs: 60000,
+      message: '投稿更新の頻度が高すぎます'
+    }
+  }
+);
+
+// 投稿を削除（認証必須）
+export const DELETE = createDeleteHandler<{message: string}>(
+  async (request, user, params) => {
+    try {
+      if (!user) {
+        return createApiError('認証が必要です', ApiErrorCode.UNAUTHORIZED);
+      }
+
+      const { slug } = params || {};
+      
+      if (!slug) {
+        return createApiError('スラッグが必要です', ApiErrorCode.VALIDATION_ERROR);
+      }
+
+      const deletedPost = await deletePostBySlug(slug);
+
+      if (!deletedPost) {
+        return createApiError('投稿が見つかりません', ApiErrorCode.NOT_FOUND);
+      }
+
+      return createApiSuccess({ message: '投稿が正常に削除されました' }, '投稿が正常に削除されました');
+    } catch (error) {
+      console.error('投稿削除エラー:', error);
+      return createApiError(
+        '投稿の削除に失敗しました',
+        ApiErrorCode.INTERNAL_ERROR
+      );
+    }
+  },
+  {
+    requireAuth: true,
+    rateLimit: {
+      maxRequests: 5,
+      windowMs: 60000,
+      message: '投稿削除の頻度が高すぎます'
+    }
+  }
+);

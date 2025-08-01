@@ -1,109 +1,98 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { 
-  withAuth, 
   createSuccessResponse, 
   createErrorResponse, 
-  validateData,
   handleApiError
 } from '@/app/lib/api-utils';
+import { withApiAuth } from '@/app/lib/auth-middleware';
 import { ApiKeyManager } from '@/app/lib/api-keys-manager';
-import { apiKeyCreateSchema } from '@/app/lib/validation-schemas';
+import type { AuthContext } from '@/app/lib/auth-middleware';
 import { 
   ApiKeyCreateRequest, 
-  ApiKeysListResponse, 
   ApiErrorCode
 } from '@/app/lib/api-types';
 
+// 型ガード関数
+function isApiKeyCreateRequest(obj: unknown): obj is ApiKeyCreateRequest {
+  if (!obj || typeof obj !== 'object') return false;
+  const req = obj as Record<string, unknown>;
+  return typeof req.name === 'string' && req.name.trim().length > 0;
+}
+
 // APIキー一覧を取得（GET）
-export const GET = withAuth(async (request: NextRequest, user): Promise<NextResponse> => {
-  console.log('APIキー取得API呼び出し - ユーザー:', user.username);
+export const GET = withApiAuth(async (request: NextRequest, context: AuthContext): Promise<NextResponse> => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証ユーザーが見つかりません', 401);
+  }
   
   try {
-    // ユーザーのAPIキーを取得
-    const apiKey = await ApiKeyManager.getUserApiKey(user.userId);
+    console.log('API GET user:', user?.id, user);
     
-    if (!apiKey) {
-      const response: ApiKeysListResponse = {
-        apiKeys: [],
-        hasApiKey: false,
-        message: 'APIキーが作成されていません'
-      };
-      
-      return createSuccessResponse(response);
-    }
-
-    // セキュリティのため、キーの一部のみ表示
-    const maskedKey = apiKey.key.substring(0, 8) + '...' + apiKey.key.substring(apiKey.key.length - 4);
+    // 複数APIキーを取得（なければ空配列）
+    const apiKeys = await ApiKeyManager.getApiKeysForUser(user.id);
+    console.log('API GET apiKeys:', apiKeys);
     
-    const responseApiKey = {
+    const responseApiKeys = apiKeys.map((apiKey: import('@/app/lib/types').ApiKey) => ({
       ...apiKey,
-      key: maskedKey
-    };
-
-    const response: ApiKeysListResponse = {
-      apiKeys: [responseApiKey],
-      hasApiKey: true
-    };
-
-    return createSuccessResponse(response);
+      keyPrefix: typeof apiKey.key === 'string' ? apiKey.key.substring(0, 8) : '',
+    }));
+    
+    return createSuccessResponse({ apiKeys: responseApiKeys });
   } catch (error) {
     return handleApiError(error);
   }
-});
+}, { resource: 'users', action: 'read' });
 
 // 新しいAPIキーを作成（POST）
-export const POST = withAuth(async (request: NextRequest, user): Promise<NextResponse> => {
-  console.log('APIキー作成API呼び出し - ユーザー:', user.username);
+export const POST = withApiAuth(async (request: NextRequest, context: AuthContext): Promise<NextResponse> => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証ユーザーが見つかりません', 401);
+  }
   
   try {
-    const body: ApiKeyCreateRequest = await request.json();
+    const body: unknown = await request.json();
     console.log('受信したデータ:', body);
 
-    // バリデーション
-    const validation = validateData(body as unknown as Record<string, unknown>, apiKeyCreateSchema);
-    if (!validation.isValid) {
-      return createErrorResponse(
-        validation.errors.map(e => e.message).join(', '),
-        400,
-        ApiErrorCode.VALIDATION_ERROR
-      );
+    // 型ガードによるバリデーション
+    if (!isApiKeyCreateRequest(body)) {
+      return createErrorResponse('無効なリクエストデータです', 400, ApiErrorCode.VALIDATION_ERROR);
     }
     
     const { name, permissions, expiresAt } = body;
 
     // 新しいAPIキーを生成（既存のキーは自動的に無効化される）
-    const newApiKey = await ApiKeyManager.generateApiKey(user.userId, {
+    const newApiKey = await ApiKeyManager.generateApiKey(user.id, {
       name: name.trim(),
-      permissions: permissions || ApiKeyManager.getDefaultPermissions(user.role),
+      permissions: permissions || ApiKeyManager.getDefaultPermissions(user.role as 'user' | 'admin'),
       expiresAt: expiresAt ? new Date(expiresAt as unknown as string) : undefined
     });
     
     console.log('新しいAPIキー作成成功:', newApiKey.id);
     
-    const response: ApiKeysListResponse = {
-      apiKeys: [newApiKey],
-      hasApiKey: true
-    };
-    
-    return createSuccessResponse(response, 'APIキーが正常に作成されました');
+    // 作成時のみキー文字列だけ返す
+    return createSuccessResponse({ apiKey: newApiKey.key }, 'APIキーが正常に作成されました');
   } catch (error) {
     return handleApiError(error);
   }
-});
+}, { resource: 'users', action: 'create' });
 
 // APIキーを無効化（DELETE）
-export const DELETE = withAuth(async (request: NextRequest, user): Promise<NextResponse> => {
-  console.log('APIキー削除API呼び出し - ユーザー:', user.username);
+export const DELETE = withApiAuth(async (request: NextRequest, context: AuthContext): Promise<NextResponse> => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証ユーザーが見つかりません', 401);
+  }
   
   try {
     // ユーザーのAPIキーを無効化
-    const deactivated = await ApiKeyManager.deactivateApiKey(user.userId);
-    
+    const deactivated = await ApiKeyManager.deactivateApiKey(user.id);
     if (!deactivated) {
       return createErrorResponse('無効化するAPIキーが見つかりません', 404, ApiErrorCode.NOT_FOUND);
     }
-
-    console.log('APIキー無効化成功:', user.userId);
+    
+    console.log('APIキー無効化成功:', user.id);
     
     return createSuccessResponse(
       { deactivated: true }, 
@@ -112,4 +101,4 @@ export const DELETE = withAuth(async (request: NextRequest, user): Promise<NextR
   } catch (error) {
     return handleApiError(error);
   }
-});
+}, { resource: 'users', action: 'delete' });

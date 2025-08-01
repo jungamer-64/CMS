@@ -8,6 +8,16 @@ export class ApiKeyManager {
     return db.collection<ApiKey>(COLLECTIONS.API_KEYS);
   }
 
+  // 指定ユーザーの全APIキーを取得
+  static async getApiKeysForUser(userId: string): Promise<ApiKey[]> {
+    const collection = await this.getCollection();
+    // isActiveなAPIキーのみ返す
+    const apiKeys = await collection.find({ userId, isActive: true }).toArray();
+    return apiKeys;
+  }
+
+  // ユーザーのAPIキーを取得
+
   // ユーザーのAPIキーを取得
   static async getUserApiKey(userId: string): Promise<ApiKey | null> {
     const collection = await this.getCollection();
@@ -22,11 +32,7 @@ export class ApiKeyManager {
   static async generateApiKey(userId: string, input: ApiKeyInput): Promise<ApiKey> {
     const collection = await this.getCollection();
     
-    // 既存のAPIキーがあれば無効化
-    await collection.updateMany(
-      { userId, isActive: true },
-      { $set: { isActive: false } }
-    );
+    // 既存のAPIキーは無効化しない（複数有効化を許可）
 
     // 新しいAPIキーを生成
     const apiKey: ApiKey = {
@@ -95,7 +101,7 @@ export class ApiKeyManager {
     if (!resourcePermissions || typeof resourcePermissions !== 'object') {
       return false;
     }
-    return (resourcePermissions as any)[action] === true;
+    return (resourcePermissions as Record<string, boolean>)[action] === true;
   }
 
   // セキュアなAPIキー生成

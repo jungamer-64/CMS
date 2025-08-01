@@ -1,13 +1,14 @@
 'use client';
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/app/lib/auth';
-import { useTheme } from '@/app/lib/ThemeContext';
 import AdminLayout from '@/app/lib/AdminLayout';
+import type { ApiResponse } from '@/app/lib/api-types';
 
-interface Settings {
-  darkMode: boolean;
+// 型定義
+
+
+type Settings = Readonly<{
   apiAccess: boolean;
   apiKey: string;
   emailNotifications: boolean;
@@ -15,44 +16,51 @@ interface Settings {
   maxPostsPerPage: number;
   allowComments: boolean;
   requireApproval: boolean;
-}
+}>;
 
-const LoadingSpinner = () => (
+type ThemeState = Readonly<{
+  ui: boolean;
+  loaded: boolean;
+}>;
+
+type SettingKey = keyof Settings;
+
+// LoadingSpinnerは props を受け取らないため、型定義を削除
+const LoadingSpinner: React.FC = () => (
   <div className="flex justify-center items-center h-64">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-500"></div>
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-500" />
   </div>
 );
 
-const Message = ({ message, type }: { message: string; type: 'success' | 'error' }) => (
+export type MessageType = 'success' | 'error';
+interface MessageProps {
+  message: string;
+  type: MessageType;
+}
+const Message: React.FC<MessageProps> = ({ message, type }) => (
   <div className={`p-4 rounded-lg ${
-    type === 'success' 
-      ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-600' 
+    type === 'success'
+      ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-600'
       : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-600'
   }`}>
     {message}
   </div>
 );
 
-const ToggleSwitch = ({ 
-  checked, 
-  onChange, 
-  disabled = false, 
-  color = 'blue',
-  label
-}: { 
-  checked: boolean; 
-  onChange: (checked: boolean) => void; 
-  disabled?: boolean; 
+interface ToggleSwitchProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
   color?: 'blue' | 'red';
   label?: string;
-}) => {
+}
+const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ checked, onChange, disabled = false, color = 'blue', label }) => {
   const colorClasses = {
     blue: 'peer-checked:bg-slate-600',
-    red: 'peer-checked:bg-red-600'
+    red: 'peer-checked:bg-red-600',
   };
-
   return (
-    <label 
+    <label
       className={`relative inline-flex items-center cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       aria-label={label || 'Toggle switch'}
     >
@@ -68,7 +76,17 @@ const ToggleSwitch = ({
   );
 };
 
-const SettingCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
+
+
+
+
+
+
+interface SettingCardProps {
+  title: string;
+  children: React.ReactNode;
+}
+const SettingCard: React.FC<SettingCardProps> = ({ title, children }) => (
   <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
     <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{title}</h2>
     <div className="space-y-4">
@@ -77,15 +95,12 @@ const SettingCard = ({ title, children }: { title: string; children: React.React
   </div>
 );
 
-const SettingItem = ({ 
-  label, 
-  description, 
-  children 
-}: { 
-  label: string; 
-  description?: string; 
-  children: React.ReactNode; 
-}) => (
+interface SettingItemProps {
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+}
+const SettingItem: React.FC<SettingItemProps> = ({ label, description, children }) => (
   <div className="flex items-center justify-between">
     <div>
       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
@@ -97,40 +112,12 @@ const SettingItem = ({
   </div>
 );
 
-const DisplaySettings = ({ 
-  settings, 
-  onChange, 
-  onPreview, 
-  isPreviewActive 
-}: { 
-  settings: Settings; 
-  onChange: (key: keyof Settings, value: any) => void; 
-  onPreview: () => void; 
-  isPreviewActive: boolean; 
-}) => (
+interface DisplaySettingsProps {
+  settings: Settings;
+  onChange: (key: SettingKey, value: unknown) => void;
+}
+const DisplaySettings: React.FC<DisplaySettingsProps> = ({ settings, onChange }) => (
   <SettingCard title="表示設定">
-    <SettingItem 
-      label="ダークモード" 
-      description="管理画面のテーマを暗色にします（保存後に適用）"
-    >
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onPreview}
-          className={`px-3 py-1 text-xs rounded-md transition-colors ${
-            isPreviewActive 
-              ? 'bg-orange-500 hover:bg-orange-600 text-white' 
-              : 'bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white'
-          }`}
-        >
-          {isPreviewActive ? 'プレビュー中...' : 'プレビュー'}
-        </button>
-        <ToggleSwitch 
-          checked={settings.darkMode} 
-          onChange={(checked) => onChange('darkMode', checked)} 
-        />
-      </div>
-    </SettingItem>
-
     <div>
       <label htmlFor="maxPostsPerPage" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
         ページあたりの投稿数
@@ -145,16 +132,18 @@ const DisplaySettings = ({
         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
       />
     </div>
+    <div className="mt-4">
+      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">ダークモード</span>
+      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">（ユーザーごとに設定されます。右上のトグルで切り替えてください）</span>
+    </div>
   </SettingCard>
 );
 
-const ApiSettings = ({ 
-  settings, 
-  onChange 
-}: { 
-  settings: Settings; 
-  onChange: (key: keyof Settings, value: any) => void; 
-}) => (
+interface ApiSettingsProps {
+  settings: Settings;
+  onChange: (key: SettingKey, value: unknown) => void;
+}
+const ApiSettings: React.FC<ApiSettingsProps> = ({ settings, onChange }) => (
   <SettingCard title="API設定">
     <SettingItem 
       label="APIアクセス" 
@@ -186,13 +175,11 @@ const ApiSettings = ({
   </SettingCard>
 );
 
-const SystemSettings = ({ 
-  settings, 
-  onChange 
-}: { 
-  settings: Settings; 
-  onChange: (key: keyof Settings, value: any) => void; 
-}) => (
+interface SystemSettingsProps {
+  settings: Settings;
+  onChange: (key: SettingKey, value: unknown) => void;
+}
+const SystemSettings: React.FC<SystemSettingsProps> = ({ settings, onChange }) => (
   <SettingCard title="システム設定">
     <SettingItem 
       label="メンテナンスモード" 
@@ -217,13 +204,11 @@ const SystemSettings = ({
   </SettingCard>
 );
 
-const CommentSettings = ({ 
-  settings, 
-  onChange 
-}: { 
-  settings: Settings; 
-  onChange: (key: keyof Settings, value: any) => void; 
-}) => (
+interface CommentSettingsProps {
+  settings: Settings;
+  onChange: (key: SettingKey, value: unknown) => void;
+}
+const CommentSettings: React.FC<CommentSettingsProps> = ({ settings, onChange }) => (
   <SettingCard title="コメント設定">
     <SettingItem 
       label="コメント機能" 
@@ -248,7 +233,7 @@ const CommentSettings = ({
   </SettingCard>
 );
 
-const SystemInfo = () => (
+const SystemInfo: React.FC = () => (
   <SettingCard title="システム情報">
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
@@ -267,13 +252,11 @@ const SystemInfo = () => (
   </SettingCard>
 );
 
-const DangerZone = ({ 
-  onCacheClear, 
-  isCacheClearing 
-}: { 
-  onCacheClear: () => void; 
-  isCacheClearing: boolean; 
-}) => (
+interface DangerZoneProps {
+  onCacheClear: () => void;
+  isCacheClearing: boolean;
+}
+const DangerZone: React.FC<DangerZoneProps> = ({ onCacheClear, isCacheClearing }) => (
   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-6 rounded-lg">
     <h2 className="text-lg font-semibold mb-4 text-red-800 dark:text-red-400">危険な操作</h2>
     <div className="space-y-4">
@@ -307,9 +290,10 @@ const DangerZone = ({
   </div>
 );
 
+
 export default function SettingsPage() {
+  const { user } = useAuth();
   const [settings, setSettings] = useState<Settings>({
-    darkMode: false,
     apiAccess: true,
     apiKey: '',
     emailNotifications: true,
@@ -318,179 +302,180 @@ export default function SettingsPage() {
     allowComments: true,
     requireApproval: false,
   });
+  const [theme, setTheme] = useState<ThemeState>({ ui: false, loaded: false });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isCacheClearing, setIsCacheClearing] = useState(false);
   const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
-  const { user } = useAuth();
-  const { isDarkMode, setDarkMode, startPreview, isPreviewActive } = useTheme();
+  const [messageType, setMessageType] = useState<MessageType>('success');
 
-  useEffect(() => {
-    if (user?.role === 'admin') {
-      loadSettings();
+
+  // 初回マウント時: localStorageのtheme値を即時反映（DB取得前の一瞬ライト/ダークを防ぐ）
+  useLayoutEffect(() => {
+    const html = document.documentElement;
+    const localTheme = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
+    if (localTheme === 'dark') {
+      html.classList.add('dark');
+    } else {
+      html.classList.remove('dark');
     }
-  }, [user]);
+  }, []);
 
-  const loadSettings = async () => {
+  // DBからdarkMode取得し、ローカル状態と同期
+  useEffect(() => {
+    if (user?.role !== 'admin') return;
+    fetch('/api/user/theme', { credentials: 'include' })
+      .then(res => res.json())
+      .then((data: ApiResponse<{ darkMode: boolean }>) => {
+        if (data.success && typeof data.data?.darkMode === 'boolean') {
+          setTheme({ ui: data.data.darkMode, loaded: true });
+        } else {
+          setTheme(prev => ({ ...prev, loaded: true }));
+        }
+      });
+  }, [user?.role]);
+
+
+
+  const loadSettings = useCallback(async (): Promise<void> => {
     setIsLoading(true);
-    console.log('設定読み込み開始 - 現在のダークモード状態:', isDarkMode);
-    
     try {
       const response = await fetch('/api/admin/settings', {
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-      
-      if (!response.ok) {
-        throw new Error('設定の読み込みに失敗しました');
-      }
-      
-      const data = await response.json();
-      console.log('設定読み込みレスポンス:', data);
-      
-      // 新しいレスポンス形式に対応
-      let settingsData;
-      if (data.success && data.data?.settings) {
-        settingsData = data.data.settings;
-      } else if (data.settings) {
-        settingsData = data.settings;
-      } else {
-        // 直接設定オブジェクトが返された場合
-        settingsData = data;
-      }
-      
-      console.log('設定データ:', settingsData);
-      
-      // settingsDataが正しいオブジェクト形式かチェック
-      if (settingsData && typeof settingsData === 'object' && !settingsData.success) {
-        // 正しい設定オブジェクトの場合のみ状態を更新
-        const validSettings = {
-          darkMode: Boolean(settingsData.darkMode),
-          apiAccess: Boolean(settingsData.apiAccess),
-          apiKey: String(settingsData.apiKey || ''),
-          emailNotifications: Boolean(settingsData.emailNotifications),
-          maintenanceMode: Boolean(settingsData.maintenanceMode),
-          maxPostsPerPage: Number(settingsData.maxPostsPerPage) || 10,
-          allowComments: Boolean(settingsData.allowComments),
-          requireApproval: Boolean(settingsData.requireApproval),
-        };
-        
-        console.log('正規化された設定:', validSettings);
-        console.log('現在のダークモード状態:', isDarkMode);
-        
-        // 現在のテーマ状態を保持し、設定画面でのダークモード設定を現在の状態に合わせる
-        const finalSettings = {
-          ...validSettings,
-          darkMode: isDarkMode // 現在のダークモード状態を優先
-        };
-        
-        setSettings(finalSettings);
-        
-        // サーバー設定と現在の状態が異なる場合のみ通知（強制変更はしない）
-        if (validSettings.darkMode !== isDarkMode) {
-          console.log('サーバー設定とクライアント設定が異なります:', {
-            server: validSettings.darkMode,
-            client: isDarkMode
+      if (!response.ok) throw new Error('設定の読み込みに失敗しました');
+      const data: ApiResponse<{ settings: Settings }> = await response.json();
+      if (data.success && data.data) {
+        let settingsData: Settings;
+        if ('settings' in data.data && data.data.settings) {
+          settingsData = data.data.settings;
+        } else {
+          settingsData = data.data as unknown as Settings;
+        }
+        if (
+          settingsData &&
+          typeof settingsData === 'object' &&
+          'apiAccess' in settingsData &&
+          'apiKey' in settingsData &&
+          'emailNotifications' in settingsData &&
+          'maintenanceMode' in settingsData &&
+          'maxPostsPerPage' in settingsData &&
+          'allowComments' in settingsData &&
+          'requireApproval' in settingsData
+        ) {
+          setSettings({
+            apiAccess: Boolean(settingsData.apiAccess),
+            apiKey: String(settingsData.apiKey || ''),
+            emailNotifications: Boolean(settingsData.emailNotifications),
+            maintenanceMode: Boolean(settingsData.maintenanceMode),
+            maxPostsPerPage: Number(settingsData.maxPostsPerPage) || 10,
+            allowComments: Boolean(settingsData.allowComments),
+            requireApproval: Boolean(settingsData.requireApproval),
           });
+        } else {
+          throw new Error('設定データの形式が不正です');
         }
       } else {
-        console.error('設定データの形式が不正です:', settingsData);
-        throw new Error('設定データの形式が不正です');
+        const errorMsg = !data.success && 'error' in data ? data.error : '設定の読み込みに失敗しました';
+        throw new Error(errorMsg);
       }
-    } catch (error) {
-      console.error('設定読み込みエラー:', error);
-      setMessage('設定の読み込みに失敗しました');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '設定の読み込みに失敗しました';
+      setMessage(errorMessage);
       setMessageType('error');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const saveSettings = async () => {
+  useEffect(() => {
+    if (user?.role === 'admin') loadSettings();
+  }, [user?.role, loadSettings]);
+
+  // 保存時はDBへ反映→再取得してUI同期
+  const saveSettings = useCallback(async () => {
     setIsSaving(true);
-    console.log('保存する設定:', settings);
-    
     try {
+      // 設定保存
       const response = await fetch('/api/admin/settings', {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || '設定の保存に失敗しました');
       }
-
-      const data = await response.json();
-      setMessage(data.message || '設定が正常に保存されました');
+      // ダークモード保存
+      const themeRes = await fetch('/api/user/theme', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ darkMode: theme.ui }),
+      });
+      if (!themeRes.ok) {
+        const errorData = await themeRes.json();
+        throw new Error(errorData.error || 'ダークモードの保存に失敗しました');
+      }
+      // 保存後にMongoDB(users)の値を再取得して反映
+      const themeData: ApiResponse<{ darkMode: boolean }> = await themeRes.json();
+      if (themeData.success) {
+        setTheme(prev => ({ ...prev, ui: themeData.data?.darkMode ?? prev.ui }));
+        setMessage(themeData.message || '設定が正常に保存されました');
+      } else {
+        setMessage('設定が正常に保存されました');
+      }
       setMessageType('success');
-      setDarkMode(settings.darkMode);
     } catch (error) {
-      console.error('設定保存エラー:', error);
       setMessage(error instanceof Error ? error.message : '設定の保存中にエラーが発生しました');
       setMessageType('error');
     } finally {
       setIsSaving(false);
       setTimeout(() => setMessage(''), 3000);
     }
-  };
+  }, [settings, theme.ui]);
 
-  const handleInputChange = (key: keyof Settings, value: any) => {
+  // 入力変更
+  const handleInputChange = useCallback((key: SettingKey, value: unknown) => {
     setSettings(prev => ({ ...prev, [key]: value }));
-  };
+  }, []);
 
-  const handlePreview = () => {
-    try {
-      startPreview(3000);
-    } catch (error) {
-      console.error('プレビューエラー:', error);
-    }
-  };
 
-  const handleCacheClear = async () => {
-    if (!confirm('キャッシュをクリアしますか？この操作により、サイトのパフォーマンスが一時的に低下する可能性があります。')) {
-      return;
-    }
 
+  // キャッシュクリア
+  const handleCacheClear = useCallback(async () => {
+    if (!confirm('キャッシュをクリアしますか？この操作により、サイトのパフォーマンスが一時的に低下する可能性があります。')) return;
     setIsCacheClearing(true);
-    console.log('キャッシュクリア開始');
-    
     try {
       const response = await fetch('/api/admin/cache', {
         method: 'DELETE',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'キャッシュクリアに失敗しました');
       }
-
-      const data = await response.json();
-      setMessage(data.message || 'キャッシュが正常にクリアされました');
+      const data: ApiResponse<unknown> = await response.json();
+      if (data.success) {
+        setMessage(data.message || 'キャッシュが正常にクリアされました');
+      } else {
+        setMessage('キャッシュが正常にクリアされました');
+      }
       setMessageType('success');
-      console.log('キャッシュクリア完了');
     } catch (error) {
-      console.error('キャッシュクリアエラー:', error);
       setMessage(error instanceof Error ? error.message : 'キャッシュクリア中にエラーが発生しました');
       setMessageType('error');
     } finally {
       setIsCacheClearing(false);
       setTimeout(() => setMessage(''), 3000);
     }
-  };
+  }, []);
 
-  if (isLoading || !user) {
+  // テーマ状態が未確定の間はAdminLayout+LoadingSpinnerのみ描画（前のテーマ状態を維持）
+  if (!theme.loaded || isLoading || !user) {
     return (
       <AdminLayout title="設定">
         <LoadingSpinner />
@@ -498,6 +483,7 @@ export default function SettingsPage() {
     );
   }
 
+  // テーマ状態が確定したら通常描画
   return (
     <AdminLayout title="設定">
       <div className="space-y-6">
@@ -522,31 +508,17 @@ export default function SettingsPage() {
         {message && <Message message={message} type={messageType} />}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DisplaySettings 
-            settings={settings} 
-            onChange={handleInputChange} 
-            onPreview={handlePreview} 
-            isPreviewActive={isPreviewActive} 
+          <DisplaySettings
+            settings={settings}
+            onChange={handleInputChange}
           />
-          <ApiSettings 
-            settings={settings} 
-            onChange={handleInputChange} 
-          />
-          <SystemSettings 
-            settings={settings} 
-            onChange={handleInputChange} 
-          />
-          <CommentSettings 
-            settings={settings} 
-            onChange={handleInputChange} 
-          />
+          <ApiSettings settings={settings} onChange={handleInputChange} />
+          <SystemSettings settings={settings} onChange={handleInputChange} />
+          <CommentSettings settings={settings} onChange={handleInputChange} />
         </div>
 
         <SystemInfo />
-        <DangerZone 
-          onCacheClear={handleCacheClear}
-          isCacheClearing={isCacheClearing}
-        />
+        <DangerZone onCacheClear={handleCacheClear} isCacheClearing={isCacheClearing} />
       </div>
     </AdminLayout>
   );

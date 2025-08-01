@@ -19,11 +19,11 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const success = await login(username, password);
-      if (success) {
+      const result = await login(username, password);
+      if (result.success) {
         router.push('/blog');
       } else {
-        setError('ユーザー名またはパスワードが正しくありません');
+        setError(result.error || 'ユーザー名またはパスワードが正しくありません');
       }
     } catch (error) {
       console.error('ログインエラー:', error);

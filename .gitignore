@@ -10,6 +10,12 @@
 !.yarn/releases
 !.yarn/versions
 
+# pnpm
+.pnpm-store/
+.pnpm-debug.log*
+pnpm-debug.log*
+.pnpm-state/
+
 # testing
 /coverage
 
@@ -19,6 +25,7 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
@@ -39,3 +46,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+Thumbs.db
+.DS_Store

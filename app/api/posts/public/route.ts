@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { 
   createSuccessResponse, 
   parsePaginationParams,
@@ -9,7 +9,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 // パブリック投稿一覧取得API（認証不要）
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const { page, limit } = parsePaginationParams(searchParams);
@@ -33,15 +33,31 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       search: filters.search
     });
 
-    // レスポンス用にデータをフィルタリング（機密情報を除去）
-    const publicPosts = posts.map(post => ({
-      id: post.id,
-      title: post.title,
-      content: post.content,
-      author: post.author,
-      slug: post.slug,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt
+    // ユーザー情報取得用関数をインポート
+    const { getUserByUsername } = await import('@/app/lib/users');
+
+    // authorをdisplayNameに変換
+    const publicPosts = await Promise.all(posts.map(async (post) => {
+      let displayName = post.author;
+      try {
+        // authorがユーザー名の場合、displayNameを取得
+        const user = await getUserByUsername(post.author);
+        if (user?.displayName) {
+          displayName = user.displayName;
+        }
+      } catch (e) {
+        // 取得失敗時はauthor文字列のまま
+        console.warn(`ユーザー情報取得失敗: ${post.author}`, e);
+      }
+      return {
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        author: displayName,
+        slug: post.slug,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt
+      };
     }));
 
     return createSuccessResponse(

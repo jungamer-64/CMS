@@ -1,0 +1,25 @@
+{
+  "name": "deploy-scripts",
+  "version": "1.0.0",
+  "description": "TypeScript deployment scripts for CoreServer",
+  "type": "module",
+  "scripts": {
+    "deploy": "node deploy-coreserver.js",
+    "maintenance": "node maintenance-coreserver.js",
+    "build": "tsc",
+    "lint": "eslint *.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

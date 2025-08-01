@@ -1,9 +1,35 @@
 import { NextRequest } from 'next/server';
-import { withAuth, createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
-import { getAllCommentsForAdmin } from '@/app/lib/comments';
+import {
+  createSuccessResponse,
+  createErrorResponse
+} from '@/app/lib/api-utils';
+import { withApiAuth } from '@/app/lib/auth-middleware';
+import { getAllCommentsForAdmin, updateComment, deleteComment } from '@/app/lib/comments';
+import {
+  AdminCommentUpdateRequest,
+  AdminCommentDeleteRequest
+} from '@/app/lib/api-types';
+
+// Type guard functions
+function isAdminCommentUpdateRequest(data: unknown): data is AdminCommentUpdateRequest {
+  if (!data || typeof data !== 'object') return false;
+  const obj = data as Record<string, unknown>;
+  return typeof obj.commentId === 'string' && 
+         typeof obj.isApproved === 'boolean';
+}
+
+function isAdminCommentDeleteRequest(data: unknown): data is AdminCommentDeleteRequest {
+  if (!data || typeof data !== 'object') return false;
+  const obj = data as Record<string, unknown>;
+  return typeof obj.commentId === 'string';
+}
 
 // コメント一覧を取得（GET）
-export const GET = withAuth(async (request: NextRequest, user) => {
+export const GET = withApiAuth(async (request: NextRequest, context) => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証情報がありません', 401);
+  }
   console.log('管理者コメントAPI呼び出し - ユーザー:', user.username);
   
   try {
@@ -23,24 +49,25 @@ export const GET = withAuth(async (request: NextRequest, user) => {
 });
 
 // コメントを更新（PUT）
-export const PUT = withAuth(async (request: NextRequest, user) => {
+export const PUT = withApiAuth(async (request: NextRequest, context) => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証情報がありません', 401);
+  }
   console.log('コメント更新API呼び出し - ユーザー:', user.username);
   
   try {
-    const { commentId, isApproved } = await request.json();
+    const body = await request.json();
     
+    // 型ガードによる検証
+    if (!isAdminCommentUpdateRequest(body)) {
+      return createErrorResponse('無効なリクエストデータ形式です', 400);
+    }
+
+    const { commentId, isApproved } = body;
     console.log('更新データ:', { commentId, isApproved });
 
-    if (!commentId) {
-      return createErrorResponse('コメントIDが必要です', 400);
-    }
-
-    if (typeof isApproved !== 'boolean') {
-      return createErrorResponse('承認状態はboolean値である必要があります', 400);
-    }
-
     // データベースのコメントを更新
-    const { updateComment } = await import('@/app/lib/comments');
     const success = await updateComment(commentId, { isApproved });
 
     if (!success) {
@@ -55,25 +82,33 @@ export const PUT = withAuth(async (request: NextRequest, user) => {
     );
   } catch (error) {
     console.error('コメント更新エラー:', error);
+    if (error instanceof SyntaxError) {
+      return createErrorResponse('無効なJSONデータです', 400);
+    }
     return createErrorResponse('コメントの更新中にエラーが発生しました', 500);
   }
 });
 
 // コメントを削除（DELETE）
-export const DELETE = withAuth(async (request: NextRequest, user) => {
+export const DELETE = withApiAuth(async (request: NextRequest, context) => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証情報がありません', 401);
+  }
   console.log('コメント削除API呼び出し - ユーザー:', user.username);
   
   try {
-    const { commentId } = await request.json();
+    const body = await request.json();
     
-    console.log('削除対象ID:', commentId);
-
-    if (!commentId) {
-      return createErrorResponse('コメントIDが必要です', 400);
+    // 型ガードによる検証
+    if (!isAdminCommentDeleteRequest(body)) {
+      return createErrorResponse('無効なリクエストデータ形式です', 400);
     }
 
+    const { commentId } = body;
+    console.log('削除対象ID:', commentId);
+
     // データベースからコメントを削除（論理削除）
-    const { deleteComment } = await import('@/app/lib/comments');
     const success = await deleteComment(commentId);
 
     if (!success) {
@@ -88,6 +123,9 @@ export const DELETE = withAuth(async (request: NextRequest, user) => {
     );
   } catch (error) {
     console.error('コメント削除エラー:', error);
+    if (error instanceof SyntaxError) {
+      return createErrorResponse('無効なJSONデータです', 400);
+    }
     return createErrorResponse('コメントの削除中にエラーが発生しました', 500);
   }
 });

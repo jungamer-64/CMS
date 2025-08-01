@@ -1,0 +1,23 @@
+# SSH設定ファイル
+# ~/.ssh/config
+
+# GMO CorelServer用設定
+Host coreserver
+    HostName v2008.coreserver.jp
+    User rebelor
+    IdentityFile ~/.ssh/jgm_rsa
+    Port 22
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    
+# 例: 具体的なCorelServer設定
+# Host mysite-coreserver
+#     HostName v2008.coreserver.jp
+#     User myusername
+#     IdentityFile ~/.ssh/jgm_rsa
+
+# セキュリティ設定
+Host *.coreserver.jp
+    AddKeysToAgent yes
+    IdentitiesOnly yes
+    PreferredAuthentications publickey

@@ -47,7 +47,7 @@ const StatsCard = ({ title, value, icon, bgColor }: {
 );
 
 const KeyIcon = () => (
-  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-6 h-6" fill="none" stroke="white" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
   </svg>
 );
@@ -102,7 +102,8 @@ export default function APIKeysPage() {
         throw new Error('APIキーの取得に失敗しました');
       }
       const data = await response.json();
-      setApiKeys(data.apiKeys || []);
+      console.log('APIキー取得レスポンス:', data);
+      setApiKeys(data.data?.apiKeys || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
@@ -137,9 +138,9 @@ export default function APIKeysPage() {
       }
 
       const data = await response.json();
-      
+      console.log('APIキー取得レスポンス:', data);
       // 新しいキーを表示するためのアラート
-      alert(`新しいAPIキーが作成されました:\n${data.apiKey}\n\nこのキーは二度と表示されません。安全な場所に保存してください。`);
+      alert(`新しいAPIキーが作成されました:\n${data.data.apiKey}\n\nこのキーは二度と表示されません。安全な場所に保存してください。`);
       
       // フォームをリセット
       setNewKeyName('');
@@ -469,7 +470,9 @@ export default function APIKeysPage() {
                   <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
                     <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center">
                       <svg className="w-4 h-4 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <rect x="3" y="3" width="18" height="18" rx="4" strokeWidth="2" stroke="currentColor" fill="none" />
+                        <circle cx="8.5" cy="8.5" r="2.5" strokeWidth="2" stroke="currentColor" fill="none" />
+                        <path d="M21 17l-5-5a3 3 0 0 0-4.24 0l-7.76 7" strokeWidth="2" stroke="currentColor" fill="none" />
                       </svg>
                       画像管理
                     </h4>

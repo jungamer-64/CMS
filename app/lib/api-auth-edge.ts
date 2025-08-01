@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { ApiKey, ApiKeyPermissions } from './api-keys';
+import { API_KEYS_DATA, DEFAULT_API_KEY } from './env';
 
 interface Settings {
   apiKeys: ApiKey[];
@@ -12,7 +13,7 @@ class EdgeApiAuth {
   private static getSettings(): Settings {
     this.settings ??= (() => {
       // 環境変数からAPIキーを読み込み
-      const apiKeysData = process.env.API_KEYS_DATA;
+      const apiKeysData = API_KEYS_DATA;
       if (apiKeysData) {
         try {
           return JSON.parse(apiKeysData);
@@ -27,7 +28,7 @@ class EdgeApiAuth {
           {
             id: 'default-key',
             name: 'Default API Key',
-            key: process.env.DEFAULT_API_KEY || 'default-test-key',
+            key: DEFAULT_API_KEY,
             permissions: {
               posts: {
                 create: true,

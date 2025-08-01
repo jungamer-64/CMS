@@ -1,9 +1,15 @@
 import { NextRequest } from 'next/server';
-import { withAuth, createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { withApiAuth } from '@/app/lib/auth-middleware';
 import { revalidateTag, revalidatePath } from 'next/cache';
 
 // キャッシュクリア（DELETE）
-export const DELETE = withAuth(async (request: NextRequest, user) => {
+export const DELETE = withApiAuth(async (request: NextRequest, context) => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証情報がありません', 401);
+  }
+  
   console.log('キャッシュクリアAPI呼び出し - ユーザー:', user.username);
   
   try {

@@ -27,15 +27,14 @@ export default function RegisterPage() {
         },
         body: JSON.stringify({ username, email, password, displayName }),
       });
-
-      if (response.ok) {
+      const res = await response.json();
+      if (response.ok && res.success) {
         setSuccess(true);
         setTimeout(() => {
           router.push('/auth/login');
         }, 2000);
       } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'ユーザー登録に失敗しました');
+        setError(res.error || 'ユーザー登録に失敗しました');
       }
     } catch (error) {
       console.error('登録エラー:', error);

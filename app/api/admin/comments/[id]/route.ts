@@ -1,17 +1,25 @@
 import { NextRequest } from 'next/server';
-import { withAuth, createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { withApiAuth } from '@/app/lib/auth-middleware';
 import { deleteComment } from '@/app/lib/comments';
 
+// URLからIDを抽出するヘルパー関数
+function extractIdFromUrl(url: string): string {
+  const pathSegments = url.split('/');
+  return pathSegments[pathSegments.length - 1];
+}
+
 // コメントを削除（DELETE）
-export const DELETE = withAuth(async (
-  request: NextRequest, 
-  user, 
-  { params }: { params: Promise<{ id: string }> }
-) => {
+export const DELETE = withApiAuth(async (request: NextRequest, context) => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証情報がありません', 401);
+  }
+
   console.log('コメント削除API呼び出し - ユーザー:', user.username);
   
   try {
-    const { id } = await params;
+    const id = extractIdFromUrl(request.url);
     
     if (!id) {
       return createErrorResponse('コメントIDが必要です', 400);

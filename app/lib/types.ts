@@ -1,244 +1,358 @@
+// =============================================================================
+// 厳格な型安全設計による高性能型定義ファイル
+// =============================================================================
+
 // Re-export modern API types for backward compatibility
 export * from './api-types';
 
-// Legacy types (deprecated - use api-types.ts instead)
+// =============================================================================
+// 基本データ型（readonly & 厳密な型制約）
+// =============================================================================
+
+// ユーザーロール（Union型で厳密に制約）
+export type UserRole = 'user' | 'admin';
+
+// ソート順序（Union型で厳密に制約）
+export type SortOrder = 'asc' | 'desc';
+
+// 投稿タイプ（Union型で厳密に制約）
+export type PostType = 'all' | 'published' | 'deleted';
+
+// ソート可能なフィールド
+export type PostSortField = 'createdAt' | 'updatedAt' | 'title';
+export type UserSortField = 'createdAt' | 'username' | 'displayName';
+
+// =============================================================================
+// Core Entity Types（不変性とパフォーマンスを重視）
+// =============================================================================
+
 export interface Post {
-  _id?: string;
-  id: string;
-  slug: string;
-  title: string;
-  content: string;
-  author: string;
-  createdAt: Date;
-  updatedAt?: Date;
-  isDeleted?: boolean;
+  readonly _id?: string;
+  readonly id: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly content: string;
+  readonly author: string;
+  readonly createdAt: Date;
+  readonly updatedAt?: Date;
+  readonly isDeleted?: boolean;
+  readonly media?: readonly string[]; // 不変配列
 }
 
 export interface PostInput {
-  title: string;
-  content: string;
-  author: string;
-  slug?: string; // オプション（自動生成可能）
+  readonly title: string;
+  readonly content: string;
+  readonly author: string;
+  readonly slug?: string; // オプション（自動生成可能）
+  readonly media?: readonly string[]; // 不変配列
 }
 
 export interface User {
-  _id?: string;
-  id: string;
-  username: string;
-  email: string;
-  passwordHash: string;
-  displayName: string;
-  role: 'user' | 'admin';
-  darkMode?: boolean;
-  createdAt: Date;
-  updatedAt?: Date;
+  readonly _id?: string;
+  readonly id: string;
+  readonly username: string;
+  readonly email: string;
+  readonly passwordHash: string;
+  readonly displayName: string;
+  readonly role: UserRole; // 厳密な型制約
+  readonly darkMode?: boolean;
+  readonly createdAt: Date;
+  readonly updatedAt?: Date;
 }
 
+// =============================================================================
+// Input Types（厳密なバリデーション対応）
+// =============================================================================
+
 export interface UserInput {
-  username: string;
-  email: string;
-  password: string;
-  displayName: string;
+  readonly username: string;
+  readonly email: string;
+  readonly password: string;
+  readonly displayName: string;
 }
 
 export interface LoginCredentials {
-  username: string;
-  password: string;
+  readonly username: string;
+  readonly password: string;
 }
 
-// API Response Types for Admin
+// =============================================================================
+// Admin Response Types（高性能キャッシュ対応）
+// =============================================================================
+
 export interface AdminPostsResponse {
-  success: boolean;
-  data: Post[];
-  total: number;
-  page?: number;
-  limit?: number;
+  readonly success: true;
+  readonly data: readonly Post[];
+  readonly total: number;
+  readonly page?: number;
+  readonly limit?: number;
+  readonly timestamp?: number; // キャッシュ用タイムスタンプ
 }
 
 export interface AdminUsersResponse {
-  success: boolean;
-  data: User[];
-  total: number;
-  page?: number;
-  limit?: number;
+  readonly success: true;
+  readonly data: readonly User[];
+  readonly total: number;
+  readonly page?: number;
+  readonly limit?: number;
+  readonly timestamp?: number; // キャッシュ用タイムスタンプ
 }
 
 export interface AdminStatsResponse {
-  success: boolean;
-  data: {
-    totalPosts: number;
-    publishedPosts: number;
-    deletedPosts: number;
-    totalUsers: number;
-    totalComments: number;
+  readonly success: true;
+  readonly data: {
+    readonly totalPosts: number;
+    readonly publishedPosts: number;
+    readonly deletedPosts: number;
+    readonly totalUsers: number;
+    readonly totalComments: number;
   };
+  readonly timestamp?: number; // キャッシュ用タイムスタンプ
 }
 
-// Pagination and Filter Types
+// =============================================================================
+// Pagination and Filter Types（型安全性とパフォーマンス重視）
+// =============================================================================
+
 export interface PaginationParams {
-  page: number;
-  limit: number;
+  readonly page: number;
+  readonly limit: number;
 }
 
+// 厳密な型制約でランタイムエラーを防止
 export interface PostFilters {
-  type: 'all' | 'published' | 'deleted';
-  search?: string;
-  author?: string;
-  sortBy?: 'createdAt' | 'updatedAt' | 'title';
-  sortOrder?: 'asc' | 'desc';
+  readonly type: PostType;
+  readonly search?: string;
+  readonly author?: string;
+  readonly sortBy?: PostSortField;
+  readonly sortOrder?: SortOrder;
 }
 
 export interface UserFilters {
-  role?: 'user' | 'admin';
-  search?: string;
-  sortBy?: 'createdAt' | 'username' | 'displayName';
-  sortOrder?: 'asc' | 'desc';
-  isActive?: boolean;
+  readonly role?: UserRole;
+  readonly search?: string;
+  readonly sortBy?: UserSortField;
+  readonly sortOrder?: SortOrder;
+  readonly isActive?: boolean;
 }
 
-// Account Management Types
+// =============================================================================
+// Account Management Types（セキュリティと型安全性重視）
+// =============================================================================
+
 export interface UserUpdateInput {
-  displayName?: string;
-  email?: string;
-  role?: 'user' | 'admin';
-  darkMode?: boolean;
+  readonly displayName?: string;
+  readonly email?: string;
+  readonly role?: UserRole;
+  readonly darkMode?: boolean;
 }
 
 export interface UserCreationInput extends UserInput {
-  role?: 'user' | 'admin';
+  readonly role?: UserRole;
 }
 
 export interface PasswordChangeInput {
-  currentPassword: string;
-  newPassword: string;
+  readonly currentPassword: string;
+  readonly newPassword: string;
 }
 
 export interface AdminUserManagement {
-  id: string;
-  username: string;
-  email: string;
-  displayName: string;
-  role: 'user' | 'admin';
-  darkMode?: boolean;
-  createdAt: Date;
-  updatedAt?: Date;
-  lastLoginAt?: Date;
-  isActive: boolean;
+  readonly id: string;
+  readonly username: string;
+  readonly email: string;
+  readonly displayName: string;
+  readonly role: UserRole;
+  readonly darkMode?: boolean;
+  readonly createdAt: Date;
+  readonly updatedAt?: Date;
+  readonly lastLoginAt?: Date;
+  readonly isActive: boolean;
 }
 
 export interface UserSessionInfo {
-  id: string;
-  username: string;
-  email: string;
-  displayName: string;
-  role: 'user' | 'admin';
-  darkMode?: boolean;
-  createdAt: Date;
-  lastLoginAt?: Date;
+  readonly id: string;
+  readonly username: string;
+  readonly email: string;
+  readonly displayName: string;
+  readonly role: UserRole;
+  readonly darkMode?: boolean;
+  readonly createdAt: Date;
+  readonly lastLoginAt?: Date;
 }
 
-// API Error Types (deprecated - use api-types.ts)
+// =============================================================================
+// Legacy API Types（下位互換性維持）
+// =============================================================================
+
+// @deprecated - use api-types.ts instead
 export interface ApiError {
-  success: false;
-  error: string;
-  code?: string;
+  readonly success: false;
+  readonly error: string;
+  readonly code?: string;
 }
 
+// @deprecated - use api-types.ts instead
 export type ApiResponse<T> = {
-  success: true;
-  data: T;
+  readonly success: true;
+  readonly data: T;
 } | ApiError;
 
+// =============================================================================
+// Comment Types（コンテンツ管理最適化）
+// =============================================================================
+
 export interface Comment {
-  _id?: string;
-  id: string;
-  postSlug: string;
-  authorName: string;
-  authorEmail: string;
-  content: string;
-  isApproved: boolean;
-  createdAt: Date;
-  updatedAt?: Date;
-  isDeleted?: boolean;
+  readonly _id?: string;
+  readonly id: string;
+  readonly postSlug: string;
+  readonly authorName: string;
+  readonly authorEmail: string;
+  readonly content: string;
+  readonly isApproved: boolean;
+  readonly createdAt: Date;
+  readonly updatedAt?: Date;
+  readonly isDeleted?: boolean;
 }
 
 export interface CommentInput {
-  postSlug: string;
-  authorName: string;
-  authorEmail: string;
-  content: string;
+  readonly postSlug: string;
+  readonly authorName: string;
+  readonly authorEmail: string;
+  readonly content: string;
 }
+
+// =============================================================================
+// Security Types（セキュリティ重視設計）
+// =============================================================================
 
 export interface PasswordResetToken {
-  _id?: string;
-  id: string;
-  userId: string;
-  token: string;
-  email: string;
-  expiresAt: Date;
-  createdAt: Date;
-  used: boolean;
+  readonly _id?: string;
+  readonly id: string;
+  readonly userId: string;
+  readonly token: string;
+  readonly email: string;
+  readonly expiresAt: Date;
+  readonly createdAt: Date;
+  readonly used: boolean;
 }
 
-// API Key Types
+// =============================================================================
+// API Key Types（権限管理とセキュリティ最適化）
+// =============================================================================
+
 export interface ApiKey {
-  _id?: string;
-  id: string;
-  userId: string; // アカウントID
-  name: string;
-  key: string;
-  permissions: ApiKeyPermissions;
-  createdAt: Date;
-  lastUsed?: Date;
-  isActive: boolean;
-  expiresAt?: Date;
+  readonly _id?: string;
+  readonly id: string;
+  readonly userId: string; // アカウントID
+  readonly name: string;
+  readonly key: string;
+  readonly permissions: ApiKeyPermissions;
+  readonly createdAt: Date;
+  readonly lastUsed?: Date;
+  readonly isActive: boolean;
+  readonly expiresAt?: Date;
 }
 
-export interface ApiKeyPermissions {
-  posts: {
-    create: boolean;
-    read: boolean;
-    update: boolean;
-    delete: boolean;
+export interface ApiKeyPermissions extends Record<string, Record<string, boolean>> {
+  readonly posts: {
+    readonly create: boolean;
+    readonly read: boolean;
+    readonly update: boolean;
+    readonly delete: boolean;
   };
-  comments: {
-    read: boolean;
-    moderate: boolean;
-    delete: boolean;
+  readonly comments: {
+    readonly read: boolean;
+    readonly moderate: boolean;
+    readonly delete: boolean;
   };
-  users: {
-    read: boolean;
-    create: boolean;
-    update: boolean;
-    delete: boolean;
+  readonly users: {
+    readonly read: boolean;
+    readonly create: boolean;
+    readonly update: boolean;
+    readonly delete: boolean;
   };
-  settings: {
-    read: boolean;
-    update: boolean;
+  readonly settings: {
+    readonly read: boolean;
+    readonly update: boolean;
   };
-  uploads: {
-    create: boolean;
-    read: boolean;
-    delete: boolean;
+  readonly uploads: {
+    readonly create: boolean;
+    readonly read: boolean;
+    readonly delete: boolean;
   };
 }
 
 export interface ApiKeyInput {
-  name: string;
-  permissions: ApiKeyPermissions;
-  expiresAt?: Date;
+  readonly name: string;
+  readonly permissions: ApiKeyPermissions;
+  readonly expiresAt?: Date;
 }
 
 export interface ApiKeyResponse {
-  success: boolean;
-  data: {
-    apiKey: ApiKey;
+  readonly success: true;
+  readonly data: {
+    readonly apiKey: ApiKey;
   };
 }
 
 export interface ApiKeysResponse {
-  success: boolean;
-  data: {
-    apiKeys: ApiKey[];
+  readonly success: true;
+  readonly data: {
+    readonly apiKeys: readonly ApiKey[];
   };
 }
+
+// =============================================================================
+// Type Guards（ランタイム型安全性とパフォーマンス向上）
+// =============================================================================
+
+export const isUserRole = (value: unknown): value is UserRole => {
+  return typeof value === 'string' && (value === 'user' || value === 'admin');
+};
+
+export const isSortOrder = (value: unknown): value is SortOrder => {
+  return typeof value === 'string' && (value === 'asc' || value === 'desc');
+};
+
+export const isPostType = (value: unknown): value is PostType => {
+  return typeof value === 'string' && ['all', 'published', 'deleted'].includes(value);
+};
+
+export const isPostSortField = (value: unknown): value is PostSortField => {
+  return typeof value === 'string' && ['createdAt', 'updatedAt', 'title'].includes(value);
+};
+
+export const isUserSortField = (value: unknown): value is UserSortField => {
+  return typeof value === 'string' && ['createdAt', 'username', 'displayName'].includes(value);
+};
+
+// =============================================================================
+// Utility Types（コード再利用性とパフォーマンス向上）
+// =============================================================================
+
+// 安全な部分更新型（readonlyを除去）
+export type Mutable<T> = {
+  -readonly [P in keyof T]: T[P];
+};
+
+// ID フィールドのみ抽出（制約付き）
+export type EntityId<T extends { id: string }> = Pick<T, 'id'>;
+
+// 作成日時フィールドのみ抽出（制約付き）
+export type EntityTimestamps<T extends { createdAt: Date; updatedAt: Date }> = Pick<T, 'createdAt' | 'updatedAt'>;
+
+// パスワードハッシュを除外したユーザー情報
+export type SafeUser = Omit<User, 'passwordHash'>;
+
+// 削除状態を除外した投稿情報
+export type ActivePost = Omit<Post, 'isDeleted'>;
+
+// =============================================================================
+// Performance-optimized constants（実行時最適化）
+// =============================================================================
+
+export const USER_ROLES = ['user', 'admin'] as const;
+export const SORT_ORDERS = ['asc', 'desc'] as const;
+export const POST_TYPES = ['all', 'published', 'deleted'] as const;
+export const POST_SORT_FIELDS = ['createdAt', 'updatedAt', 'title'] as const;
+export const USER_SORT_FIELDS = ['createdAt', 'username', 'displayName'] as const;

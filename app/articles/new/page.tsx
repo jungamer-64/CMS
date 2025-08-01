@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import type { MediaItem } from '@/app/lib/api-types';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/lib/auth';
 import PostContent from '@/app/articles/[slug]/PostContent';
@@ -15,6 +17,33 @@ export default function NewPost() {
   const [showPreview, setShowPreview] = useState(false);
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  // メディア管理
+  const [mediaList, setMediaList] = useState<MediaItem[]>([]);
+  const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
+
+  // メディア一覧取得
+  useEffect(() => {
+    const fetchMedia = async () => {
+      try {
+        const res = await fetch('/api/admin/media');
+        if (!res.ok) throw new Error('メディア一覧の取得に失敗しました');
+        const data = await res.json();
+        setMediaList(data.data?.media || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchMedia();
+  }, []);
+
+  // メディア選択
+  const handleMediaSelect = (filename: string) => {
+    setSelectedMedia((prev) =>
+      prev.includes(filename)
+        ? prev.filter((f) => f !== filename)
+        : [...prev, filename]
+    );
+  };
 
   // 利用可能な変数
   const getVariables = () => {
@@ -88,18 +117,14 @@ export default function NewPost() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!user) {
       router.push('/auth/login');
       return;
     }
-    
     setIsSubmitting(true);
-
     try {
       // 変数を実際の値に置換してからslugを送信
       const finalSlug = replaceVariables(slug);
-      
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: {
@@ -109,12 +134,11 @@ export default function NewPost() {
           title, 
           content, 
           slug: finalSlug,
-          author: user.displayName 
+          author: user.displayName,
+          media: selectedMedia // 追加: 選択したメディアfilename配列
         }),
       });
-
       if (response.ok) {
-        // 投稿一覧ページにリダイレクト
         router.push('/articles');
       } else {
         const error = await response.json();
@@ -149,6 +173,36 @@ export default function NewPost() {
         </div>
       
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* メディア選択セクション */}
+        <div>
+          <div className="block text-sm font-medium text-gray-700 mb-2">この投稿で使うメディアを選択</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {mediaList.map((item) => {
+              const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.m4v', '.mkv', '.ogv', '.3gp', '.3g2'];
+              const ext = item.filename.substring(item.filename.lastIndexOf('.')).toLowerCase();
+              return (
+                <label key={item.filename} className={`block border rounded p-1 cursor-pointer ${selectedMedia.includes(item.filename) ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                  <input
+                    type="checkbox"
+                    checked={selectedMedia.includes(item.filename)}
+                    onChange={() => handleMediaSelect(item.filename)}
+                    className="mr-1"
+                  />
+                  {videoExtensions.includes(ext) ? (
+                    <video className="w-full h-20 object-cover">
+                      <source src={item.url} type={`video/${ext}`} />
+                      <track kind="captions" src="" label="Captions" />
+                      お使いのブラウザは video タグに対応していません。
+                    </video>
+                  ) : (
+                    <Image src={item.url} alt={item.originalName} className="w-full h-20 object-cover" width={80} height={80} />
+                  )}
+                  <div className="text-xs truncate">{item.originalName}</div>
+                </label>
+              );
+            })}
+          </div>
+        </div>
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
             タイトル <span className="text-red-500">*</span>

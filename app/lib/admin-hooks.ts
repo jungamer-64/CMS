@@ -9,7 +9,7 @@ import {
 } from './types';
 
 // Generic API Hook
-function useApi<T>(url: string, dependencies: unknown[] = []) {
+function useApi<T>(url: string) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ function useApi<T>(url: string, dependencies: unknown[] = []) {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData, ...dependencies]);
+  }, [fetchData]);
 
   return { data, loading, error, refetch: fetchData };
 }
@@ -67,10 +67,7 @@ export function useAdminPosts(
 
   const url = `/api/admin/posts` + (queryParams ? `?${queryParams}` : '');
   
-  const { data, loading, error, refetch } = useApi<AdminPostsResponse['data']>(
-    url, 
-    [queryParams]
-  );
+  const { data, loading, error, refetch } = useApi<AdminPostsResponse['data']>(url);
 
   // Memoized computed values
   const stats = useMemo(() => {
@@ -161,7 +158,7 @@ export function useAdminUsers(
 
   const url = `/api/admin/users` + (queryParams ? `?${queryParams}` : '');
   
-  return useApi<AdminUsersResponse['data']>(url, [queryParams]);
+  return useApi<AdminUsersResponse['data']>(url);
 }
 
 // Admin Stats Hook

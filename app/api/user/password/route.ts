@@ -1,15 +1,34 @@
 import { NextRequest } from 'next/server';
 import { changePassword } from '@/app/lib/users';
-import { withAuth, createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { withApiAuth } from '@/app/lib/auth-middleware';
 import { PasswordChangeInput } from '@/app/lib/types';
 
-export const PUT = withAuth(async (request: NextRequest, user) => {
-  try {
-    const { currentPassword, newPassword }: PasswordChangeInput = await request.json();
+// 型ガード関数
+function isPasswordChangeRequest(obj: unknown): obj is PasswordChangeInput {
+  if (!obj || typeof obj !== 'object') return false;
+  const req = obj as Record<string, unknown>;
+  return typeof req.currentPassword === 'string' && 
+         typeof req.newPassword === 'string' &&
+         req.currentPassword.length > 0 &&
+         req.newPassword.length > 0;
+}
 
-    if (!currentPassword || !newPassword) {
+export const PUT = withApiAuth(async (request: NextRequest, context) => {
+  const user = context.user;
+  if (!user) {
+    return createErrorResponse('認証情報がありません', 401);
+  }
+  
+  try {
+    const body: unknown = await request.json();
+    
+    // 型ガードによる検証
+    if (!isPasswordChangeRequest(body)) {
       return createErrorResponse('現在のパスワードと新しいパスワードは必須です', 400);
     }
+
+    const { currentPassword, newPassword } = body;
 
     if (newPassword.length < 8) {
       return createErrorResponse('新しいパスワードは8文字以上で設定してください', 400);
@@ -19,7 +38,7 @@ export const PUT = withAuth(async (request: NextRequest, user) => {
       return createErrorResponse('新しいパスワードは現在のパスワードと異なる必要があります', 400);
     }
 
-    const success = await changePassword(user.userId, currentPassword, newPassword);
+    const success = await changePassword(user.id, currentPassword, newPassword);
     
     if (!success) {
       return createErrorResponse('パスワードの変更に失敗しました', 500);

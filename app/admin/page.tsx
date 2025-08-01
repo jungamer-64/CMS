@@ -1,9 +1,12 @@
 'use client';
 
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/lib/auth';
 import Link from 'next/link';
 import AdminLayout from '@/app/lib/AdminLayout';
+import type { ApiResponse, PostsListResponse, UsersListResponse } from '@/app/lib/api-types';
+import { isApiSuccess } from '@/app/lib/api-types';
 
 interface DashboardStats {
   totalPosts: number;
@@ -223,7 +226,9 @@ const SystemInfo = ({ user }: { user: { lastLogin?: string; role: string; id: st
   </div>
 );
 
-export default function AdminHome() {
+
+
+const AdminHome: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalPosts: 0,
     publishedPosts: 0,
@@ -232,125 +237,64 @@ export default function AdminHome() {
     adminUsers: 0,
     recentPosts: []
   });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
   const { user } = useAuth();
 
   useEffect(() => {
-    console.log('useEffect triggered - user:', user);
     if (user?.role === 'admin') {
-      console.log('管理者ユーザーを確認、データ取得開始');
       fetchDashboardData();
     } else {
-      console.log('非管理者ユーザーまたはユーザー情報なし');
       setIsLoading(false);
     }
   }, [user]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      console.log('ダッシュボードデータ取得開始...');
-      
       const [postsResponse, usersResponse] = await Promise.all([
         fetch('/api/admin/posts'),
         fetch('/api/admin/users')
       ]);
 
-      console.log('Posts Response Status:', postsResponse.status);
-      console.log('Users Response Status:', usersResponse.status);
+      const postsJson: ApiResponse<PostsListResponse> = await postsResponse.json();
+      const usersJson: ApiResponse<UsersListResponse> = await usersResponse.json();
 
-      if (!postsResponse.ok) {
-        const errorText = await postsResponse.text();
-        console.error('Posts API Error:', errorText);
-        throw new Error(`投稿データの取得に失敗しました: ${postsResponse.status}`);
+      if (!postsResponse.ok || !isApiSuccess(postsJson)) {
+        const msg = postsJson && 'error' in postsJson ? postsJson.error : `投稿データの取得に失敗しました: ${postsResponse.status}`;
+        setError(msg);
+        setIsLoading(false);
+        return;
       }
-
-      if (!usersResponse.ok) {
-        const errorText = await usersResponse.text();
-        console.error('Users API Error:', errorText);
-        throw new Error(`ユーザーデータの取得に失敗しました: ${usersResponse.status}`);
-      }
-
-      const [postsData, usersData] = await Promise.all([
-        postsResponse.json(),
-        usersResponse.json()
-      ]);
-
-      console.log('取得した投稿データ:', postsData);
-      console.log('取得したユーザーデータ:', usersData);
-
-      // APIレスポンスの構造に合わせてデータを取得
-      let posts = [];
-      if (postsData.success) {
-        // 成功時のレスポンス構造
-        if (Array.isArray(postsData.data?.posts)) {
-          posts = postsData.data.posts;
-        } else if (Array.isArray(postsData.data)) {
-          posts = postsData.data;
-        }
-      } else if (Array.isArray(postsData)) {
-        posts = postsData;
-      }
-
-      let users = [];
-      if (usersData.success) {
-        // 成功時のレスポンス構造
-        if (Array.isArray(usersData.data?.users)) {
-          users = usersData.data.users;
-        } else if (Array.isArray(usersData.data)) {
-          users = usersData.data;
-        }
-      } else if (Array.isArray(usersData)) {
-        users = usersData;
-      }
-
-      console.log('処理後の投稿配列:', posts);
-      console.log('処理後のユーザー配列:', users);
-
-      if (posts.length === 0 && users.length === 0) {
-        console.warn('データベースからデータが取得できませんでした。データベース接続を確認してください。');
-        setError('データベースからデータを取得できませんでした。データベース接続を確認してください。');
+      if (!usersResponse.ok || !isApiSuccess(usersJson)) {
+        const msg = usersJson && 'error' in usersJson ? usersJson.error : `ユーザーデータの取得に失敗しました: ${usersResponse.status}`;
+        setError(msg);
+        setIsLoading(false);
         return;
       }
 
-      interface PostData {
-        id: string;
-        title: string;
-        slug: string;
-        author: string;
-        isDeleted: boolean;
-        createdAt: string;
+      const posts = postsJson.data.posts || [];
+      const users = usersJson.data.users || [];
+
+      if (posts.length === 0 && users.length === 0) {
+        setError('データベースからデータを取得できませんでした。データベース接続を確認してください。');
+        setIsLoading(false);
+        return;
       }
 
-      interface UserData {
-        id: string;
-        username: string;
-        role: string;
-      }
-
-      const publishedPosts = posts.filter((post: PostData) => !post.isDeleted);
-      const deletedPosts = posts.filter((post: PostData) => post.isDeleted);
-      const adminUsers = users.filter((user: UserData) => user.role === 'admin');
+      const publishedPosts = posts.filter((post) => !post.isDeleted);
+      const deletedPosts = posts.filter((post) => post.isDeleted);
+      const adminUsers = users.filter((user) => user.role === 'admin');
       const recentPosts = publishedPosts
-        .sort((a: PostData, b: PostData) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .toSorted((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 5)
-        .map((post: PostData) => ({
+        .map((post) => ({
           id: post.id,
           title: post.title,
           slug: post.slug,
           author: post.author,
-          createdAt: post.createdAt
+          createdAt: typeof post.createdAt === 'string' ? post.createdAt : post.createdAt.toISOString()
         }));
-
-      console.log('統計データ:', {
-        totalPosts: posts.length,
-        publishedPosts: publishedPosts.length,
-        deletedPosts: deletedPosts.length,
-        totalUsers: users.length,
-        adminUsers: adminUsers.length,
-        recentPosts: recentPosts.length
-      });
 
       setStats({
         totalPosts: posts.length,
@@ -360,17 +304,14 @@ export default function AdminHome() {
         adminUsers: adminUsers.length,
         recentPosts
       });
-
-      // データ取得成功時はエラーをクリア
       setError('');
     } catch (error) {
-      console.error('ダッシュボードデータ取得エラー:', error);
-      const errorMessage = error instanceof Error ? error.message : 'データの取得中にエラーが発生しました';
-      setError(errorMessage);
+      setError(error instanceof Error ? error.message : 'データの取得中にエラーが発生しました');
     } finally {
       setIsLoading(false);
     }
   };
+
 
   if (isLoading || !user) {
     return (
@@ -452,4 +393,6 @@ export default function AdminHome() {
       </div>
     </AdminLayout>
   );
-}
+};
+
+export default AdminHome;

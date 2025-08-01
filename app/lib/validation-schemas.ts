@@ -13,7 +13,11 @@ import {
   ResetPasswordRequest,
   ApiKeyCreateRequest,
   ApiKeyUpdateRequest,
-  SettingsUpdateRequest
+  SettingsUpdateRequest,
+  ThemeUpdateRequest,
+  AdminCommentUpdateRequest,
+  AdminCommentDeleteRequest,
+  AdminPostsListParams
 } from './api-types';
 
 // =============================================================================
@@ -43,6 +47,11 @@ export const postCreateSchema: ValidationSchema<PostCreateRequest> = {
     minLength: 1,
     maxLength: 100,
     pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+  },
+  media: {
+    type: 'array',
+    items: { type: 'string' },
+    required: false
   }
 };
 
@@ -145,6 +154,17 @@ export const userUpdateSchema: ValidationSchema<UserUpdateRequest> = {
 };
 
 // =============================================================================
+// Theme API バリデーションスキーマ
+// =============================================================================
+
+export const themeUpdateSchema: ValidationSchema<ThemeUpdateRequest> = {
+  darkMode: {
+    required: true,
+    type: 'boolean'
+  }
+};
+
+// =============================================================================
 // Comments API バリデーションスキーマ
 // =============================================================================
 
@@ -191,6 +211,69 @@ export const commentUpdateSchema: ValidationSchema<CommentUpdateRequest> = {
   },
   isApproved: {
     type: 'boolean'
+  }
+};
+
+// Admin Comments API バリデーションスキーマ
+export const adminCommentUpdateSchema: ValidationSchema<AdminCommentUpdateRequest> = {
+  commentId: {
+    required: true,
+    type: 'string',
+    minLength: 1
+  },
+  isApproved: {
+    required: true,
+    type: 'boolean'
+  }
+};
+
+export const adminCommentDeleteSchema: ValidationSchema<AdminCommentDeleteRequest> = {
+  commentId: {
+    required: true,
+    type: 'string',
+    minLength: 1
+  }
+};
+
+// Admin Posts API バリデーションスキーマ
+export const adminPostsListSchema: ValidationSchema<AdminPostsListParams> = {
+  page: {
+    type: 'number',
+    min: 1
+  },
+  limit: {
+    type: 'number',
+    min: 1,
+    max: 100
+  },
+  type: {
+    type: 'string',
+    custom: (value) => {
+      if (typeof value !== 'string') return false;
+      return ['all', 'published', 'deleted'].includes(value);
+    }
+  },
+  search: {
+    type: 'string',
+    maxLength: 255
+  },
+  author: {
+    type: 'string',
+    maxLength: 100
+  },
+  sortBy: {
+    type: 'string',
+    custom: (value) => {
+      if (typeof value !== 'string') return false;
+      return ['createdAt', 'updatedAt', 'title'].includes(value);
+    }
+  },
+  sortOrder: {
+    type: 'string',
+    custom: (value) => {
+      if (typeof value !== 'string') return false;
+      return ['asc', 'desc'].includes(value);
+    }
   }
 };
 
@@ -385,11 +468,12 @@ export const apiKeyUpdateSchema: ValidationSchema<ApiKeyUpdateRequest> = {
 // =============================================================================
 
 export const settingsUpdateSchema: ValidationSchema<SettingsUpdateRequest> = {
-  darkMode: {
-    type: 'boolean'
-  },
   apiAccess: {
     type: 'boolean'
+  },
+  apiKey: {
+    type: 'string',
+    maxLength: 255
   },
   emailNotifications: {
     type: 'boolean'
@@ -407,6 +491,16 @@ export const settingsUpdateSchema: ValidationSchema<SettingsUpdateRequest> = {
   },
   requireApproval: {
     type: 'boolean'
+  },
+  userHomeUrl: {
+    type: 'string',
+    maxLength: 255,
+    pattern: /^\/.*$/
+  },
+  adminHomeUrl: {
+    type: 'string',
+    maxLength: 255,
+    pattern: /^\/.*$/
   }
 };
 
@@ -414,7 +508,7 @@ export const settingsUpdateSchema: ValidationSchema<SettingsUpdateRequest> = {
 // バリデーションヘルパー関数
 // =============================================================================
 
-export function validatePermissions(permissions: any): boolean {
+export function validatePermissions(permissions: Record<string, unknown>): boolean {
   if (typeof permissions !== 'object' || permissions === null) {
     return false;
   }
@@ -432,7 +526,8 @@ export function validatePermissions(permissions: any): boolean {
     }
     
     for (const action of actions) {
-      if (typeof permissions[resource][action] !== 'boolean') {
+      const resourcePerms = permissions[resource] as Record<string, unknown>;
+      if (typeof resourcePerms[action] !== 'boolean') {
         return false;
       }
     }

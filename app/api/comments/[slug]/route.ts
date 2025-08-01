@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createSuccessResponse, createErrorResponse, getParams } from '@/app/lib/api-utils';
+import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
 import { getCommentsByPostSlug } from '@/app/lib/comments';
 
 // 特定の投稿のコメントを取得（GET）
@@ -10,7 +10,8 @@ export async function GET(
   console.log('コメント取得API呼び出し');
   
   try {
-    const { slug } = await getParams(params);
+    const resolvedParams = await params;
+    const { slug } = resolvedParams;
     console.log('投稿スラッグ:', slug);
 
     if (!slug) {

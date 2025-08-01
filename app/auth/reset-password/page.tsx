@@ -15,7 +15,7 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const tokenParam = searchParams.get('token');
+    const tokenParam = searchParams?.get('token');
     if (tokenParam) {
       setToken(tokenParam);
     } else {

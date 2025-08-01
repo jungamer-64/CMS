@@ -1,5 +1,79 @@
 import { NextRequest } from 'next/server';
 import { ApiKeyPermissions, Post, User, Comment, ApiKey } from './types';
+import { type Settings } from './settings';
+
+// =============================================================================
+// メディア管理APIの共通型
+// =============================================================================
+
+export type MediaType = 'image' | 'video' | 'other';
+
+/**
+ * メディアタイプの型ガード
+ */
+export function isValidMediaType(type: unknown): type is MediaType {
+  return typeof type === 'string' && ['image', 'video', 'other'].includes(type);
+}
+
+export type MediaItem = {
+  filename: string;
+  originalName: string;
+  size: number;
+  uploadDate: string;
+  url: string;
+  mediaType: MediaType;
+  directory: string;
+};
+
+// =============================================================================
+// 共通型ガード
+// =============================================================================
+
+/**
+ * ApiResponse<T> の success 判定型ガード
+ */
+export function isApiSuccess<T>(res: ApiResponse<T>): res is { success: true; data: T } {
+  return res && typeof res === 'object' && res.success === true && 'data' in res;
+}
+
+/**
+ * ApiResponse<T> の error 判定型ガード
+ */
+export function isApiError<T>(res: ApiResponse<T>): res is ApiError {
+  return res && typeof res === 'object' && res.success === false && 'error' in res;
+}
+
+/**
+ * 型安全なAPIエラーの作成
+ */
+export function createApiError(
+  error: string, 
+  code?: ApiErrorCode, 
+  details?: Record<string, unknown>
+): ApiError {
+  return {
+    success: false,
+    error,
+    code,
+    details
+  };
+}
+
+/**
+ * 型安全なAPI成功レスポンスの作成
+ */
+export function createApiSuccess<T>(
+  data: T,
+  message?: string,
+  meta?: ApiSuccess<T>['meta']
+): ApiSuccess<T> {
+  return {
+    success: true,
+    data,
+    message,
+    meta
+  };
+}
 
 // =============================================================================
 // 基本的なHTTPメソッドの型定義
@@ -25,7 +99,7 @@ export interface ApiSuccess<T = unknown> {
 export interface ApiError {
   success: false;
   error: string;
-  code?: string;
+  code?: ApiErrorCode;
   details?: Record<string, unknown>;
 }
 
@@ -42,6 +116,15 @@ export interface PaginationMeta {
 // リクエストの型定義
 // =============================================================================
 
+export type SortOrder = 'asc' | 'desc';
+
+/**
+ * ソート順の型ガード
+ */
+export function isValidSortOrder(order: unknown): order is SortOrder {
+  return typeof order === 'string' && (order === 'asc' || order === 'desc');
+}
+
 export interface PaginatedRequest {
   page?: number;
   limit?: number;
@@ -49,7 +132,7 @@ export interface PaginatedRequest {
 
 export interface SortableRequest {
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: SortOrder;
 }
 
 export interface SearchableRequest {
@@ -59,13 +142,26 @@ export interface SearchableRequest {
 export type BaseListRequest = PaginatedRequest & SortableRequest & SearchableRequest;
 
 // =============================================================================
+// ユーザーロールの型定義
+// =============================================================================
+
+export type UserRole = 'user' | 'admin';
+
+/**
+ * ユーザーロールの型ガード
+ */
+export function isValidUserRole(role: unknown): role is UserRole {
+  return typeof role === 'string' && (role === 'user' || role === 'admin');
+}
+
+// =============================================================================
 // 認証関連の型定義
 // =============================================================================
 
 export interface AuthenticatedUser {
   userId: string;
   username: string;
-  role: 'user' | 'admin';
+  role: UserRole;
   email?: string;
   displayName?: string;
 }
@@ -95,6 +191,7 @@ export interface PostCreateRequest {
   content: string;
   author: string;
   slug?: string;
+  media?: string[]; // 追加: メディアfilename配列
 }
 
 export interface PostUpdateRequest {
@@ -126,24 +223,33 @@ export interface UserCreateRequest {
   email: string;
   password: string;
   displayName: string;
-  role?: 'user' | 'admin';
+  role?: UserRole;
 }
 
 export interface UserUpdateRequest {
   displayName?: string;
   email?: string;
-  role?: 'user' | 'admin';
+  role?: UserRole;
   darkMode?: boolean;
 }
 
 export interface UsersListRequest extends BaseListRequest {
-  role?: 'user' | 'admin';
+  role?: UserRole;
   isActive?: boolean;
   sortBy?: 'createdAt' | 'username' | 'displayName';
 }
 
 export interface UserResponse {
   user: Omit<User, 'passwordHash'>;
+}
+
+// Theme API
+export interface ThemeUpdateRequest {
+  darkMode: boolean;
+}
+
+export interface ThemeResponse {
+  darkMode: boolean;
 }
 
 export interface UsersListResponse {
@@ -181,6 +287,56 @@ export interface CommentsListResponse {
   comments: Comment[];
   total: number;
   filters?: CommentsListRequest;
+}
+
+// Admin Comments API
+export interface AdminCommentUpdateRequest {
+  commentId: string;
+  isApproved: boolean;
+}
+
+export interface AdminCommentDeleteRequest {
+  commentId: string;
+}
+
+export interface AdminCommentUpdateResponse {
+  commentId: string;
+  isApproved: boolean;
+  updatedAt: string;
+}
+
+export interface AdminCommentDeleteResponse {
+  commentId: string;
+}
+
+// Admin Posts API
+export interface AdminPostsListParams {
+  page?: number;
+  limit?: number;
+  type?: 'all' | 'published' | 'deleted';
+  search?: string;
+  author?: string;
+  sortBy?: 'createdAt' | 'updatedAt' | 'title';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface AdminPostsListResponse {
+  posts: Post[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  filters: {
+    type: string;
+    search: string;
+    author: string;
+    sortBy: string;
+    sortOrder: string;
+  };
 }
 
 // Auth API
@@ -241,17 +397,19 @@ export interface ApiKeysListResponse {
 
 // Settings API
 export interface SettingsUpdateRequest {
-  darkMode?: boolean;
   apiAccess?: boolean;
+  apiKey?: string;
   emailNotifications?: boolean;
   maintenanceMode?: boolean;
   maxPostsPerPage?: number;
   allowComments?: boolean;
   requireApproval?: boolean;
+  userHomeUrl?: string;
+  adminHomeUrl?: string;
 }
 
 export interface SettingsResponse {
-  settings: Record<string, unknown>;
+  settings: Settings;
 }
 
 // Stats API
@@ -305,13 +463,13 @@ export enum ApiErrorCode {
 // APIハンドラーの型定義
 // =============================================================================
 
-export type ApiHandler<TRequest = unknown, TResponse = unknown> = (
+export type ApiHandler<TResponse = unknown> = (
   request: NextRequest,
   context: AuthContext,
   ...args: unknown[]
 ) => Promise<ApiResponse<TResponse>>;
 
-export type PublicApiHandler<TRequest = unknown, TResponse = unknown> = (
+export type PublicApiHandler<TResponse = unknown> = (
   request: NextRequest,
   ...args: unknown[]
 ) => Promise<ApiResponse<TResponse>>;
@@ -320,15 +478,26 @@ export type PublicApiHandler<TRequest = unknown, TResponse = unknown> = (
 // バリデーション用の型定義
 // =============================================================================
 
+export type ValidationFieldType = 'string' | 'number' | 'boolean' | 'email' | 'url' | 'array';
+
+/**
+ * バリデーションフィールドタイプの型ガード
+ */
+export function isValidValidationType(type: unknown): type is ValidationFieldType {
+  return typeof type === 'string' && 
+    ['string', 'number', 'boolean', 'email', 'url', 'array'].includes(type);
+}
+
 export interface ValidationRule {
   required?: boolean;
-  type?: 'string' | 'number' | 'boolean' | 'email' | 'url';
+  type?: ValidationFieldType;
   minLength?: number;
   maxLength?: number;
   min?: number;
   max?: number;
   pattern?: RegExp;
   custom?: (value: unknown) => boolean | string;
+  items?: ValidationRule; // 配列要素のバリデーション
 }
 
 export type ValidationSchema<T> = {
@@ -338,7 +507,7 @@ export type ValidationSchema<T> = {
 export interface ValidationError {
   field: string;
   message: string;
-  code: string;
+  code: ApiErrorCode;
 }
 
 export interface ValidationResult {

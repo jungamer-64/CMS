@@ -1,33 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { createPostHandler } from '@/app/lib/api-factory';
+import { 
+  createApiSuccess,
+  createApiError, 
+  ApiErrorCode 
+} from '@/app/lib/api-types';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { getUserByUsername, updateLastLogin } from '@/app/lib/users';
-import { 
-  createSuccessResponse, 
-  createErrorResponse, 
-  validateData,
-  withRateLimit,
-  handleApiError
-} from '@/app/lib/api-utils';
-import { loginSchema } from '@/app/lib/validation-schemas';
-import { LoginRequest, AuthResponse, ApiErrorCode } from '@/app/lib/api-types';
+import type { LoginRequest, AuthResponse } from '@/app/lib/api-types';
+import { JWT_SECRET } from '@/app/lib/env';
 
-// レート制限付きのログインエンドポイント
-export const POST = withRateLimit(
-  async (request: NextRequest): Promise<NextResponse> => {
+// ログインAPI（レート制限付き）
+export const POST = createPostHandler<LoginRequest, AuthResponse>(
+  async (request, body) => {
     try {
-      const body: LoginRequest = await request.json();
-
-      // バリデーション
-      const validation = validateData(body as unknown as Record<string, unknown>, loginSchema);
-      if (!validation.isValid) {
-        return createErrorResponse(
-          validation.errors.map(e => e.message).join(', '),
-          400,
-          ApiErrorCode.VALIDATION_ERROR
-        );
-      }
-
       const { username, password } = body;
 
       // ユーザーを検索
@@ -35,9 +21,8 @@ export const POST = withRateLimit(
       console.log('ログイン試行 - ユーザー:', username);
       
       if (!user) {
-        return createErrorResponse(
+        return createApiError(
           'ユーザー名またはパスワードが正しくありません', 
-          401,
           ApiErrorCode.UNAUTHORIZED
         );
       }
@@ -45,9 +30,8 @@ export const POST = withRateLimit(
       // パスワードを検証
       const isValid = await bcrypt.compare(password, user.passwordHash);
       if (!isValid) {
-        return createErrorResponse(
+        return createApiError(
           'ユーザー名またはパスワードが正しくありません', 
-          401,
           ApiErrorCode.UNAUTHORIZED
         );
       }
@@ -62,7 +46,7 @@ export const POST = withRateLimit(
           username: user.username,
           role: user.role 
         },
-        process.env.JWT_SECRET || 'fallback-secret',
+        JWT_SECRET,
         { expiresIn: '7d' }
       );
 
@@ -81,22 +65,22 @@ export const POST = withRateLimit(
         token
       };
 
-      // レスポンスにトークンをCookieとして設定
-      const response = createSuccessResponse(userResponse, 'ログインに成功しました');
-
-      response.cookies.set('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 // 7日間
-      });
-
       console.log('ログイン成功 - ユーザー:', username);
-      return response;
+      return createApiSuccess(userResponse, 'ログインに成功しました');
 
     } catch (error) {
-      return handleApiError(error);
+      return createApiError(
+        error instanceof Error ? error.message : 'ログインに失敗しました',
+        ApiErrorCode.INTERNAL_ERROR
+      );
     }
   },
-  { maxRequests: 5, windowMs: 60000, message: 'ログイン試行回数が多すぎます' }
+  {
+    requireAuth: false,
+    rateLimit: { 
+      maxRequests: 5, 
+      windowMs: 60000, 
+      message: 'ログイン試行回数が多すぎます' 
+    }
+  }
 );

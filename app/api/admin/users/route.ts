@@ -6,7 +6,8 @@ import {
   createErrorResponse, 
   validateData,
   handleApiError,
-  parsePaginationParams
+  parsePaginationParams,
+  AuthContext
 } from '@/app/lib/api-utils';
 import { userCreateSchema } from '@/app/lib/validation-schemas';
 import {
@@ -18,9 +19,10 @@ import {
 } from '@/app/lib/api-types';
 
 // ユーザー一覧を取得（GET）
-export const GET = withIntegratedAuth(async (request: NextRequest, authContext): Promise<NextResponse> => {
-  const userInfo = authContext.user?.username || authContext.apiKey?.userId || 'unknown';
-  console.log('管理者ユーザーAPI呼び出し - ユーザー:', userInfo);
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  return withIntegratedAuth(async (request: NextRequest, authContext?: AuthContext): Promise<NextResponse> => {
+    const userInfo = authContext?.user?.username || 'unknown';
+    console.log('管理者ユーザーAPI呼び出し - ユーザー:', userInfo);
   
   try {
     // URLパラメータから検索とフィルタを取得
@@ -58,12 +60,14 @@ export const GET = withIntegratedAuth(async (request: NextRequest, authContext):
     console.error('ユーザー取得エラー:', error);
     return handleApiError(error);
   }
-});
+  })(request);
+}
 
 // 新しいユーザーを作成（POST）
-export const POST = withIntegratedAuth(async (request: NextRequest, authContext): Promise<NextResponse> => {
-  const userInfo = authContext.user?.username || authContext.apiKey?.userId || 'unknown';
-  console.log('管理者ユーザー作成API呼び出し - ユーザー:', userInfo);
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  return withIntegratedAuth(async (request: NextRequest, authContext?: AuthContext): Promise<NextResponse> => {
+    const userInfo = authContext?.user?.username || 'unknown';
+    console.log('管理者ユーザー作成API呼び出し - ユーザー:', userInfo);
   
   try {
     const body: UserCreateRequest = await request.json();
@@ -110,4 +114,5 @@ export const POST = withIntegratedAuth(async (request: NextRequest, authContext)
     console.error('ユーザー作成エラー:', error);
     return handleApiError(error);
   }
-});
+  })(request);
+}

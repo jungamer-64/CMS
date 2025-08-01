@@ -252,7 +252,7 @@ function checkBasicUserPermission(
 }
 
 function checkApiKeyPermission(
-  permissions: any,
+  permissions: Record<string, Record<string, boolean>>,
   requiredPermission: RequiredPermission
 ): { allowed: boolean; reason?: string } {
   const resourcePermissions = permissions[requiredPermission.resource];

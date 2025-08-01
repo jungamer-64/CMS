@@ -1,29 +1,8 @@
 import { NextRequest } from 'next/server';
 import { ApiKeyManager } from './api-keys-manager';
 import { ApiKeyPermissions } from './types';
-
-interface Settings {
-  darkMode: boolean;
-  apiAccess: boolean;
-  apiKey: string;
-  emailNotifications: boolean;
-  maintenanceMode: boolean;
-  maxPostsPerPage: number;
-  allowComments: boolean;
-  requireApproval: boolean;
-}
-
-// デフォルト設定
-const defaultSettings: Settings = {
-  darkMode: false,
-  apiAccess: true,
-  apiKey: '',
-  emailNotifications: true,
-  maintenanceMode: false,
-  maxPostsPerPage: 10,
-  allowComments: true,
-  requireApproval: false,
-};
+import { AuthenticatedUser } from './api-utils';
+import { JWT_SECRET } from './env';
 
 // APIキー認証と権限チェック
 export async function validateApiKey(
@@ -99,7 +78,7 @@ export function checkRateLimit(ip: string, limit: number = 10, windowMs: number 
 }
 
 // ユーザーセッションベースの認証
-export async function validateUserSession(request: NextRequest): Promise<{ valid: boolean; user?: any; error?: string }> {
+export async function validateUserSession(request: NextRequest): Promise<{ valid: boolean; user?: AuthenticatedUser; error?: string }> {
   try {
     console.log('validateUserSession: Starting validation...');
     console.log('validateUserSession: All cookies:', request.cookies.getAll());
@@ -120,8 +99,7 @@ export async function validateUserSession(request: NextRequest): Promise<{ valid
     }
 
     // JWTトークンを検証（既存の認証システムを使用）
-    const jwt = require('jsonwebtoken');
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+    const { default: jwt } = await import('jsonwebtoken');
     
     try {
       const decoded = jwt.verify(authToken, JWT_SECRET);
@@ -129,13 +107,22 @@ export async function validateUserSession(request: NextRequest): Promise<{ valid
       
       // typeofチェックでオブジェクトであることを確認
       if (typeof decoded === 'object' && decoded !== null) {
-        const user = decoded as { userId?: string; username?: string; role?: string };
+        const user = decoded as { userId?: string; username?: string; role?: string; email?: string; displayName?: string };
+        
+        // 必須フィールドの存在チェック
+        if (!user.userId || !user.username || !user.role) {
+          console.log('validateUserSession: Missing required fields in token');
+          return { valid: false, error: 'トークンに必要な情報が不足しています' };
+        }
+        
         return { 
           valid: true, 
           user: {
             id: user.userId,
             username: user.username,
-            role: user.role
+            email: user.email || '',
+            displayName: user.displayName || user.username,
+            role: user.role as 'user' | 'admin'
           }
         };
       } else {

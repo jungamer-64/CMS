@@ -1,6 +1,6 @@
 import { Collection } from 'mongodb';
 import { getDatabase } from './mongodb';
-import { User, UserInput, PasswordResetToken, UserUpdateInput, UserCreationInput, AdminUserManagement, UserSessionInfo, UserFilters } from './types';
+import { User, UserInput, PasswordResetToken, UserUpdateInput, UserCreationInput, AdminUserManagement, UserSessionInfo, UserFilters, Mutable } from './types';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
@@ -16,7 +16,6 @@ export async function getPasswordResetTokensCollection(): Promise<Collection<Pas
 
 export async function createUser(userData: UserInput): Promise<User> {
   const collection = await getUsersCollection();
-  
   // ユーザー名とメールの重複チェック
   const existingUser = await collection.findOne({
     $or: [
@@ -24,26 +23,26 @@ export async function createUser(userData: UserInput): Promise<User> {
       { email: userData.email }
     ]
   });
-  
   if (existingUser) {
     throw new Error('ユーザー名またはメールアドレスが既に使用されています');
   }
-  
   // パスワードのハッシュ化
   const saltRounds = 10;
   const passwordHash = await bcrypt.hash(userData.password, saltRounds);
-  
+  // displayNameが未入力ならusernameをセット
+  const displayName = userData.displayName && userData.displayName.trim().length > 0
+    ? userData.displayName
+    : userData.username;
   const user: User = {
     id: Date.now().toString(),
     username: userData.username,
     email: userData.email,
     passwordHash,
-    displayName: userData.displayName,
+    displayName,
     role: 'user', // デフォルトは一般ユーザー
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  
   const result = await collection.insertOne(user);
   return { ...user, _id: result.insertedId.toString() };
 }
@@ -254,7 +253,7 @@ export async function updateUser(userId: string, updateData: UserUpdateInput): P
     }
   }
   
-  const updateFields: Partial<User> = {
+  const updateFields: Partial<Mutable<User>> = {
     updatedAt: new Date()
   };
   

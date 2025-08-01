@@ -10,13 +10,16 @@ export const metadata: Metadata = {
   description: "A modern blog platform built with Next.js and MongoDB Atlas",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+
+
+interface RootLayoutProps {
+  readonly children: React.ReactNode;
+}
+
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ja" suppressHydrationWarning>
+      <head />
       <body className="antialiased">
         <ThemeProvider>
           <AuthProvider>

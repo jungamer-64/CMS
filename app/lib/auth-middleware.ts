@@ -4,8 +4,7 @@ import jwt from 'jsonwebtoken';
 import { getUserById } from './users';
 import { validateApiKey as validateApiKeyAuth, validateUserSession } from './api-auth';
 import { ApiKeyPermissions } from './types';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+import { JWT_SECRET } from './env';
 
 export interface AuthContext {
   isAuthenticated: boolean;
@@ -21,7 +20,7 @@ export interface AuthContext {
   };
 }
 
-export async function getAuthenticatedUser(request: NextRequest) {
+export async function getAuthenticatedUser() {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
@@ -40,16 +39,16 @@ export async function getAuthenticatedUser(request: NextRequest) {
   }
 }
 
-export async function requireAuth(request: NextRequest) {
-  const user = await getAuthenticatedUser(request);
+export async function requireAuth() {
+  const user = await getAuthenticatedUser();
   if (!user) {
     throw new Error('認証が必要です');
   }
   return user;
 }
 
-export async function requireAdmin(request: NextRequest) {
-  const user = await requireAuth(request);
+export async function requireAdmin() {
+  const user = await requireAuth();
   if (user.role !== 'admin') {
     throw new Error('管理者権限が必要です');
   }
@@ -73,6 +72,10 @@ export async function authenticateRequest(
   
   if (sessionValidation.valid) {
     // セッション認証成功
+    if (!sessionValidation.user) {
+      return { success: false, error: 'ユーザー情報が不正です' };
+    }
+
     const context: AuthContext = {
       isAuthenticated: true,
       authMethod: 'session',

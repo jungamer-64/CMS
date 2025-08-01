@@ -1,7 +1,8 @@
 import { MongoClient, Db } from 'mongodb';
+import { MONGODB_URI, MONGODB_DB, NODE_ENV } from './env';
 
-const uri = process.env.MONGODB_URI as string;
-const dbName = process.env.MONGODB_DB as string;
+const uri = MONGODB_URI;
+const dbName = MONGODB_DB;
 
 if (!uri) {
   throw new Error('MONGODB_URI環境変数が設定されていません');
@@ -13,7 +14,7 @@ if (!dbName) {
 
 let client: MongoClient;
 const clientPromise: Promise<MongoClient> = (() => {
-  if (process.env.NODE_ENV === 'development') {
+  if (NODE_ENV === 'development') {
     // 開発環境では、ホットリロード時にクライアントを再利用
     const globalWithMongo = global as typeof globalThis & {
       _mongoClientPromise?: Promise<MongoClient>;

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/app/lib/auth';
 import Link from 'next/link';
 import AdminLayout from '@/app/lib/AdminLayout';
+import PostList from '@/app/components/PostList';
 
 interface Post {
   id: string;
@@ -63,95 +64,8 @@ const FilterButton = ({
   </button>
 );
 
-const PostActions = ({ 
-  post, 
-  onDelete, 
-  onRestore 
-}: { 
-  post: Post; 
-  onDelete: (postId: string, permanent?: boolean) => void; 
-  onRestore: (postId: string) => void; 
-}) => (
-  <div className="flex flex-col space-y-1 ml-4 items-center justify-center">
-    {!post.isDeleted ? (
-      <>
-        <Link
-          href={`/blog/${post.slug}`}
-          className="text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 text-sm px-2 py-1 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-center w-20 flex items-center justify-center"
-        >
-          表示
-        </Link>
-        <Link
-          href={`/admin/posts/edit/${post.slug}`}
-          className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 text-sm px-2 py-1 border border-green-300 dark:border-green-600 rounded hover:bg-green-50 dark:hover:bg-green-900/30 text-center w-20 flex items-center justify-center"
-        >
-          編集
-        </Link>
-        <button
-          onClick={() => onDelete(post.id)}
-          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 text-sm px-2 py-1 border border-red-300 dark:border-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/30 w-20 text-center flex items-center justify-center"
-        >
-          削除
-        </button>
-      </>
-    ) : (
-      <>
-        <button
-          onClick={() => onRestore(post.id)}
-          className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 text-sm px-2 py-1 border border-green-300 dark:border-green-600 rounded hover:bg-green-50 dark:hover:bg-green-900/30 w-20 text-center flex items-center justify-center"
-        >
-          復元
-        </button>
-        <button
-          onClick={() => onDelete(post.id, true)}
-          className="text-red-800 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 text-sm px-2 py-1 border border-red-600 dark:border-red-500 rounded hover:bg-red-50 dark:hover:bg-red-900/30 w-20 text-center flex items-center justify-center"
-        >
-          完全削除
-        </button>
-      </>
-    )}
-  </div>
-);
 
-const PostCard = ({ 
-  post, 
-  onDelete, 
-  onRestore 
-}: { 
-  post: Post; 
-  onDelete: (postId: string, permanent?: boolean) => void; 
-  onRestore: (postId: string) => void; 
-}) => (
-  <li className={`p-4 ${post.isDeleted ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
-    <div className="flex items-center justify-between">
-      <div className="flex-1 min-w-0">
-        <h3 className={`text-lg font-medium ${
-          post.isDeleted 
-            ? 'line-through text-gray-500 dark:text-gray-400' 
-            : 'text-gray-900 dark:text-white'
-        }`}>
-          {post.title}
-          {post.isDeleted && <span className="ml-2 text-red-600 dark:text-red-400">(削除済み)</span>}
-        </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-          スラッグ: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{post.slug}</code>
-        </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-          投稿者: {post.author} | 作成日: {new Date(post.createdAt).toLocaleDateString('ja-JP')}
-          {post.updatedAt && post.updatedAt !== post.createdAt && (
-            <> | 更新日: {new Date(post.updatedAt).toLocaleDateString('ja-JP')}</>
-          )}
-        </p>
-        {post.content && (
-          <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
-            {post.content.length > 100 ? post.content.substring(0, 100) + '...' : post.content}
-          </p>
-        )}
-      </div>
-      <PostActions post={post} onDelete={onDelete} onRestore={onRestore} />
-    </div>
-  </li>
-);
+
 
 export default function PostsManagement() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -160,34 +74,18 @@ export default function PostsManagement() {
   const [filter, setFilter] = useState<FilterType>('all');
   const { user } = useAuth();
 
-  // メモ化された統計とフィルタリング済み投稿
-  const { publishedCount, deletedCount, filteredPosts } = useMemo(() => {
+  // メモ化された統計
+  const { publishedCount, deletedCount } = useMemo(() => {
     const published = posts.filter(post => !post.isDeleted).length;
     const deleted = posts.filter(post => post.isDeleted).length;
     
-    let filtered = [...posts];
-    
-    // フィルタリング適用
-    if (filter === 'published') {
-      filtered = posts.filter(post => !post.isDeleted);
-    } else if (filter === 'deleted') {
-      filtered = posts.filter(post => post.isDeleted);
-    }
-    
     return {
       publishedCount: published,
-      deletedCount: deleted,
-      filteredPosts: filtered
+      deletedCount: deleted
     };
-  }, [posts, filter]);
+  }, [posts]);
 
-  useEffect(() => {
-    if (user?.role === 'admin') {
-      fetchPosts();
-    }
-  }, [user]);
-
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/admin/posts');
@@ -205,7 +103,13 @@ export default function PostsManagement() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      fetchPosts();
+    }
+  }, [user, fetchPosts]);
 
   // 最適化された削除関数（楽観的更新付き）
   const handleDeletePost = useCallback(async (postId: string, permanent = false) => {
@@ -354,27 +258,28 @@ export default function PostsManagement() {
             </div>
           </div>
           
-          {/* 投稿リスト */}
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredPosts.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                {filter === 'all' && '投稿がありません'}
-                {filter === 'published' && '公開中の投稿がありません'}
-                {filter === 'deleted' && '削除された投稿がありません'}
-              </div>
-            ) : (
-              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredPosts.map((post) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onDelete={handleDeletePost}
-                    onRestore={handleRestorePost}
-                  />
-                ))}
-              </ul>
-            )}
-          </div>
+          {/* 投稿リスト共通化 */}
+          <PostList
+            posts={posts.map(post => {
+              let updatedAt = undefined;
+              if (post.updatedAt) {
+                updatedAt = typeof post.updatedAt === 'string' 
+                  ? new Date(post.updatedAt) 
+                  : post.updatedAt;
+              }
+              
+              return {
+                ...post,
+                createdAt: typeof post.createdAt === 'string' ? new Date(post.createdAt) : post.createdAt,
+                updatedAt,
+              };
+            })}
+            filter={filter}
+            onDelete={handleDeletePost}
+            onRestore={handleRestorePost}
+            showActions={true}
+            isAdmin={true}
+          />
         </div>
       </div>
     </AdminLayout>

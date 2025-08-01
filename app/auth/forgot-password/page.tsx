@@ -24,17 +24,14 @@ export default function ForgotPasswordPage() {
         },
         body: JSON.stringify({ email }),
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(data.message);
-        // 開発環境ではリセットリンクを表示
-        if (data.resetLink) {
-          setResetLink(data.resetLink);
+      const res = await response.json();
+      if (response.ok && res.success) {
+        setMessage(res.message || 'パスワードリセットメールを送信しました');
+        if (res.resetLink) {
+          setResetLink(res.resetLink);
         }
       } else {
-        setError(data.error || 'パスワードリセット要求に失敗しました');
+        setError(res.error || 'パスワードリセット要求に失敗しました');
       }
     } catch (error) {
       console.error('パスワードリセット要求エラー:', error);

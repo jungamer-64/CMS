@@ -7,7 +7,7 @@ export default function ConditionalNavbar() {
   const pathname = usePathname();
   
   // 管理者ページと管理者専用機能では通常のヘッダーを表示しない
-  const isAdminPage = pathname.startsWith('/admin');
+  const isAdminPage = pathname?.startsWith('/admin') || false;
   
   if (isAdminPage) {
     return null;

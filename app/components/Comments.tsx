@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Comment } from '@/app/lib/types';
 
 interface CommentsProps {
@@ -76,7 +76,7 @@ export default function Comments({ postSlug }: CommentsProps) {
   };
 
   // コメントを読み込む
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     try {
       const response = await fetch(`/api/comments/${postSlug}`);
       
@@ -99,7 +99,7 @@ export default function Comments({ postSlug }: CommentsProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [postSlug]);
 
   useEffect(() => {
     console.log('コメントコンポーネント初期化:', { postSlug });
@@ -121,7 +121,7 @@ export default function Comments({ postSlug }: CommentsProps) {
     };
     
     initializeComments();
-  }, [postSlug]);
+  }, [postSlug, loadComments]);
 
   console.log('コメントコンポーネント レンダリング:', { 
     settingsLoaded, 
