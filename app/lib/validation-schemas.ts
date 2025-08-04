@@ -566,3 +566,24 @@ export function isStrongPassword(password: string): { isValid: boolean; message?
   
   return { isValid: true };
 }
+
+// バリデーションスキーマのエクスポート
+export const validationSchemas = {
+  postCreate: postCreateSchema,
+  postUpdate: postUpdateSchema,
+  userCreate: userCreateSchema,
+  userUpdate: userUpdateSchema,
+  commentCreate: commentCreateSchema,
+  commentUpdate: commentUpdateSchema,
+  login: loginSchema,
+  register: registerSchema,
+  passwordChange: passwordChangeSchema,
+  forgotPassword: forgotPasswordSchema,
+  resetPassword: resetPasswordSchema,
+  apiKeyCreate: apiKeyCreateSchema,
+  apiKeyUpdate: apiKeyUpdateSchema,
+  settingsUpdate: settingsUpdateSchema,
+  themeUpdate: themeUpdateSchema,
+  adminCommentUpdate: adminCommentUpdateSchema,
+  adminCommentDelete: adminCommentDeleteSchema
+};

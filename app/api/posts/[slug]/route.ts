@@ -9,7 +9,7 @@ import {
   ApiErrorCode 
 } from '@/app/lib/api-types';
 import { getPostBySlug, updatePostBySlug, deletePostBySlug } from '@/app/lib/posts';
-import { validationSchemas } from '@/app/lib/validation-schemas-enhanced';
+import { validationSchemas } from '@/app/lib/validation-schemas';
 import type { 
   PostResponse, 
   PostUpdateRequest 
@@ -93,7 +93,7 @@ export const PUT = createPutHandler<PostUpdateRequest, PostResponse>(
   },
   {
     requireAuth: true,
-    validationSchema: validationSchemas.post.update,
+    validationSchema: validationSchemas.postUpdate,
     rateLimit: {
       maxRequests: 10,
       windowMs: 60000,

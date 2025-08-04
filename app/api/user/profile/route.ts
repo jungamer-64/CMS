@@ -8,7 +8,7 @@ import {
   ApiErrorCode 
 } from '@/app/lib/api-types';
 import { updateUser, getUserSessionInfo } from '@/app/lib/users';
-import { validationSchemas } from '@/app/lib/validation-schemas-enhanced';
+import { validationSchemas } from '@/app/lib/validation-schemas';
 import type { UserUpdateInput, UserResponse } from '@/app/lib/types';
 
 // プロフィール情報取得（認証必須）
@@ -82,7 +82,7 @@ export const PUT = createPutHandler<UserUpdateInput, UserResponse>(
   },
   {
     requireAuth: true,
-    validationSchema: validationSchemas.user.update,
+    validationSchema: validationSchemas.userUpdate,
     rateLimit: {
       maxRequests: 10,
       windowMs: 60000,

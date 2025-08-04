@@ -6,7 +6,7 @@ import {
   createApiError, 
   ApiErrorCode 
 } from '@/app/lib/api-types';
-import { validationSchemas } from '@/app/lib/validation-schemas-enhanced';
+import { validationSchemas } from '@/app/lib/validation-schemas';
 import { createComment } from '@/app/lib/comments';
 import { getSettings } from '@/app/lib/settings';
 import type { 
@@ -68,7 +68,7 @@ export const POST = createPublicApiHandler<CommentCreateRequest, CommentResponse
     }
   },
   {
-    validationSchema: validationSchemas.comment.create,
+    validationSchema: validationSchemas.commentCreate,
     rateLimit: {
       maxRequests: 3,
       windowMs: 60000,

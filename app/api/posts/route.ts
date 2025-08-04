@@ -8,7 +8,7 @@ import {
   ApiErrorCode 
 } from '@/app/lib/api-types';
 import { createPost } from '@/app/lib/posts';
-import { validationSchemas } from '@/app/lib/validation-schemas-enhanced';
+import { validationSchemas } from '@/app/lib/validation-schemas';
 import type { 
   PostCreateRequest, 
   PostsListRequest,
@@ -56,8 +56,7 @@ export const GET = createGetHandler<PostsListResponse>(
     }
   },
   {
-    requireAuth: false, // 公開API
-    validationSchema: validationSchemas.post.list
+    requireAuth: false // 公開API
   }
 );
 
@@ -134,7 +133,7 @@ export const POST = createPostHandler<PostCreateRequest, PostResponse>(
   },
   {
     requireAuth: true,
-    validationSchema: validationSchemas.post.create,
+    validationSchema: validationSchemas.postCreate,
     rateLimit: {
       maxRequests: 5,
       windowMs: 60000,

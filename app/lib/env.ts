@@ -17,6 +17,11 @@ const optionalEnvVars = {
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
   ADMIN_EMAIL: process.env.ADMIN_EMAIL,
   NODE_ENV: process.env.NODE_ENV || 'development',
+  // GitHub設定
+  GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+  GITHUB_OWNER: process.env.GITHUB_OWNER || 'jungamer-64',
+  GITHUB_REPO: process.env.GITHUB_REPO || 'test-website',
+  GITHUB_API_URL: process.env.GITHUB_API_URL || 'https://api.github.com',
 } as const;
 
 // 必須環境変数の検証
@@ -59,6 +64,10 @@ export const {
   ADMIN_PASSWORD,
   ADMIN_EMAIL,
   NODE_ENV,
+  GITHUB_TOKEN,
+  GITHUB_OWNER,
+  GITHUB_REPO,
+  GITHUB_API_URL,
 } = env;
 
 // 型定義
