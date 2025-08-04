@@ -1,0 +1,80 @@
+{
+  "title": "Media Library",
+  "uploadMedia": "Upload Media",
+  "newFolder": "New Folder",
+  "allMedia": "All Media",
+  "images": "Images",
+  "videos": "Videos",
+  "audio": "Audio",
+  "documents": "Documents",
+  "fields": {
+    "fileName": "File Name",
+    "fileSize": "File Size",
+    "fileType": "File Type",
+    "uploadDate": "Upload Date",
+    "dimensions": "Dimensions",
+    "altText": "Alt Text",
+    "caption": "Caption",
+    "description": "Description"
+  },
+  "actions": {
+    "upload": "Upload",
+    "select": "Select",
+    "insert": "Insert",
+    "delete": "Delete",
+    "download": "Download",
+    "edit": "Edit",
+    "copy": "Copy URL",
+    "move": "Move",
+    "rename": "Rename",
+    "createFolder": "Create Folder"
+  },
+  "upload": {
+    "dragDrop": "Drag and drop files here, or click to select",
+    "selectFiles": "Select Files",
+    "maxFileSize": "Max file size: {{size}}",
+    "allowedTypes": "Allowed types: {{types}}",
+    "uploading": "Uploading...",
+    "uploadComplete": "Upload complete",
+    "uploadFailed": "Upload failed",
+    "fileTooBig": "File is too large",
+    "invalidFileType": "Invalid file type"
+  },
+  "view": {
+    "grid": "Grid View",
+    "list": "List View",
+    "details": "Details",
+    "thumbnail": "Thumbnail"
+  },
+  "filters": {
+    "all": "All Media",
+    "images": "Images",
+    "videos": "Videos",
+    "audio": "Audio",
+    "documents": "Documents",
+    "unattached": "Unattached",
+    "thisMonth": "This Month",
+    "lastMonth": "Last Month"
+  },
+  "messages": {
+    "fileUploaded": "File uploaded successfully",
+    "filesUploaded": "{{count}} files uploaded successfully",
+    "fileDeleted": "File deleted successfully",
+    "folderCreated": "Folder created successfully",
+    "confirmDelete": "Are you sure you want to delete this file?",
+    "confirmDeleteMultiple": "Are you sure you want to delete {{count}} files?",
+    "noMediaFound": "No media files found",
+    "loadingMedia": "Loading media..."
+  },
+  "bulk": {
+    "selectAll": "Select All",
+    "bulkActions": "Bulk Actions",
+    "delete": "Delete",
+    "download": "Download",
+    "move": "Move to Folder"
+  },
+  "search": {
+    "placeholder": "Search media files...",
+    "noResults": "No results found for \"{{query}}\""
+  }
+}

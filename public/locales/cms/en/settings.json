@@ -1,0 +1,56 @@
+{
+  "title": "Settings",
+  "systemSettings": "System Settings",
+  "systemDescription": "Application behavior and security configuration",
+  "saveSettings": "Save Settings",
+  "saving": "Saving...",
+  "general": "General Settings",
+  "site": "Site Settings",
+  "users": "User Settings",
+  "securityTab": "Security Settings",
+  "language": {
+    "title": "Language Settings",
+    "interface": "Interface Language",
+    "description": "Select the display language for the admin interface"
+  },
+  "languages": {
+    "japanese": "Japanese",
+    "english": "English"
+  },
+  "fields": {
+    "siteName": "Site Name",
+    "siteDescription": "Site Description",
+    "siteUrl": "Site URL",
+    "adminEmail": "Admin Email",
+    "language": "Language",
+    "timezone": "Timezone",
+    "dateFormat": "Date Format",
+    "timeFormat": "Time Format",
+    "registrationEnabled": "Allow Registration",
+    "defaultRole": "Default User Role",
+    "emailNotifications": "Email Notifications",
+    "maintenanceMode": "Maintenance Mode"
+  },
+  "security": {
+    "twoFactorAuth": "Two-Factor Authentication",
+    "sessionTimeout": "Session Timeout",
+    "passwordPolicy": "Password Policy",
+    "loginAttempts": "Login Attempts Limit",
+    "ipWhitelist": "IP Whitelist",
+    "sslRequired": "SSL Required"
+  },
+  "backup": {
+    "title": "Backup",
+    "create": "Create Backup",
+    "restore": "Restore",
+    "schedule": "Automatic Backup",
+    "downloadBackup": "Download Backup"
+  },
+  "messages": {
+    "settingsSaved": "Settings saved successfully",
+    "settingsError": "Failed to save settings",
+    "backupCreated": "Backup created successfully",
+    "backupRestored": "Backup restored successfully",
+    "confirmRestore": "Are you sure you want to restore from this backup?"
+  }
+}

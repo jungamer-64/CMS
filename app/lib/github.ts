@@ -1,329 +1,114 @@
 /**
- * GitHub API クライアント
- * Fine-grained Personal Access Token を使用したGitHub APIとの連携
+ * GitHub統合互換性ファイル
+ * 
+ * 既存のコンポーネントが参照しているGitHub関連の関数を提供し、
+ * 新しいGitHubクライアントシステムへのブリッジとして機能します。
  */
 
-import { env } from './env';
+// 新しいGitHubクライアントシステムから再エクスポート
+export {
+  GitHubClient,
+  type GitHubRepository,
+  type GitHubUser,
+  type GitHubWebhookPayload
+} from './api/integrations/github-client';
 
-// GitHub API のレスポンス型定義
-export interface GitHubRepository {
-  id: number;
-  name: string;
-  full_name: string;
-  description: string | null;
-  private: boolean;
-  html_url: string;
-  clone_url: string;
-  ssh_url: string;
-  created_at: string;
-  updated_at: string;
-  pushed_at: string;
-  default_branch: string;
+// ============================================================================
+// 互換性のためのGitHub API関数
+// ============================================================================
+
+import { GitHubClient, type GitHubWebhookPayload } from './api/integrations/github-client';
+import { env } from './core/config/environment';
+
+/**
+ * デフォルトGitHubクライアントインスタンス
+ */
+const githubClient = new GitHubClient({
+  clientId: env.GITHUB_CLIENT_ID || '',
+  clientSecret: env.GITHUB_CLIENT_SECRET || '',
+  webhookSecret: env.GITHUB_WEBHOOK_SECRET || ''
+});
+
+/**
+ * GitHubユーザー情報の取得（互換性のため）
+ */
+export async function getGitHubUser(accessToken: string) {
+  return githubClient.getUser(accessToken);
 }
 
-export interface GitHubCommit {
-  sha: string;
-  commit: {
-    author: {
-      name: string;
-      email: string;
-      date: string;
-    };
-    message: string;
-  };
-  html_url: string;
+/**
+ * GitHubリポジトリ一覧の取得（互換性のため）
+ */
+export async function getGitHubRepositories(accessToken: string) {
+  return githubClient.getRepositories(accessToken);
 }
 
-export interface GitHubContent {
-  name: string;
-  path: string;
-  sha: string;
-  size: number;
-  url: string;
-  html_url: string;
-  git_url: string;
-  download_url: string | null;
-  type: 'file' | 'dir';
-  content?: string;
-  encoding?: string;
+/**
+ * GitHubリポジトリの詳細情報取得（互換性のため）
+ */
+export async function getGitHubRepository(accessToken: string, owner: string, repo: string) {
+  return githubClient.getRepository(accessToken, owner, repo);
 }
 
-export interface GitHubBranch {
-  name: string;
-  commit: {
-    sha: string;
-    url: string;
-  };
-  protected: boolean;
+/**
+ * GitHub Webhookの検証（互換性のため）
+ */
+export function verifyGitHubWebhook(payload: string, signature: string): boolean {
+  return githubClient.verifyWebhook(payload, signature);
 }
 
-export interface GitHubFileCreateResponse {
-  content: GitHubContent;
-  commit: {
-    sha: string;
-    node_id: string;
-    url: string;
-    html_url: string;
-    author: {
-      name: string;
-      email: string;
-      date: string;
-    };
-    committer: {
-      name: string;
-      email: string;
-      date: string;
-    };
-    message: string;
-  };
+/**
+ * GitHub Webhookペイロードの処理（互換性のため）
+ */
+export async function processGitHubWebhook(payload: GitHubWebhookPayload) {
+  return githubClient.processWebhook(payload);
 }
 
-export interface GitHubRateLimit {
-  resources: {
-    core: {
-      limit: number;
-      remaining: number;
-      reset: number;
-      used: number;
-    };
-    graphql: {
-      limit: number;
-      remaining: number;
-      reset: number;
-      used: number;
-    };
-  };
-  rate: {
-    limit: number;
-    remaining: number;
-    reset: number;
-    used: number;
-  };
+// ============================================================================
+// 互換性のためのヘルパー関数
+// ============================================================================
+
+/**
+ * GitHubのOAuth URLを生成（互換性のため）
+ */
+export function getGitHubOAuthUrl(redirectUri: string, state?: string): string {
+  const params = new URLSearchParams({
+    client_id: env.GITHUB_CLIENT_ID || '',
+    redirect_uri: redirectUri,
+    scope: 'user:email,repo',
+    ...(state && { state })
+  });
+  
+  return `https://github.com/login/oauth/authorize?${params.toString()}`;
 }
 
-export class GitHubApiError extends Error {
-  constructor(
-    message: string,
-    public status?: number,
-    public response?: unknown
-  ) {
-    super(message);
-    this.name = 'GitHubApiError';
+/**
+ * GitHubアクセストークンの交換（互換性のため）
+ */
+export async function exchangeGitHubCode(code: string, redirectUri: string) {
+  return githubClient.exchangeCodeForToken(code, redirectUri);
+}
+
+/**
+ * GitHub APIエラーのハンドリング（互換性のため）
+ */
+export function handleGitHubError(error: unknown): { message: string; status?: number } {
+  if (error instanceof Error) {
+    return { message: error.message };
   }
-}
-
-export class GitHubClient {
-  private readonly baseUrl: string;
-  private readonly token: string;
-  private readonly owner: string;
-  private readonly repo: string;
-
-  constructor() {
-    if (!env.GITHUB_TOKEN) {
-      throw new Error('GITHUB_TOKEN環境変数が設定されていません');
-    }
-
-    this.baseUrl = env.GITHUB_API_URL;
-    this.token = env.GITHUB_TOKEN;
-    this.owner = env.GITHUB_OWNER;
-    this.repo = env.GITHUB_REPO;
-  }
-
-  /**
-   * GitHub API リクエストのヘッダーを生成
-   */
-  private getHeaders(): Record<string, string> {
+  
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    const errorWithStatus = error as { status: number; message?: string };
     return {
-      'Authorization': `Bearer ${this.token}`,
-      'Accept': 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-      'Content-Type': 'application/json',
+      message: errorWithStatus.message || 'GitHub API error',
+      status: errorWithStatus.status
     };
   }
-
-  /**
-   * GitHub API リクエストを実行
-   */
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...this.getHeaders(),
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `GitHub API エラー: ${response.status} ${response.statusText}`;
-      
-      try {
-        const errorData = JSON.parse(errorText);
-        if (errorData.message) {
-          errorMessage += ` - ${errorData.message}`;
-        }
-      } catch {
-        errorMessage += ` - ${errorText}`;
-      }
-
-      throw new GitHubApiError(errorMessage, response.status, errorText);
-    }
-
-    return response.json();
-  }
-
-  /**
-   * リポジトリ情報を取得
-   */
-  async getRepository(): Promise<GitHubRepository> {
-    return this.request<GitHubRepository>(`/repos/${this.owner}/${this.repo}`);
-  }
-
-  /**
-   * ブランチ一覧を取得
-   */
-  async getBranches(): Promise<GitHubBranch[]> {
-    return this.request<GitHubBranch[]>(`/repos/${this.owner}/${this.repo}/branches`);
-  }
-
-  /**
-   * 最新のコミット一覧を取得
-   */
-  async getCommits(branch = 'master', per_page = 10): Promise<GitHubCommit[]> {
-    const params = new URLSearchParams({
-      sha: branch,
-      per_page: per_page.toString(),
-    });
-    
-    return this.request<GitHubCommit[]>(
-      `/repos/${this.owner}/${this.repo}/commits?${params}`
-    );
-  }
-
-  /**
-   * ファイル内容を取得
-   */
-  async getFileContent(path: string, branch = 'master'): Promise<GitHubContent> {
-    const params = new URLSearchParams({ ref: branch });
-    
-    return this.request<GitHubContent>(
-      `/repos/${this.owner}/${this.repo}/contents/${path}?${params}`
-    );
-  }
-
-  /**
-   * ディレクトリ内容を取得
-   */
-  async getDirectoryContent(path = '', branch = 'master'): Promise<GitHubContent[]> {
-    const params = new URLSearchParams({ ref: branch });
-    
-    return this.request<GitHubContent[]>(
-      `/repos/${this.owner}/${this.repo}/contents/${path}?${params}`
-    );
-  }
-
-  /**
-   * ファイルを作成または更新
-   */
-  async createOrUpdateFile(
-    path: string,
-    content: string,
-    message: string,
-    branch = 'master',
-    sha?: string
-  ): Promise<GitHubFileCreateResponse> {
-    const body = {
-      message,
-      content: Buffer.from(content, 'utf-8').toString('base64'),
-      branch,
-      ...(sha && { sha }),
-    };
-
-    return this.request(`/repos/${this.owner}/${this.repo}/contents/${path}`, {
-      method: 'PUT',
-      body: JSON.stringify(body),
-    });
-  }
-
-  /**
-   * ファイルを削除
-   */
-  async deleteFile(
-    path: string,
-    message: string,
-    sha: string,
-    branch = 'master'
-  ): Promise<GitHubFileCreateResponse> {
-    const body = {
-      message,
-      sha,
-      branch,
-    };
-
-    return this.request(`/repos/${this.owner}/${this.repo}/contents/${path}`, {
-      method: 'DELETE',
-      body: JSON.stringify(body),
-    });
-  }
-
-  /**
-   * 認証状態を確認
-   */
-  async checkAuth(): Promise<{ authenticated: boolean; scopes: string[] }> {
-    try {
-      const response = await fetch(`${this.baseUrl}/user`, {
-        headers: this.getHeaders(),
-      });
-
-      if (response.ok) {
-        const scopes = response.headers.get('X-OAuth-Scopes') || '';
-        return {
-          authenticated: true,
-          scopes: scopes.split(',').map(s => s.trim()).filter(Boolean),
-        };
-      } else {
-        return { authenticated: false, scopes: [] };
-      }
-    } catch (error) {
-      console.error('GitHub auth check failed:', error);
-      return { authenticated: false, scopes: [] };
-    }
-  }
-
-  /**
-   * レート制限情報を取得
-   */
-  async getRateLimit(): Promise<GitHubRateLimit> {
-    return this.request('/rate_limit');
-  }
-}
-
-// シングルトンインスタンス
-let githubClient: GitHubClient | null = null;
-
-/**
- * GitHub クライアントのインスタンスを取得
- */
-export function getGitHubClient(): GitHubClient {
-  githubClient ??= new GitHubClient();
-  return githubClient;
+  
+  return { message: 'Unknown GitHub error' };
 }
 
 /**
- * GitHub token の有効性を検証
+ * デフォルトエクスポート（互換性のため）
  */
-export async function validateGitHubToken(): Promise<boolean> {
-  try {
-    const client = getGitHubClient();
-    const auth = await client.checkAuth();
-    return auth.authenticated;
-  } catch (error) {
-    console.error('GitHub token validation failed:', error);
-    return false;
-  }
-}
+export default githubClient;

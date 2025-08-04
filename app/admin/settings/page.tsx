@@ -1,9 +1,10 @@
 'use client';
 import { useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/app/lib/auth';
-import AdminLayout from '@/app/lib/AdminLayout';
-import type { ApiResponse } from '@/app/lib/api-types';
+import { useAuth } from '@/app/lib/ui/contexts/auth-context';
+import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
+import { useCMSI18n } from '@/app/lib/contexts/cms-i18n-context';
+import type { ApiResponse } from '@/app/lib/core/types/response-types';
 
 // 型定義
 
@@ -252,6 +253,46 @@ const SystemInfo: React.FC = () => (
   </SettingCard>
 );
 
+const LanguageSettings: React.FC = () => {
+  const { locale, setLocale, t } = useCMSI18n();
+  
+  const languages = [
+    { code: 'ja' as const, name: t('settings.languages.japanese'), nativeName: '日本語' },
+    { code: 'en' as const, name: t('settings.languages.english'), nativeName: 'English' }
+  ];
+
+  const handleLanguageChange = (newLocale: 'ja' | 'en') => {
+    console.log('Changing language from', locale, 'to', newLocale);
+    setLocale(newLocale);
+  };
+
+  return (
+    <SettingCard title={t('settings.language.title')}>
+      <SettingItem 
+        label={t('settings.language.interface')} 
+        description={t('settings.language.description')}
+      >
+        <div className="space-y-2">
+          <select
+            value={locale}
+            onChange={(e) => handleLanguageChange(e.target.value as 'ja' | 'en')}
+            className="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 text-gray-900 dark:text-white"
+          >
+            {languages.map((lang) => (
+              <option key={lang.code} value={lang.code}>
+                {lang.nativeName}
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            現在の言語: {locale} | Current language: {locale}
+          </p>
+        </div>
+      </SettingItem>
+    </SettingCard>
+  );
+};
+
 interface DangerZoneProps {
   onCacheClear: () => void;
   isCacheClearing: boolean;
@@ -293,6 +334,7 @@ const DangerZone: React.FC<DangerZoneProps> = ({ onCacheClear, isCacheClearing }
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const { t } = useCMSI18n();
   const [settings, setSettings] = useState<Settings>({
     apiAccess: true,
     apiKey: '',
@@ -323,24 +365,33 @@ export default function SettingsPage() {
 
   // DBからdarkMode取得し、ローカル状態と同期
   useEffect(() => {
-    if (user?.role !== 'admin') return;
-    fetch('/api/user/theme', { credentials: 'include' })
-      .then(res => res.json())
+    if (user?.role !== 'admin' || !user?.id) return;
+    fetch(`/api/users/${user.id}/theme`, { credentials: 'include' })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data: ApiResponse<{ darkMode: boolean }>) => {
         if (data.success && typeof data.data?.darkMode === 'boolean') {
           setTheme({ ui: data.data.darkMode, loaded: true });
         } else {
           setTheme(prev => ({ ...prev, loaded: true }));
         }
+      })
+      .catch((error) => {
+        console.warn('ユーザーテーマ取得エラー:', error);
+        setTheme(prev => ({ ...prev, loaded: true }));
       });
-  }, [user?.role]);
+  }, [user?.role, user?.id]);
 
 
 
   const loadSettings = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/admin/settings', {
+      const response = await fetch('/api/settings', {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -398,8 +449,8 @@ export default function SettingsPage() {
     setIsSaving(true);
     try {
       // 設定保存
-      const response = await fetch('/api/admin/settings', {
-        method: 'POST',
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
@@ -409,24 +460,26 @@ export default function SettingsPage() {
         throw new Error(errorData.error || '設定の保存に失敗しました');
       }
       // ダークモード保存
-      const themeRes = await fetch('/api/user/theme', {
+      if (!user?.id) {
+        throw new Error('ユーザー情報が取得できませんでした');
+      }
+      const themeRes = await fetch(`/api/users/${user.id}/theme`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ darkMode: theme.ui }),
       });
-      if (!themeRes.ok) {
-        const errorData = await themeRes.json();
-        throw new Error(errorData.error || 'ダークモードの保存に失敗しました');
-      }
-      // 保存後にMongoDB(users)の値を再取得して反映
+      
       const themeData: ApiResponse<{ darkMode: boolean }> = await themeRes.json();
-      if (themeData.success) {
-        setTheme(prev => ({ ...prev, ui: themeData.data?.darkMode ?? prev.ui }));
-        setMessage(themeData.message || '設定が正常に保存されました');
-      } else {
-        setMessage('設定が正常に保存されました');
+      
+      if (!themeRes.ok || !themeData.success) {
+        const errorMessage = 'error' in themeData ? themeData.error : 'ダークモードの保存に失敗しました';
+        throw new Error(errorMessage);
       }
+      
+      // 保存後にレスポンスから値を反映
+      setTheme(prev => ({ ...prev, ui: themeData.data?.darkMode ?? prev.ui }));
+      setMessage('設定が正常に保存されました');
       setMessageType('success');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '設定の保存中にエラーが発生しました');
@@ -435,7 +488,7 @@ export default function SettingsPage() {
       setIsSaving(false);
       setTimeout(() => setMessage(''), 3000);
     }
-  }, [settings, theme.ui]);
+  }, [settings, theme.ui, user?.id]);
 
   // 入力変更
   const handleInputChange = useCallback((key: SettingKey, value: unknown) => {
@@ -477,7 +530,7 @@ export default function SettingsPage() {
   // テーマ状態が未確定の間はAdminLayout+LoadingSpinnerのみ描画（前のテーマ状態を維持）
   if (!theme.loaded || isLoading || !user) {
     return (
-      <AdminLayout title="設定">
+      <AdminLayout title={t('settings.title')}>
         <LoadingSpinner />
       </AdminLayout>
     );
@@ -485,40 +538,43 @@ export default function SettingsPage() {
 
   // テーマ状態が確定したら通常描画
   return (
-    <AdminLayout title="設定">
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">システム設定</h1>
-            <p className="text-gray-600 dark:text-gray-400">アプリケーションの動作やセキュリティの設定</p>
+    <AdminLayout title={t('settings.title')}>
+      <div className="h-full p-6">
+        <div className="space-y-8 max-w-7xl mx-auto">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('settings.systemSettings')}</h1>
+              <p className="text-gray-600 dark:text-gray-400">{t('settings.systemDescription')}</p>
+            </div>
+            <button
+              onClick={saveSettings}
+              disabled={isSaving}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                isSaving
+                  ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
+                  : 'bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800 text-white'
+              }`}
+            >
+              {isSaving ? t('settings.saving') : t('settings.saveSettings')}
+            </button>
           </div>
-          <button
-            onClick={saveSettings}
-            disabled={isSaving}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              isSaving
-                ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
-                : 'bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800 text-white'
-            }`}
-          >
-            {isSaving ? '保存中...' : '設定を保存'}
-          </button>
+
+          {message && <Message message={message} type={messageType} />}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <DisplaySettings
+              settings={settings}
+              onChange={handleInputChange}
+            />
+            <ApiSettings settings={settings} onChange={handleInputChange} />
+            <SystemSettings settings={settings} onChange={handleInputChange} />
+            <CommentSettings settings={settings} onChange={handleInputChange} />
+            <LanguageSettings />
+          </div>
+
+          <SystemInfo />
+          <DangerZone onCacheClear={handleCacheClear} isCacheClearing={isCacheClearing} />
         </div>
-
-        {message && <Message message={message} type={messageType} />}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DisplaySettings
-            settings={settings}
-            onChange={handleInputChange}
-          />
-          <ApiSettings settings={settings} onChange={handleInputChange} />
-          <SystemSettings settings={settings} onChange={handleInputChange} />
-          <CommentSettings settings={settings} onChange={handleInputChange} />
-        </div>
-
-        <SystemInfo />
-        <DangerZone onCacheClear={handleCacheClear} isCacheClearing={isCacheClearing} />
       </div>
     </AdminLayout>
   );

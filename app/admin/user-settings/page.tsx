@@ -1,24 +1,32 @@
 'use client';
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
-import AdminLayout from '@/app/lib/AdminLayout';
-import { useAuth } from '@/app/lib/auth';
-import { useTheme } from '@/app/lib/ThemeContext';
+import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
+import { useAuth } from '@/app/lib/ui/contexts/auth-context';
+import { useTheme } from '@/app/lib/ui/contexts/theme-context';
 
 export default function UserSettingsPage(): JSX.Element {
   const { user } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [message, setMessage] = useState<string>('');
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
   const [saving, setSaving] = useState<boolean>(false);
 
   useEffect((): void => {
     setMessage('');
+    setMessageType('success');
   }, [isDarkMode]);
 
   const handleThemeSave = async (): Promise<void> => {
+    if (!user?.id) {
+      setMessage('ユーザー情報が取得できませんでした');
+      setMessageType('error');
+      return;
+    }
+
     setSaving(true);
     try {
-      const res: Response = await fetch('/api/user/theme', {
+      const res: Response = await fetch(`/api/users/${user.id}/theme`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -31,14 +39,18 @@ export default function UserSettingsPage(): JSX.Element {
       ) {
         if ((data as { success: boolean }).success) {
           setMessage('テーマ設定を保存しました');
+          setMessageType('success');
         } else {
           setMessage('保存に失敗しました');
+          setMessageType('error');
         }
       } else {
         setMessage('保存に失敗しました');
+        setMessageType('error');
       }
     } catch {
       setMessage('保存に失敗しました');
+      setMessageType('error');
     } finally {
       setSaving(false);
     }
@@ -81,11 +93,23 @@ export default function UserSettingsPage(): JSX.Element {
           <button
             onClick={handleThemeSave}
             disabled={saving}
-            className={`mt-4 px-4 py-2 rounded-lg transition-colors ${saving ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800 text-white'}`}
+            className={`mt-4 px-4 py-2 rounded-lg transition-colors ${
+              saving 
+                ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed' 
+                : 'bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800 text-white'
+            }`}
           >
             {saving ? '保存中...' : 'テーマ設定を保存'}
           </button>
-          {message && <div className="mt-2 text-sm text-green-600 dark:text-green-400">{message}</div>}
+          {message && (
+            <div className={`mt-2 text-sm ${
+              messageType === 'success' 
+                ? 'text-green-600 dark:text-green-400' 
+                : 'text-red-600 dark:text-red-400'
+            }`}>
+              {message}
+            </div>
+          )}
         </div>
         {/* 今後、他のユーザー個人設定もここに追加可能 */}
       </div>

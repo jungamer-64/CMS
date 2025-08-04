@@ -1,0 +1,38 @@
+{
+  "formats": {
+    "decimal": "小数",
+    "currency": "通貨",
+    "percent": "パーセント",
+    "scientific": "科学的記数法"
+  },
+  "currency": {
+    "symbol": "¥",
+    "name": "日本円",
+    "code": "JPY"
+  },
+  "units": {
+    "byte": "バイト",
+    "kilobyte": "キロバイト",
+    "megabyte": "メガバイト",
+    "gigabyte": "ギガバイト",
+    "terabyte": "テラバイト",
+    "meter": "メートル",
+    "kilometer": "キロメートル",
+    "gram": "グラム",
+    "kilogram": "キログラム",
+    "second": "秒",
+    "minute": "分",
+    "hour": "時間"
+  },
+  "ordinals": {
+    "first": "1番目",
+    "second": "2番目",
+    "third": "3番目",
+    "nth": "{{count}}番目"
+  },
+  "ranges": {
+    "to": "〜",
+    "from": "から",
+    "between": "{{start}}と{{end}}の間"
+  }
+}

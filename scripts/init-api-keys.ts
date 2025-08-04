@@ -1,5 +1,5 @@
 import { setupApiKeyIndexes } from '../app/lib/setup-indexes';
-import { getDatabase, COLLECTIONS } from '../app/lib/mongodb';
+import { getDatabase, COLLECTIONS } from '../app/lib/data/connections/mongodb';
 
 async function initializeApiKeySystem() {
   console.log('APIキーシステムの初期化を開始します...');

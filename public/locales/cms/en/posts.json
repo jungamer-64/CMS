@@ -1,0 +1,68 @@
+{
+  "title": "Posts",
+  "newPost": "New Post",
+  "editPost": "Edit Post",
+  "allPosts": "All Posts",
+  "published": "Published",
+  "draft": "Draft",
+  "scheduled": "Scheduled",
+  "trash": "Trash",
+  "fields": {
+    "title": "Title",
+    "content": "Content",
+    "excerpt": "Excerpt",
+    "slug": "Slug",
+    "status": "Status",
+    "visibility": "Visibility",
+    "publishDate": "Publish Date",
+    "author": "Author",
+    "categories": "Categories",
+    "tags": "Tags",
+    "featuredImage": "Featured Image",
+    "seoTitle": "SEO Title",
+    "seoDescription": "SEO Description",
+    "allowComments": "Allow Comments"
+  },
+  "status": {
+    "published": "Published",
+    "draft": "Draft",
+    "scheduled": "Scheduled",
+    "private": "Private",
+    "trash": "Trash"
+  },
+  "actions": {
+    "publish": "Publish",
+    "saveDraft": "Save Draft",
+    "schedule": "Schedule",
+    "preview": "Preview",
+    "delete": "Delete",
+    "restore": "Restore",
+    "moveToTrash": "Move to Trash",
+    "duplicate": "Duplicate"
+  },
+  "messages": {
+    "postSaved": "Post saved successfully",
+    "postPublished": "Post published successfully",
+    "postDeleted": "Post deleted successfully",
+    "postRestored": "Post restored successfully",
+    "confirmDelete": "Are you sure you want to delete this post?",
+    "confirmTrash": "Are you sure you want to move this post to trash?",
+    "noPostsFound": "No posts found",
+    "loadingPosts": "Loading posts..."
+  },
+  "filters": {
+    "all": "All",
+    "byAuthor": "By Author",
+    "byCategory": "By Category",
+    "byStatus": "By Status",
+    "byDate": "By Date"
+  },
+  "bulk": {
+    "selectAll": "Select All",
+    "bulkActions": "Bulk Actions",
+    "publish": "Publish",
+    "moveToDraft": "Move to Draft",
+    "moveToTrash": "Move to Trash",
+    "delete": "Delete Permanently"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "success": {
+    "saved": "Successfully saved",
+    "updated": "Successfully updated",
+    "created": "Successfully created",
+    "deleted": "Successfully deleted",
+    "uploaded": "Successfully uploaded",
+    "sent": "Successfully sent",
+    "copied": "Successfully copied",
+    "imported": "Successfully imported",
+    "exported": "Successfully exported",
+    "operation": "Operation completed successfully",
+    "login": "Logged in successfully",
+    "logout": "Logged out successfully",
+    "registered": "Account registered successfully",
+    "verified": "Verification completed",
+    "reset": "Password reset successfully"
+  },
+  "info": {
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "uploading": "Uploading...",
+    "processing": "Processing...",
+    "connecting": "Connecting...",
+    "authenticating": "Authenticating...",
+    "verifying": "Verifying...",
+    "preparing": "Preparing...",
+    "searching": "Searching...",
+    "filtering": "Filtering...",
+    "sorting": "Sorting...",
+    "importing": "Importing...",
+    "exporting": "Exporting...",
+    "updating": "Updating...",
+    "refreshing": "Refreshing...",
+    "noData": "No data available",
+    "empty": "Empty",
+    "notFound": "Not found",
+    "comingSoon": "Coming soon"
+  },
+  "warning": {
+    "unsavedChanges": "You have unsaved changes",
+    "confirmDelete": "Are you sure you want to delete this?",
+    "confirmAction": "Are you sure you want to perform this action?",
+    "irreversible": "This action cannot be undone",
+    "largeFile": "File size is too large",
+    "slowConnection": "Connection is slow",
+    "sessionExpiring": "Your session is about to expire",
+    "browserCompatibility": "Your browser may not be supported",
+    "maintenanceMode": "Currently under maintenance",
+    "experimental": "This feature is experimental"
+  },
+  "confirmation": {
+    "delete": "Are you sure you want to delete \"{{name}}\"?",
+    "action": "Are you sure you want to {{action}}?",
+    "leave": "You have unsaved changes. Are you sure you want to leave this page?",
+    "overwrite": "Are you sure you want to overwrite the existing file?",
+    "reset": "Are you sure you want to reset all settings?",
+    "clear": "Are you sure you want to clear all data?"
+  },
+  "toast": {
+    "duration": 5000,
+    "position": "top-right",
+    "closeButton": true,
+    "autoClose": true
+  }
+}

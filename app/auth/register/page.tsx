@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAdvancedI18n } from '@/app/lib/contexts/advanced-i18n-context';
 import Link from 'next/link';
 
 export default function RegisterPage() {
@@ -12,6 +13,7 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const { t } = useAdvancedI18n();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,11 +36,11 @@ export default function RegisterPage() {
           router.push('/auth/login');
         }, 2000);
       } else {
-        setError(res.error || 'ユーザー登録に失敗しました');
+        setError(res.error || t('errors.registrationFailed'));
       }
     } catch (error) {
-      console.error('登録エラー:', error);
-      setError('ユーザー登録に失敗しました');
+      console.error('Registration error:', error);
+      setError(t('errors.registrationFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -48,8 +50,8 @@ export default function RegisterPage() {
     return (
       <div className="container mx-auto px-4 py-8 max-w-md">
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded text-center">
-          <h2 className="text-xl font-bold mb-2">登録完了！</h2>
-          <p>ユーザー登録が完了しました。ログインページに移動します...</p>
+          <h2 className="text-xl font-bold mb-2">{t('auth.register.registrationComplete')}</h2>
+          <p>{t('auth.register.redirectingToLogin')}</p>
         </div>
       </div>
     );
@@ -57,7 +59,7 @@ export default function RegisterPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-md">
-      <h1 className="text-center">ユーザー登録</h1>
+      <h1 className="text-center">{t('auth.register.title')}</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -65,7 +67,7 @@ export default function RegisterPage() {
           </div>
         )}
         <div>
-          <label htmlFor="username" className="block mb-2">ユーザー名</label>
+          <label htmlFor="username" className="block mb-2">{t('auth.register.username')}</label>
           <input
             type="text"
             id="username"
@@ -77,7 +79,7 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <label htmlFor="email" className="block mb-2">メールアドレス</label>
+          <label htmlFor="email" className="block mb-2">{t('auth.register.email')}</label>
           <input
             type="email"
             id="email"
@@ -89,7 +91,7 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <label htmlFor="displayName" className="block mb-2">表示名</label>
+          <label htmlFor="displayName" className="block mb-2">{t('auth.register.displayName')}</label>
           <input
             type="text"
             id="displayName"
@@ -101,7 +103,7 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <label htmlFor="password" className="block mb-2">パスワード</label>
+          <label htmlFor="password" className="block mb-2">{t('auth.register.password')}</label>
           <input
             type="password"
             id="password"
@@ -112,19 +114,19 @@ export default function RegisterPage() {
             minLength={6}
             disabled={isSubmitting}
           />
-          <p className="text-sm text-gray-600 mt-1">6文字以上で入力してください</p>
+          <p className="text-sm text-gray-600 mt-1">{t('auth.register.passwordRequirement')}</p>
         </div>
         <button 
           type="submit" 
           className="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 disabled:bg-gray-400"
           disabled={isSubmitting}
         >
-          {isSubmitting ? '登録中...' : '登録'}
+          {isSubmitting ? t('auth.register.registering') : t('auth.register.register')}
         </button>
       </form>
       <div className="mt-4 text-center">
         <Link href="/auth/login" className="text-blue-500 hover:underline">
-          既にアカウントをお持ちの方はこちら
+          {t('auth.register.hasAccount')}
         </Link>
       </div>
     </div>

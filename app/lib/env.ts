@@ -1,74 +1,117 @@
 /**
- * 環境変数の設定と検証
+ * 環境設定互換性ファイル
+ * 
+ * 既存のコンポーネントが参照している環境設定を提供し、
+ * 新しい環境設定システムへのブリッジとして機能します。
  */
 
-// 必須の環境変数を定義
-const requiredEnvVars = {
-  MONGODB_URI: process.env.MONGODB_URI as string,
-  MONGODB_DB: process.env.MONGODB_DB as string,
-  JWT_SECRET: process.env.JWT_SECRET as string,
-} as const;
+// 新しい環境設定システムから再エクスポート
+export {
+  env,
+  type Environment
+} from './core/config/environment';
 
-// オプショナルな環境変数を定義
-const optionalEnvVars = {
-  API_KEYS_DATA: process.env.API_KEYS_DATA || '{"keys":[]}',
-  DEFAULT_API_KEY: process.env.DEFAULT_API_KEY || 'default-test-key',
-  ADMIN_USERNAME: process.env.ADMIN_USERNAME,
-  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
-  ADMIN_EMAIL: process.env.ADMIN_EMAIL,
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  // GitHub設定
-  GITHUB_TOKEN: process.env.GITHUB_TOKEN,
-  GITHUB_OWNER: process.env.GITHUB_OWNER || 'jungamer-64',
-  GITHUB_REPO: process.env.GITHUB_REPO || 'test-website',
-  GITHUB_API_URL: process.env.GITHUB_API_URL || 'https://api.github.com',
-} as const;
+// ============================================================================
+// 互換性のための環境変数アクセス関数
+// ============================================================================
 
-// 必須環境変数の検証
-function validateRequiredEnvVars() {
-  const missingVars: string[] = [];
-  
-  for (const [key, value] of Object.entries(requiredEnvVars)) {
-    if (!value) {
-      missingVars.push(key);
-    }
-  }
-  
-  if (missingVars.length > 0) {
-    throw new Error(
-      `必須の環境変数が設定されていません: ${missingVars.join(', ')}\n` +
-      '.envファイルを確認してください。'
-    );
-  }
+import { env } from './core/config/environment';
+
+/**
+ * 環境変数の取得（互換性のため）
+ */
+export function getEnv(key: string, defaultValue?: string): string | undefined {
+  return process.env[key] || defaultValue;
 }
 
-// 開発環境でのみ検証を実行
-if (process.env.NODE_ENV !== 'production') {
-  validateRequiredEnvVars();
+/**
+ * 必須環境変数の取得（互換性のため）
+ */
+export function getRequiredEnv(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Required environment variable ${key} is not set`);
+  }
+  return value;
 }
 
-// 型安全な環境変数のエクスポート
-export const env = {
-  ...requiredEnvVars,
-  ...optionalEnvVars,
-} as const;
+/**
+ * 環境変数をboolean型として取得（互換性のため）
+ */
+export function getBooleanEnv(key: string, defaultValue = false): boolean {
+  const value = process.env[key];
+  if (!value) return defaultValue;
+  return value.toLowerCase() === 'true';
+}
 
-// 個別エクスポート（後方互換性のため）
-export const {
-  MONGODB_URI,
-  MONGODB_DB,
-  JWT_SECRET,
-  API_KEYS_DATA,
-  DEFAULT_API_KEY,
-  ADMIN_USERNAME,
-  ADMIN_PASSWORD,
-  ADMIN_EMAIL,
-  NODE_ENV,
-  GITHUB_TOKEN,
-  GITHUB_OWNER,
-  GITHUB_REPO,
-  GITHUB_API_URL,
-} = env;
+/**
+ * 環境変数をnumber型として取得（互換性のため）
+ */
+export function getNumberEnv(key: string, defaultValue = 0): number {
+  const value = process.env[key];
+  if (!value) return defaultValue;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? defaultValue : parsed;
+}
 
-// 型定義
-export type EnvVars = typeof env;
+// ============================================================================
+// 互換性のための設定オブジェクト
+// ============================================================================
+
+/**
+ * アプリケーション設定（互換性のため）
+ */
+export const config = {
+  // データベース
+  mongodb: {
+    uri: env.MONGODB_URI,
+    dbName: env.MONGODB_DB_NAME
+  },
+  
+  // 認証
+  auth: {
+    jwtSecret: env.JWT_SECRET,
+    jwtExpiresIn: env.JWT_EXPIRES_IN || '1d',
+    sessionSecret: env.SESSION_SECRET || 'fallback-secret'
+  },
+  
+  // GitHub統合
+  github: {
+    clientId: env.GITHUB_CLIENT_ID,
+    clientSecret: env.GITHUB_CLIENT_SECRET,
+    webhookSecret: env.GITHUB_WEBHOOK_SECRET
+  },
+  
+  // アプリケーション
+  app: {
+    environment: env.NODE_ENV,
+    port: getNumberEnv('PORT', 3000),
+    url: env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  },
+  
+  // 外部サービス
+  external: {
+    uploadLimit: getNumberEnv('UPLOAD_LIMIT', 10485760), // 10MB
+    allowedFileTypes: env.ALLOWED_FILE_TYPES?.split(',') || ['jpg', 'jpeg', 'png', 'gif', 'webp']
+  }
+};
+
+/**
+ * 開発環境かどうかの判定（互換性のため）
+ */
+export const isDevelopment = env.NODE_ENV === 'development';
+
+/**
+ * 本番環境かどうかの判定（互換性のため）
+ */
+export const isProduction = env.NODE_ENV === 'production';
+
+/**
+ * テスト環境かどうかの判定（互換性のため）
+ */
+export const isTest = env.NODE_ENV === 'test';
+
+/**
+ * デフォルトエクスポート（互換性のため）
+ */
+export default config;

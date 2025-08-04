@@ -1,0 +1,72 @@
+{
+  "title": "Dashboard",
+  "welcome": "Welcome back, {{name}}",
+  "welcomeDescription": "Welcome to the admin dashboard. You can check the site status and manage content.",
+  "overview": "Overview",
+  "statistics": {
+    "totalPosts": "Total Posts",
+    "totalUsers": "Total Users",
+    "totalComments": "Total Comments",
+    "totalViews": "Total Views",
+    "todayVisits": "Today's Visits",
+    "thisMonthPosts": "This Month's Posts",
+    "pendingComments": "Pending Comments",
+    "draftPosts": "Draft Posts"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "newPost": "New Post",
+    "newPage": "New Page",
+    "newUser": "New User",
+    "settings": "Settings",
+    "viewSite": "View Site",
+    "backupSite": "Backup Site"
+  },
+  "recentActivity": {
+    "title": "Recent Activity",
+    "noActivity": "No recent activity",
+    "userRegistered": "{{username}} registered",
+    "postPublished": "\"{{title}}\" was published",
+    "commentPosted": "Comment posted on \"{{title}}\"",
+    "postUpdated": "\"{{title}}\" was updated",
+    "userLoggedIn": "{{username}} logged in"
+  },
+  "recentPosts": {
+    "title": "Recent Posts",
+    "noPosts": "No recent posts",
+    "viewAll": "View All",
+    "edit": "Edit",
+    "delete": "Delete",
+    "publish": "Publish",
+    "draft": "Draft"
+  },
+  "systemStatus": {
+    "title": "System Status",
+    "healthy": "Healthy",
+    "warning": "Warning",
+    "error": "Error",
+    "database": "Database",
+    "storage": "Storage",
+    "memory": "Memory Usage",
+    "diskSpace": "Disk Space"
+  },
+  "charts": {
+    "visitsChart": "Visits Over Time",
+    "postsChart": "Posts Over Time",
+    "usersChart": "Users Over Time",
+    "commentsChart": "Comments Over Time",
+    "last7Days": "Last 7 Days",
+    "last30Days": "Last 30 Days",
+    "last3Months": "Last 3 Months",
+    "last12Months": "Last 12 Months"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark All as Read",
+    "noNotifications": "No new notifications",
+    "systemUpdate": "System update available",
+    "newComment": "New comment received",
+    "newUser": "New user registered",
+    "lowStorage": "Storage space is running low"
+  }
+}

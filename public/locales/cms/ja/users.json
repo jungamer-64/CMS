@@ -1,0 +1,54 @@
+{
+  "title": "ユーザー管理",
+  "list": "ユーザー一覧",
+  "create": "新しいユーザーを作成",
+  "edit": "ユーザーを編集",
+  "delete": "ユーザーを削除",
+  "fields": {
+    "username": "ユーザー名",
+    "email": "メールアドレス",
+    "displayName": "表示名",
+    "role": "権限",
+    "status": "ステータス",
+    "lastLogin": "最終ログイン",
+    "createdAt": "作成日",
+    "password": "パスワード",
+    "confirmPassword": "パスワード確認"
+  },
+  "roles": {
+    "admin": "管理者",
+    "editor": "編集者",
+    "author": "投稿者",
+    "subscriber": "購読者"
+  },
+  "actions": {
+    "activate": "有効化",
+    "deactivate": "無効化",
+    "resetPassword": "パスワードリセット",
+    "sendInvite": "招待メール送信",
+    "export": "エクスポート"
+  },
+  "filters": {
+    "all": "すべて",
+    "admin": "管理者",
+    "active": "有効",
+    "inactive": "無効",
+    "recent": "最近登録"
+  },
+  "validation": {
+    "usernameRequired": "ユーザー名は必須です",
+    "emailRequired": "メールアドレスは必須です",
+    "emailInvalid": "有効なメールアドレスを入力してください",
+    "passwordRequired": "パスワードは必須です",
+    "passwordTooShort": "パスワードは8文字以上である必要があります",
+    "passwordMismatch": "パスワードが一致しません"
+  },
+  "messages": {
+    "userCreated": "ユーザーを作成しました",
+    "userUpdated": "ユーザー情報を更新しました",
+    "userDeleted": "ユーザーを削除しました",
+    "deleteConfirm": "このユーザーを削除してもよろしいですか？",
+    "inviteSent": "招待メールを送信しました",
+    "passwordReset": "パスワードリセットメールを送信しました"
+  }
+}

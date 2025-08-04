@@ -1,0 +1,56 @@
+{
+  "http": {
+    "400": "Bad Request",
+    "401": "Authentication Required",
+    "403": "Access Forbidden",
+    "404": "Page Not Found",
+    "405": "Method Not Allowed",
+    "500": "Internal Server Error",
+    "502": "Gateway Error",
+    "503": "Service Unavailable"
+  },
+  "database": {
+    "connectionFailed": "Database connection failed",
+    "queryFailed": "Database query failed",
+    "duplicateEntry": "Duplicate data",
+    "recordNotFound": "Record not found",
+    "validationFailed": "Data validation failed"
+  },
+  "auth": {
+    "invalidCredentials": "Invalid credentials",
+    "userNotFound": "User not found",
+    "userExists": "User already exists",
+    "tokenExpired": "Token has expired",
+    "tokenInvalid": "Invalid token",
+    "sessionExpired": "Session has expired",
+    "accessDenied": "Access denied",
+    "insufficientPermissions": "Insufficient permissions"
+  },
+  "validation": {
+    "required": "{{field}} is required",
+    "invalidFormat": "{{field}} format is invalid",
+    "tooShort": "{{field}} is too short",
+    "tooLong": "{{field}} is too long",
+    "invalidEmail": "Please enter a valid email address",
+    "passwordTooWeak": "Password is too weak",
+    "passwordMismatch": "Passwords do not match"
+  },
+  "upload": {
+    "fileTooLarge": "File size is too large",
+    "invalidFileType": "Unsupported file type",
+    "uploadFailed": "File upload failed",
+    "noFileSelected": "No file selected"
+  },
+  "api": {
+    "methodNotAllowed": "HTTP method not allowed",
+    "invalidApiKey": "Invalid API key",
+    "rateLimitExceeded": "Rate limit exceeded",
+    "serviceUnavailable": "Service unavailable"
+  },
+  "generic": {
+    "unknownError": "Unknown error occurred",
+    "networkError": "Network error occurred",
+    "timeout": "Request timed out",
+    "tryAgain": "Please try again"
+  }
+}

@@ -1,11 +1,10 @@
-
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
-import { withApiAuth } from '@/app/lib/auth-middleware';
-import { getWebhooks, addWebhook, type Webhook } from '@/app/lib/webhooks';
+import { withApiAuth, AuthContext } from '@/app/lib/auth-middleware';
+import { getWebhooks, addWebhook, type Webhook } from '@/app/lib/utils/webhooks';
 
-// 型ガード関数
+// Type guard function
 function isWebhookCreateRequest(obj: unknown): obj is { url: string; event: string; enabled?: boolean } {
   if (!obj || typeof obj !== 'object') return false;
   const req = obj as Record<string, unknown>;
@@ -15,55 +14,71 @@ function isWebhookCreateRequest(obj: unknown): obj is { url: string; event: stri
          req.event.trim().length > 0;
 }
 
-// Webhook一覧を取得（GET）
-export const GET = withApiAuth(async (request: NextRequest, context) => {
-  const user = context.user;
-  if (!user) {
-    return createErrorResponse('認証情報がありません', 401);
-  }
-  
+// GET: Get all webhooks
+export async function GET() {
   try {
     const webhooks = getWebhooks();
-    return createSuccessResponse({ webhooks }, 'Webhook一覧を取得しました');
+    return NextResponse.json(createSuccessResponse({
+      webhooks,
+      count: webhooks.length
+    }, 'Webhooks retrieved successfully'));
   } catch (error) {
-    console.error('Webhook取得エラー:', error);
-    return createErrorResponse('Webhookの取得中にエラーが発生しました', 500);
+    console.error('Error fetching webhooks:', error);
+    return NextResponse.json(createErrorResponse('Failed to fetch webhooks', 500));
   }
-});
+}
 
-// 新しいWebhookを作成（POST）
-export const POST = withApiAuth(async (request: NextRequest, context) => {
-  const user = context.user;
-  if (!user) {
-    return createErrorResponse('認証情報がありません', 401);
-  }
-  
+// POST: Create new webhook  
+export const POST = withApiAuth(async (request: NextRequest, context: AuthContext) => {
   try {
-    const body = await request.json();
-    
-    // 型ガードによる検証
-    if (!isWebhookCreateRequest(body)) {
-      return createErrorResponse('URLとイベントは必須です', 400);
+    if (!context.user || context.user.role !== 'admin') {
+      return NextResponse.json(createErrorResponse('Admin access required', 403));
     }
 
-    const { url, event, enabled } = body;
-    
-    const webhook: Webhook = {
+    let requestData;
+    try {
+      requestData = await request.json();
+    } catch (error) {
+      return NextResponse.json(createErrorResponse('Invalid JSON data', 400));
+    }
+
+    if (!isWebhookCreateRequest(requestData)) {
+      return NextResponse.json(createErrorResponse(
+        'Invalid webhook data. Required: url (string), event (string)',
+        400
+      ));
+    }
+
+    const { url, event, enabled = true } = requestData;
+
+    // URL validation
+    try {
+      new URL(url);
+    } catch {
+      return NextResponse.json(createErrorResponse('Invalid URL format', 400));
+    }
+
+    // Create webhook
+    const newWebhook: Webhook = {
       id: randomUUID(),
       url: url.trim(),
-      event: event.trim() as Webhook['event'],
-      enabled: enabled ?? true,
-      createdAt: new Date().toISOString(),
+      event: event.trim() as 'post_created' | 'post_updated' | 'comment_created',
+      enabled,
+      createdAt: new Date().toISOString()
     };
-    
-    addWebhook(webhook);
-    
-    return createSuccessResponse({ webhook }, 'Webhookが正常に作成されました');
+
+    addWebhook(newWebhook);
+
+    return NextResponse.json(createSuccessResponse(
+      { webhook: newWebhook },
+      'Webhook created successfully'
+    ));
+
   } catch (error) {
-    console.error('Webhook作成エラー:', error);
+    console.error('Webhook creation error:', error);
     if (error instanceof SyntaxError) {
-      return createErrorResponse('無効なJSONデータです', 400);
+      return NextResponse.json(createErrorResponse('Invalid JSON data', 400));
     }
-    return createErrorResponse('Webhookの作成中にエラーが発生しました', 500);
+    return NextResponse.json(createErrorResponse('An error occurred while creating the webhook', 500));
   }
 });

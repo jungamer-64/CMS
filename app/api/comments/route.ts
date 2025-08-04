@@ -1,78 +1,91 @@
-import { 
-  createPublicApiHandler 
-} from '@/app/lib/api-factory';
-import { 
-  createApiSuccess, 
-  createApiError, 
-  ApiErrorCode 
-} from '@/app/lib/api-types';
-import { validationSchemas } from '@/app/lib/validation-schemas';
-import { createComment } from '@/app/lib/comments';
-import { getSettings } from '@/app/lib/settings';
-import type { 
-  CommentCreateRequest, 
-  CommentResponse 
-} from '@/app/lib/api-types';
+import { NextRequest } from 'next/server';
+import { createRestGetHandler, createRestPostHandler } from '@/app/lib/api/factory/rest-factory';
+import { isCommentCreateRequest, CommentCreateRequest } from '@/app/lib/api/schemas/validation-schemas';
+import { commentRepository } from '@/app/lib/data/repositories/comment-repository';
+import { CommentEntity, UserEntity } from '@/app/lib/core/types/entity-types';
 
-// 動的レンダリングを強制
-export const dynamic = 'force-dynamic';
+// ============================================================================
+// RESTful Resource: Comments (/api/comments) - 統一パターン使用
+// ============================================================================
 
-// コメント投稿（公開API - 認証不要）
-export const POST = createPublicApiHandler<CommentCreateRequest, CommentResponse>(
-  async (request, body) => {
-    try {
-      console.log('コメント投稿API呼び出し');
-      console.log('投稿データ:', body);
+// ============================================================================
+// GET /api/comments - コメント一覧取得
+// ============================================================================
 
-      const { authorName, authorEmail, content, postSlug } = body;
+export const GET = createRestGetHandler<CommentEntity[]>(
+  async (request: NextRequest, currentUser?: UserEntity) => {
+    const url = new URL(request.url);
+    
+    // クエリパラメータ解析
+    const page = Number(url.searchParams.get('page')) || 1;
+    const limit = Math.min(Number(url.searchParams.get('limit')) || 50, 200);
+    const search = url.searchParams.get('search') || undefined;
+    const sortBy = url.searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = (url.searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc';
 
-      // 設定を取得してコメント機能が有効かチェック
-      const settings = await getSettings();
-      
-      if (!settings.allowComments) {
-        return createApiError(
-          'コメント機能は現在無効になっています', 
-          ApiErrorCode.FORBIDDEN
-        );
-      }
+    // コメント一覧取得
+    const result = await commentRepository.findAll({
+      search,
+      sortBy,
+      sortOrder,
+      page,
+      limit
+    });
 
-      // データベースにコメントを保存
-      const commentData = {
-        authorName: authorName.trim(),
-        authorEmail: authorEmail.trim(),
-        content: content.trim(),
-        postSlug
-      };
-
-      // 設定に基づいて承認状態を決定
-      const isApproved = !settings.requireApproval;
-      const newComment = await createComment(commentData, isApproved);
-
-      console.log('コメント作成成功:', newComment);
-      
-      const message = isApproved 
-        ? 'コメントが正常に投稿されました' 
-        : 'コメントが投稿されました。管理者の承認後に表示されます';
-      
-      const response: CommentResponse = {
-        comment: newComment
-      };
-
-      return createApiSuccess(response, message);
-    } catch (error) {
-      console.error('コメント投稿エラー:', error);
-      return createApiError(
-        'コメントの投稿中にエラーが発生しました',
-        ApiErrorCode.INTERNAL_ERROR
-      );
+    if (!result.success || !result.data) {
+      throw new Error('Failed to fetch comments');
     }
+
+    return result.data.data;
   },
   {
-    validationSchema: validationSchemas.commentCreate,
+    requireAuth: false, // 公開コメントは認証不要
+    allowedMethods: ['GET'],
     rateLimit: {
-      maxRequests: 3,
-      windowMs: 60000,
-      message: 'コメント投稿の頻度が高すぎます。しばらく待ってから再試行してください'
+      windowMs: 15 * 60 * 1000,
+      maxRequests: 300 // コメント一覧は頻繁にアクセスされる
+    }
+  }
+);
+
+// ============================================================================
+// POST /api/comments - コメント作成
+// ============================================================================
+
+export const POST = createRestPostHandler<CommentCreateRequest, CommentEntity>(
+  async (request: NextRequest, body: CommentCreateRequest, currentUser?: UserEntity) => {
+    if (!currentUser) {
+      throw new Error('Authentication required for comment creation');
+    }
+
+    // postIdからslugを取得する必要があるが、簡略化してpostIdをslugとして使用
+    const postSlug = `post-${body.postId}`;
+
+    // CommentCreateRequestからCommentInputに変換
+    const commentInput = {
+      content: body.content,
+      authorName: currentUser.username,
+      authorEmail: currentUser.email,
+      postSlug: postSlug
+    };
+    
+    const result = await commentRepository.create(commentInput);
+    
+    if (!result.success || !result.data) {
+      // エラーメッセージを適切に取得
+      const errorMessage = result.success === false && 'error' in result ? result.error : 'Failed to create comment';
+      throw new Error(errorMessage);
+    }
+    
+    return result.data;
+  },
+  isCommentCreateRequest,
+  {
+    requireAuth: true, // コメント作成は認証必須
+    allowedMethods: ['POST'],
+    rateLimit: {
+      windowMs: 15 * 60 * 1000,
+      maxRequests: 30 // コメント作成は制限
     }
   }
 );

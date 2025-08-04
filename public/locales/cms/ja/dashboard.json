@@ -1,0 +1,72 @@
+{
+  "title": "ダッシュボード",
+  "welcome": "{{name}}さん、おかえりなさい",
+  "welcomeDescription": "管理者ダッシュボードへようこそ。サイトの状況を確認し、コンテンツを管理できます。",
+  "overview": "概要",
+  "statistics": {
+    "totalPosts": "総投稿数",
+    "totalUsers": "総ユーザー数",
+    "totalComments": "総コメント数",
+    "totalViews": "総閲覧数",
+    "todayVisits": "今日の訪問者数",
+    "thisMonthPosts": "今月の投稿数",
+    "pendingComments": "承認待ちコメント",
+    "draftPosts": "下書き投稿"
+  },
+  "quickActions": {
+    "title": "クイックアクション",
+    "newPost": "新規投稿",
+    "newPage": "新規ページ",
+    "newUser": "新規ユーザー",
+    "settings": "設定",
+    "viewSite": "サイトを表示",
+    "backupSite": "サイトをバックアップ"
+  },
+  "recentActivity": {
+    "title": "最近のアクティビティ",
+    "noActivity": "最近のアクティビティはありません",
+    "userRegistered": "{{username}}が登録しました",
+    "postPublished": "「{{title}}」が公開されました",
+    "commentPosted": "「{{title}}」にコメントが投稿されました",
+    "postUpdated": "「{{title}}」が更新されました",
+    "userLoggedIn": "{{username}}がログインしました"
+  },
+  "recentPosts": {
+    "title": "最近の投稿",
+    "noPosts": "最近の投稿はありません",
+    "viewAll": "すべて表示",
+    "edit": "編集",
+    "delete": "削除",
+    "publish": "公開",
+    "draft": "下書き"
+  },
+  "systemStatus": {
+    "title": "システム状態",
+    "healthy": "正常",
+    "warning": "警告",
+    "error": "エラー",
+    "database": "データベース",
+    "storage": "ストレージ",
+    "memory": "メモリ使用量",
+    "diskSpace": "ディスク容量"
+  },
+  "charts": {
+    "visitsChart": "訪問者数推移",
+    "postsChart": "投稿数推移",
+    "usersChart": "ユーザー数推移",
+    "commentsChart": "コメント数推移",
+    "last7Days": "過去7日間",
+    "last30Days": "過去30日間",
+    "last3Months": "過去3ヶ月間",
+    "last12Months": "過去12ヶ月間"
+  },
+  "notifications": {
+    "title": "通知",
+    "markAllRead": "すべて既読にする",
+    "noNotifications": "新しい通知はありません",
+    "systemUpdate": "システムアップデートが利用可能です",
+    "newComment": "新しいコメントがあります",
+    "newUser": "新しいユーザーが登録しました",
+    "lowStorage": "ストレージ容量が不足しています"
+  }
+}

@@ -1,7 +1,7 @@
 'use client';
 
-import { markdownToHtml } from '@/app/lib/markdown';
-import { sanitizeHtml } from '@/app/lib/sanitize';
+import { markdownToHtml } from '@/app/lib/utils/markdown';
+import { sanitizeHtml } from '@/app/lib/utils/sanitize';
 import { useEffect, useState } from 'react';
 
 interface PostContentProps {
@@ -200,36 +200,53 @@ export default function PostContent({ content }: PostContentProps) {
   }, [htmlContent, content]);
 
   if (!content) {
-    return <div className="text-gray-500 italic">投稿内容がありません。</div>;
+    return (
+      <div className="text-center py-12">
+        <div className="text-4xl mb-4">📄</div>
+        <p className="text-slate-500 dark:text-slate-400 italic">投稿内容がありません。</p>
+      </div>
+    );
   }
 
   if (isLoading) {
-    return <div className="text-gray-500">読み込み中...</div>;
+    return (
+      <div className="text-center py-12">
+        <div className="relative mx-auto mb-4 w-8 h-8">
+          <div className="absolute inset-0 border-2 border-indigo-200 dark:border-indigo-800 rounded-full"></div>
+          <div className="absolute inset-0 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        <p className="text-slate-500 dark:text-slate-400">読み込み中...</p>
+      </div>
+    );
   }
 
   return (
     <div 
-      className="max-w-none text-gray-700 leading-relaxed markdown-content
-        [&>h1]:text-3xl [&>h1]:font-bold [&>h1]:mb-6 [&>h1]:mt-8 [&>h1]:text-gray-900
-        [&>h2]:text-2xl [&>h2]:font-semibold [&>h2]:mb-4 [&>h2]:mt-6 [&>h2]:text-gray-800
-        [&>h3]:text-xl [&>h3]:font-medium [&>h3]:mb-3 [&>h3]:mt-5 [&>h3]:text-gray-700
-        [&>h4]:text-lg [&>h4]:font-medium [&>h4]:mb-2 [&>h4]:mt-4 [&>h4]:text-gray-700
-        [&>h5]:text-base [&>h5]:font-medium [&>h5]:mb-2 [&>h5]:mt-3 [&>h5]:text-gray-600
-        [&>h6]:text-sm [&>h6]:font-medium [&>h6]:mb-2 [&>h6]:mt-3 [&>h6]:text-gray-600
-        [&>p]:mb-4 [&>p]:leading-relaxed
-        [&>a]:text-blue-600 [&>a:hover]:text-blue-800 [&>a]:underline
-        [&>strong]:font-semibold [&>strong]:text-gray-900
-        [&>em]:italic
-        [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-4
-        [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-4
-        [&>li]:mb-1
-        [&>img]:rounded-lg [&>img]:shadow-sm [&>img]:my-6
-        [&>hr]:border-gray-300 [&>hr]:my-8
-        [&>blockquote]:border-l-4 [&>blockquote]:border-blue-500 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-gray-700 [&>blockquote]:my-4
-        [&>table]:min-w-full [&>table]:border-collapse [&>table]:border [&>table]:border-gray-300 [&>table]:my-4
-        [&>pre]:bg-gray-100 [&>pre]:p-4 [&>pre]:rounded-lg [&>pre]:overflow-x-auto [&>pre]:my-4
-        [&>code]:bg-gray-100 [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>code]:text-sm [&>code]:text-gray-800
-        [&>iframe]:block [&>iframe]:my-6 [&>iframe]:rounded-lg [&>iframe]:max-w-full
+      className="max-w-none text-slate-700 dark:text-slate-300 leading-relaxed markdown-content
+        [&>h1]:text-3xl [&>h1]:font-bold [&>h1]:mb-6 [&>h1]:mt-8 [&>h1]:text-slate-900 [&>h1]:dark:text-slate-100
+        [&>h2]:text-2xl [&>h2]:font-semibold [&>h2]:mb-5 [&>h2]:mt-8 [&>h2]:text-slate-800 [&>h2]:dark:text-slate-200 [&>h2]:border-b [&>h2]:border-slate-200 [&>h2]:dark:border-slate-700 [&>h2]:pb-2
+        [&>h3]:text-xl [&>h3]:font-semibold [&>h3]:mb-4 [&>h3]:mt-6 [&>h3]:text-slate-800 [&>h3]:dark:text-slate-200
+        [&>h4]:text-lg [&>h4]:font-medium [&>h4]:mb-3 [&>h4]:mt-5 [&>h4]:text-slate-700 [&>h4]:dark:text-slate-300
+        [&>h5]:text-base [&>h5]:font-medium [&>h5]:mb-2 [&>h5]:mt-4 [&>h5]:text-slate-700 [&>h5]:dark:text-slate-300
+        [&>h6]:text-sm [&>h6]:font-medium [&>h6]:mb-2 [&>h6]:mt-3 [&>h6]:text-slate-600 [&>h6]:dark:text-slate-400
+        [&>p]:mb-6 [&>p]:leading-relaxed [&>p]:text-slate-700 [&>p]:dark:text-slate-300
+        [&>a]:text-indigo-600 [&>a]:dark:text-indigo-400 [&>a:hover]:text-indigo-800 [&>a:hover]:dark:text-indigo-300 [&>a]:underline [&>a]:underline-offset-2 [&>a]:decoration-indigo-300 [&>a]:hover:decoration-indigo-500
+        [&>strong]:font-semibold [&>strong]:text-slate-900 [&>strong]:dark:text-slate-100
+        [&>em]:italic [&>em]:text-slate-600 [&>em]:dark:text-slate-400
+        [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-6 [&>ul]:space-y-2
+        [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-6 [&>ol]:space-y-2
+        [&>li]:text-slate-700 [&>li]:dark:text-slate-300 [&>li]:leading-relaxed
+        [&>img]:rounded-2xl [&>img]:shadow-lg [&>img]:my-8 [&>img]:border [&>img]:border-slate-200 [&>img]:dark:border-slate-700
+        [&>hr]:border-slate-300 [&>hr]:dark:border-slate-600 [&>hr]:my-12
+        [&>blockquote]:border-l-4 [&>blockquote]:border-indigo-500 [&>blockquote]:bg-indigo-50 [&>blockquote]:dark:bg-indigo-900/20 [&>blockquote]:pl-6 [&>blockquote]:pr-4 [&>blockquote]:py-4 [&>blockquote]:rounded-r-lg [&>blockquote]:italic [&>blockquote]:text-slate-700 [&>blockquote]:dark:text-slate-300 [&>blockquote]:my-6
+        [&>table]:min-w-full [&>table]:border-collapse [&>table]:border [&>table]:border-slate-300 [&>table]:dark:border-slate-600 [&>table]:my-6 [&>table]:rounded-lg [&>table]:overflow-hidden [&>table]:shadow-sm
+        [&>thead]:bg-slate-50 [&>thead]:dark:bg-slate-800
+        [&>th]:border [&>th]:border-slate-300 [&>th]:dark:border-slate-600 [&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:font-semibold [&>th]:text-slate-900 [&>th]:dark:text-slate-100
+        [&>td]:border [&>td]:border-slate-300 [&>td]:dark:border-slate-600 [&>td]:px-4 [&>td]:py-3 [&>td]:text-slate-700 [&>td]:dark:text-slate-300
+        [&>pre]:bg-slate-900 [&>pre]:dark:bg-slate-950 [&>pre]:text-slate-100 [&>pre]:p-6 [&>pre]:rounded-2xl [&>pre]:overflow-x-auto [&>pre]:my-6 [&>pre]:shadow-lg [&>pre]:border [&>pre]:border-slate-700
+        [&>code]:bg-slate-100 [&>code]:dark:bg-slate-800 [&>code]:px-2 [&>code]:py-1 [&>code]:rounded-md [&>code]:text-sm [&>code]:text-indigo-600 [&>code]:dark:text-indigo-400 [&>code]:font-mono
+        [&>pre>code]:bg-transparent [&>pre>code]:text-slate-100 [&>pre>code]:p-0
+        [&>iframe]:block [&>iframe]:my-8 [&>iframe]:rounded-2xl [&>iframe]:max-w-full [&>iframe]:shadow-lg [&>iframe]:border [&>iframe]:border-slate-200 [&>iframe]:dark:border-slate-700
         [&>iframe[src*='steampowered.com']]:border-0
         [&>iframe[src*='youtube.com']]:border-0
         [&>iframe[src*='youtu.be']]:border-0

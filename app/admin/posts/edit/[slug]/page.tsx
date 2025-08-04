@@ -1,23 +1,16 @@
 
 'use client';
-import type { JSX } from 'react';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/lib/auth';
-import PostContent from '@/app/articles/[slug]/PostContent';
-import AdminLayout from '@/app/lib/AdminLayout';
+import { Post } from '@/app/lib/core/types';
+import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
+import { useAuth } from '@/app/lib/ui/contexts/auth-context';
 
-export interface Post {
-  readonly id: string;
-  readonly title: string;
-  readonly slug: string;
-  readonly content: string;
-  readonly author: string;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-  readonly isDeleted?: boolean;
-}
+// PostContentコンポーネントを定義
+const PostContent: React.FC<{ content: string }> = ({ content }) => (
+  <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: content }} />
+);
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
@@ -211,7 +204,7 @@ const FormActions: React.FC<FormActionsProps> = ({ isSubmitting, onCancel }) => 
 
 type EditPostParams = { readonly slug: string };
 type EditPostProps = { readonly params: Promise<EditPostParams> };
-export default function EditPost({ params }: EditPostProps): JSX.Element {
+export default function EditPost({ params }: EditPostProps): React.JSX.Element {
   const [post, setPost] = useState<Post | null>(null);
   const [title, setTitle] = useState<string>('');
   const [content, setContent] = useState<string>('');
@@ -291,13 +284,34 @@ export default function EditPost({ params }: EditPostProps): JSX.Element {
         if (!response.ok) {
           throw new Error('投稿が見つかりません');
         }
-        const postData: unknown = await response.json();
-        // 厳密な型チェック
-        if (!postData || typeof postData !== 'object') throw new Error('不正な投稿データ');
-        const p = postData as Partial<Post>;
-        if (!p.title || !p.content || !p.slug || !p.author || !p.createdAt || !p.updatedAt || !p.id) {
+        const apiResponse: unknown = await response.json();
+        
+        // APIレスポンスの構造チェック
+        if (!apiResponse || typeof apiResponse !== 'object') {
+          throw new Error('不正な投稿データ');
+        }
+        
+        const apiResult = apiResponse as { success?: boolean; data?: unknown; error?: string };
+        
+        if (!apiResult.success || !apiResult.data) {
+          throw new Error(apiResult.error || '投稿データの取得に失敗しました');
+        }
+        
+        const postData = apiResult.data;
+        
+        // 投稿データの型チェック
+        if (!postData || typeof postData !== 'object') {
+          throw new Error('不正な投稿データ');
+        }
+        
+        // getPostBySlugは { post: Post } の形で返す
+        const wrapper = postData as { post?: Partial<Post> };
+        const p = wrapper.post;
+        
+        if (!p?.title || !p?.content || !p?.slug || !p?.author || !p?.id) {
           throw new Error('投稿データが不完全です');
         }
+        
         setPost(p as Post);
         setTitle(p.title);
         setContent(p.content);

@@ -1,0 +1,35 @@
+{
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email address",
+    "url": "Please enter a valid URL",
+    "number": "Please enter a valid number",
+    "phone": "Please enter a valid phone number",
+    "date": "Please enter a valid date",
+    "pattern": "The format is invalid",
+    "custom": "This value is invalid",
+    "password": {
+      "minLength": "Password must be at least {{min}} characters long",
+      "maxLength": "Password must be no more than {{max}} characters",
+      "pattern": "Password must contain letters, numbers, and special characters"
+    },
+    "username": {
+      "minLength": "Username must be at least {{min}} characters long",
+      "maxLength": "Username must be no more than {{max}} characters",
+      "pattern": "Username can only contain letters, numbers, and underscores"
+    },
+    "confirm": "Confirmation password does not match",
+    "terms": "You must agree to the terms of service",
+    "privacy": "You must agree to the privacy policy"
+  },
+  "pattern": {
+    "email": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+    "password": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
+    "username": "^[a-zA-Z0-9_]{3,20}$"
+  },
+  "length": {
+    "min": "Please enter at least {{min}} characters",
+    "max": "Please enter no more than {{max}} characters",
+    "exact": "Please enter exactly {{count}} characters"
+  }
+}

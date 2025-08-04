@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminLayout from '@/app/lib/AdminLayout';
+import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
 import type { Webhook } from '../admin-types';
 
 export default function WebhookAdminPage() {

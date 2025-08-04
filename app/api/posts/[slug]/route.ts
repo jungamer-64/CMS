@@ -1,142 +1,67 @@
-import { 
-  createGetHandler, 
-  createPutHandler, 
-  createDeleteHandler 
-} from '@/app/lib/api-factory';
-import { 
-  createApiSuccess, 
-  createApiError, 
-  ApiErrorCode 
-} from '@/app/lib/api-types';
-import { getPostBySlug, updatePostBySlug, deletePostBySlug } from '@/app/lib/posts';
-import { validationSchemas } from '@/app/lib/validation-schemas';
-import type { 
-  PostResponse, 
-  PostUpdateRequest 
-} from '@/app/lib/api-types';
+import { NextRequest, NextResponse } from 'next/server';
+import { postRepository } from '@/app/lib/data/repositories/post-repository';
+import {
+  createRestErrorResponse,
+  HttpStatus,
+  RestErrorCode,
+} from '@/app/lib/api/utils/rest-helpers';
 
 // 動的レンダリングを強制
 export const dynamic = 'force-dynamic';
 
 // 特定の投稿を取得（公開API）
-export const GET = createGetHandler<PostResponse>(
-  async (request, user, params) => {
-    try {
-      const { slug } = params || {};
-      
-      if (!slug) {
-        return createApiError('スラッグが必要です', ApiErrorCode.VALIDATION_ERROR);
-      }
-
-      const postResult = await getPostBySlug(slug);
-      
-      if (!postResult.success || !postResult.data) {
-        return createApiError('投稿が見つかりません', ApiErrorCode.NOT_FOUND);
-      }
-
-      return createApiSuccess(postResult.data, '投稿を取得しました');
-    } catch (error) {
-      console.error('投稿取得エラー:', error);
-      return createApiError(
-        '投稿の取得に失敗しました',
-        ApiErrorCode.INTERNAL_ERROR
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  try {
+    const { slug } = await params;
+    
+    if (!slug) {
+      return NextResponse.json(
+        createRestErrorResponse(RestErrorCode.VALIDATION_FAILED, 'スラッグが必要です'),
+        { status: HttpStatus.BAD_REQUEST }
       );
     }
-  },
-  {
-    requireAuth: false // 公開API
-  }
-);
 
-// 投稿を更新（認証必須）
-export const PUT = createPutHandler<PostUpdateRequest, PostResponse>(
-  async (request, body, user, params) => {
-    try {
-      if (!user) {
-        return createApiError('認証が必要です', ApiErrorCode.UNAUTHORIZED);
-      }
-
-      const { slug } = params || {};
-      
-      if (!slug) {
-        return createApiError('スラッグが必要です', ApiErrorCode.VALIDATION_ERROR);
-      }
-
-      const { title, content, slug: newSlug, author } = body;
-
-      // 必須フィールドの検証
-      if (!title || !content || !author) {
-        return createApiError('必須フィールドが不足しています', ApiErrorCode.VALIDATION_ERROR);
-      }
-
-      // 投稿を更新
-      const updatedPost = await updatePostBySlug(slug, {
-        title: title.trim(),
-        content: content.trim(),
-        slug: newSlug?.trim() || slug,
-        author: author.trim()
-      });
-
-      if (!updatedPost) {
-        return createApiError('投稿が見つかりません', ApiErrorCode.NOT_FOUND);
-      }
-
-      const response: PostResponse = { post: updatedPost };
-      return createApiSuccess(response, '投稿が正常に更新されました');
-    } catch (error) {
-      console.error('投稿更新エラー:', error);
-      return createApiError(
-        '投稿の更新に失敗しました',
-        ApiErrorCode.INTERNAL_ERROR
+    console.log('Searching for post with slug:', slug);
+    const postResult = await postRepository.findBySlug(slug);
+    console.log('Found post result:', postResult);
+    
+    // postRepositoryが { success: true, data: post } 形式で返す場合
+    const post = postResult && typeof postResult === 'object' && 'data' in postResult 
+      ? postResult.data 
+      : postResult;
+    
+    console.log('Extracted post:', post);
+    
+    if (!post) {
+      return NextResponse.json(
+        createRestErrorResponse(RestErrorCode.RESOURCE_NOT_FOUND, '投稿が見つかりません'),
+        { status: HttpStatus.NOT_FOUND }
       );
     }
-  },
-  {
-    requireAuth: true,
-    validationSchema: validationSchemas.postUpdate,
-    rateLimit: {
-      maxRequests: 10,
-      windowMs: 60000,
-      message: '投稿更新の頻度が高すぎます'
-    }
+
+    console.log('Creating response for post:', post);
+    
+    const responseData = {
+      success: true,
+      data: {
+        ...post,
+        // authorフィールドが存在しない場合のフォールバック
+        author: 'author' in post ? post.author : '管理者'
+      },
+      meta: { message: '投稿を取得しました' },
+      timestamp: new Date().toISOString()
+    };
+    console.log('API Response data:', responseData);
+    
+    return NextResponse.json(responseData);
+  } catch (error) {
+    console.error('投稿取得エラー:', error);
+    return NextResponse.json(
+      createRestErrorResponse(RestErrorCode.INTERNAL_ERROR, '投稿の取得に失敗しました'),
+      { status: HttpStatus.INTERNAL_SERVER_ERROR }
+    );
   }
-);
-
-// 投稿を削除（認証必須）
-export const DELETE = createDeleteHandler<{message: string}>(
-  async (request, user, params) => {
-    try {
-      if (!user) {
-        return createApiError('認証が必要です', ApiErrorCode.UNAUTHORIZED);
-      }
-
-      const { slug } = params || {};
-      
-      if (!slug) {
-        return createApiError('スラッグが必要です', ApiErrorCode.VALIDATION_ERROR);
-      }
-
-      const deletedPost = await deletePostBySlug(slug);
-
-      if (!deletedPost) {
-        return createApiError('投稿が見つかりません', ApiErrorCode.NOT_FOUND);
-      }
-
-      return createApiSuccess({ message: '投稿が正常に削除されました' }, '投稿が正常に削除されました');
-    } catch (error) {
-      console.error('投稿削除エラー:', error);
-      return createApiError(
-        '投稿の削除に失敗しました',
-        ApiErrorCode.INTERNAL_ERROR
-      );
-    }
-  },
-  {
-    requireAuth: true,
-    rateLimit: {
-      maxRequests: 5,
-      windowMs: 60000,
-      message: '投稿削除の頻度が高すぎます'
-    }
-  }
-);
+}

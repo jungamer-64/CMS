@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import AdminLayout from '@/app/lib/AdminLayout';
+import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
 
 export default function WebhookNewPage() {
   const [url, setUrl] = useState("");

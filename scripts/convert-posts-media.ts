@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 config({ path: '.env' });
 
-import { getDatabase } from '../app/lib/mongodb';
+import { getDatabase } from '../app/lib/data/connections/mongodb';
 import type { ObjectId, Db } from 'mongodb';
 
 // 型定義

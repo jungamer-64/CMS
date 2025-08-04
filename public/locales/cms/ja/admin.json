@@ -1,0 +1,49 @@
+{
+  "title": "CMS Admin",
+  "welcome": "管理ダッシュボードへようこそ",
+  "dashboard": "ダッシュボード",
+  "overview": "概要",
+  "toggleSidebar": "サイドバーを切り替え",
+  "admin": "管理者",
+  "page": "ページ",
+  "viewSite": "サイトを表示",
+  "navigation": {
+    "posts": "記事管理",
+    "users": "ユーザー管理",
+    "media": "メディア管理",
+    "settings": "設定",
+    "logout": "ログアウト",
+    "login": "ログイン"
+  },
+  "actions": {
+    "create": "作成",
+    "edit": "編集", 
+    "delete": "削除",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "publish": "公開",
+    "draft": "下書き保存",
+    "preview": "プレビュー"
+  },
+  "status": {
+    "published": "公開済み",
+    "draft": "下書き",
+    "pending": "承認待ち",
+    "archived": "アーカイブ"
+  },
+  "messages": {
+    "saveSuccess": "正常に保存されました",
+    "saveError": "保存に失敗しました",
+    "deleteConfirm": "この項目を削除してもよろしいですか？",
+    "deleteSuccess": "正常に削除されました",
+    "unauthorized": "この操作を行う権限がありません"
+  },
+  "ui": {
+    "loading": "読み込み中...",
+    "toggleDarkMode": "ダークモードを切り替え"
+  },
+  "errors": {
+    "accessDenied": "アクセスが拒否されました",
+    "adminRequired": "管理者権限が必要です"
+  }
+}

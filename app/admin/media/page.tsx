@@ -1,12 +1,25 @@
 "use client";
 
-
-import { useAuth } from '../../lib/auth';
+import { useAuth } from '../../lib/ui/contexts/auth-context';
 import React, { useState, useCallback, useMemo } from 'react';
 import type { JSX } from 'react';
-import AdminLayout from '../../lib/AdminLayout';
-import { MEDIA_MANAGEMENT_LABEL } from '../../lib/admin-types';
-import type { MediaItem } from '../../lib/types';
+import AdminLayout from '../../lib/ui/components/layouts/AdminLayout';
+import { useSearch } from '../../lib/hooks/use-search';
+import { SearchBar, EmptySearchResults } from '../../lib/ui/components/search/SearchComponents';
+import type { SearchableItem } from '../../lib/search-engine';
+
+// 一時的な型定義とラベル定義
+const MEDIA_MANAGEMENT_LABEL = 'メディア管理';
+
+interface MediaItem extends SearchableItem {
+  id: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  uploadDate: string;
+  url: string;
+  mediaType: 'image' | 'video' | 'other';
+}
 import Image from 'next/image';
 
 // ファイルサイズ変換ユーティリティをローカルに定義
@@ -15,6 +28,13 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+// メディアタイプ判定関数
+function getMediaType(filename: string): 'image' | 'video' {
+  const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.m4v', '.mkv', '.ogv', '.3gp', '.3g2'];
+  const ext: string = filename.substring(filename.lastIndexOf('.')).toLowerCase();
+  return videoExtensions.includes(ext) ? 'video' : 'image';
 }
 
 
@@ -26,9 +46,17 @@ function MediaAdminPage(): JSX.Element {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [dragOver, setDragOver] = useState<boolean>(false);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [sortBy, setSortBy] = useState<'name' | 'date' | 'size'>('date');
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'size' | 'type'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'image' | 'video'>('all');
+  const [editingThumbnail, setEditingThumbnail] = useState<string | null>(null);
+  const [thumbnailTime, setThumbnailTime] = useState<number>(0);
+
+  // 検索機能の初期化（filteredItemsとUIコンポーネントで使用）
+  const search = useSearch(media, {
+    filenameField: 'filename',
+    dateField: 'uploadDate',
+  });
 
 
   // メディア一覧取得
@@ -36,7 +64,9 @@ function MediaAdminPage(): JSX.Element {
   React.useEffect(() => {
     const fetchMedia = async (): Promise<void> => {
       try {
-        const res = await fetch('/api/admin/media');
+        const res = await fetch('/api/media', {
+          credentials: 'include'
+        });
         if (!res.ok) throw new Error('メディア一覧の取得に失敗しました');
         const data: unknown = await res.json();
         // 型ガード
@@ -64,9 +94,10 @@ function MediaAdminPage(): JSX.Element {
     const formData = new FormData();
     Array.from(files).forEach((file: File) => formData.append('files', file));
     try {
-      const res = await fetch('/api/admin/media', {
+      const res = await fetch('/api/media', {
         method: 'POST',
         body: formData,
+        credentials: 'include'
       });
       if (!res.ok) throw new Error('アップロードに失敗しました');
       const updated: unknown = await res.json();
@@ -88,10 +119,9 @@ function MediaAdminPage(): JSX.Element {
     if (selectedMedia.length === 0) return;
     setIsDeleting(true);
     try {
-      const res = await fetch('/api/admin/media', {
+      const res = await fetch('/api/media?files=' + selectedMedia.join(','), {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filenames: selectedMedia }),
+        credentials: 'include'
       });
       if (!res.ok) throw new Error('削除に失敗しました');
       const updated: unknown = await res.json();
@@ -128,13 +158,10 @@ function MediaAdminPage(): JSX.Element {
 
   // 全選択・全解除
   const handleSelectAll = useCallback((): void => {
-    // filteredAndSortedMediaを動的に計算
-    const currentFiltered = media.filter((m: MediaItem) => {
-      if (searchTerm) {
-        return m.originalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               m.filename.toLowerCase().includes(searchTerm.toLowerCase());
-      }
-      return true;
+    // 現在フィルタリングされているアイテムから計算
+    const currentFiltered = search.filteredItems.filter((m: MediaItem) => {
+      // メディアタイプフィルター
+      return mediaTypeFilter === 'all' || getMediaType(m.filename) === mediaTypeFilter;
     });
 
     if (selectedMedia.length === currentFiltered.length) {
@@ -142,7 +169,7 @@ function MediaAdminPage(): JSX.Element {
     } else {
       setSelectedMedia(currentFiltered.map((m) => m.filename));
     }
-  }, [selectedMedia.length, media, searchTerm]);
+  }, [selectedMedia.length, search.filteredItems, mediaTypeFilter]);
 
   // 個別選択
   const handleMediaSelect = useCallback((filename: string): void => {
@@ -163,15 +190,40 @@ function MediaAdminPage(): JSX.Element {
     }
   }, []);
 
-  // 検索・ソート
-  const filteredAndSortedMedia: MediaItem[] = useMemo(() => {
-    let result = media;
-    if (searchTerm) {
-      result = result.filter((m: MediaItem) =>
-        m.originalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.filename.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  // サムネイル編集
+  const handleEditThumbnail = useCallback((filename: string): void => {
+    setEditingThumbnail(filename);
+    setThumbnailTime(0);
+  }, []);
+
+  const handleThumbnailTimeChange = useCallback((time: number): void => {
+    setThumbnailTime(time);
+  }, []);
+
+  const handleApplyThumbnail = useCallback((filename: string): void => {
+    // 動画要素を取得してサムネイル時間を適用
+    const videoElement = document.querySelector(`video[data-filename="${filename}"]`) as HTMLVideoElement;
+    if (videoElement) {
+      videoElement.currentTime = thumbnailTime;
     }
+    setEditingThumbnail(null);
+  }, [thumbnailTime]);
+
+  const handleCancelThumbnailEdit = useCallback((): void => {
+    setEditingThumbnail(null);
+    setThumbnailTime(0);
+  }, []);
+
+  // 検索・ソート
+  const filteredAndSortedMedia: readonly MediaItem[] = useMemo(() => {
+    let result = search.filteredItems;
+    
+    // メディアタイプフィルター
+    if (mediaTypeFilter !== 'all') {
+      result = result.filter((m: MediaItem) => getMediaType(m.filename) === mediaTypeFilter);
+    }
+    
+    // ソート
     result = [...result].sort((a: MediaItem, b: MediaItem) => {
       let cmp = 0;
       if (sortBy === 'name') {
@@ -180,11 +232,21 @@ function MediaAdminPage(): JSX.Element {
         cmp = new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime();
       } else if (sortBy === 'size') {
         cmp = a.size - b.size;
+      } else if (sortBy === 'type') {
+        // 種類順：画像を先に、動画を後に (image < video)
+        const typeA = getMediaType(a.filename);
+        const typeB = getMediaType(b.filename);
+        if (typeA !== typeB) {
+          cmp = typeA === 'image' ? -1 : 1;
+        } else {
+          // 同じタイプの場合は名前順でサブソート
+          cmp = a.originalName.localeCompare(b.originalName);
+        }
       }
       return sortOrder === 'asc' ? cmp : -cmp;
     });
     return result;
-  }, [media, searchTerm, sortBy, sortOrder]);
+  }, [search.filteredItems, sortBy, sortOrder, mediaTypeFilter]);
 
 
   // ローディング表示
@@ -213,11 +275,15 @@ function MediaAdminPage(): JSX.Element {
   // メインUI
   return (
     <AdminLayout title={MEDIA_MANAGEMENT_LABEL}>
-      <div className="space-y-6">
-        <p className="text-gray-600 dark:text-gray-400">
-          アップロードされたメディアの管理・削除ができます
-        </p>
-        <div className="flex gap-2">
+      <div className="h-full p-6">
+        <div className="space-y-8 max-w-7xl mx-auto">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">メディア管理</h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              アップロードされたメディアの管理・削除ができます
+            </p>
+          </div>
+          <div className="flex gap-2">
           <label className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors">
             {isUploading ? 'アップロード中...' : 'メディアをアップロード'}
             <input
@@ -270,7 +336,7 @@ function MediaAdminPage(): JSX.Element {
           </div>
         </label>
         {/* 統計情報 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{media.length}</div>
             <div className="text-gray-600 dark:text-gray-400">総メディア数</div>
@@ -282,31 +348,45 @@ function MediaAdminPage(): JSX.Element {
             <div className="text-gray-600 dark:text-gray-400">総容量</div>
           </div>
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{filteredAndSortedMedia.length}</div>
+            <div className="text-gray-600 dark:text-gray-400">表示中</div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{selectedMedia.length}</div>
             <div className="text-gray-600 dark:text-gray-400">選択中</div>
           </div>
         </div>
         {/* 検索・ソート */}
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="メディア名で検索..."
-                value={searchTerm}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-            </div>
+          <div className="flex flex-col gap-4">
+            {/* 検索バー */}
+            <SearchBar 
+              search={search} 
+              placeholder="メディアを検索..."
+            />
+            
+            {/* フィルター・ソート行 */}
             <div className="flex gap-2">
+              {/* メディアタイプフィルター */}
+              <select
+                value={mediaTypeFilter}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMediaTypeFilter(e.target.value as 'all' | 'image' | 'video')}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="all">すべて</option>
+                <option value="image">画像のみ</option>
+                <option value="video">動画のみ</option>
+              </select>
+              {/* ソート */}
               <select
                 value={sortBy}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value as 'name' | 'date' | 'size')}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value as 'name' | 'date' | 'size' | 'type')}
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="date">日付順</option>
                 <option value="name">名前順</option>
                 <option value="size">サイズ順</option>
+                <option value="type">種類順</option>
               </select>
               <button
                 onClick={(): void => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
@@ -319,11 +399,11 @@ function MediaAdminPage(): JSX.Element {
         </div>
         {/* メディア一覧 */}
         {filteredAndSortedMedia.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-500 dark:text-gray-400">
-              {searchTerm ? '検索条件に一致するメディアが見つかりません' : 'メディアがありません'}
-            </div>
-          </div>
+          <EmptySearchResults
+            hasSearchTerm={Boolean(search.searchTerm)}
+            emptyMessage="メディアがありません"
+            noResultsMessage="検索条件に一致するメディアが見つかりません"
+          />
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             {/* テーブルヘッダー */}
@@ -343,8 +423,7 @@ function MediaAdminPage(): JSX.Element {
             {/* メディアグリッド */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
               {filteredAndSortedMedia.map((item: MediaItem) => {
-                const videoExtensions: readonly string[] = ['.mp4', '.webm', '.mov', '.avi', '.m4v', '.mkv', '.ogv', '.3gp', '.3g2'] as const;
-                const ext: string = item.filename.substring(item.filename.lastIndexOf('.')).toLowerCase();
+                const isVideo = getMediaType(item.filename) === 'video';
                 return (
                   <div
                     key={item.filename}
@@ -368,30 +447,56 @@ function MediaAdminPage(): JSX.Element {
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           {formatFileSize(item.size)}
                         </div>
+                        {/* メディアタイプバッジ */}
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            isVideo 
+                              ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' 
+                              : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                          }`}>
+                            {isVideo ? '動画' : '画像'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     {/* 画像・動画プレビュー */}
-                    <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg mb-2 overflow-hidden flex items-center justify-center">
-                      {videoExtensions.includes(ext) ? (
-                        <video
-                          src={item.url}
-                          controls
-                          className="w-full h-full object-cover"
-                          poster="/video-thumbnail.png"
-                        >
-                          <track
-                            kind="captions"
-                            src=""
-                            srcLang="ja"
-                            label="Japanese captions"
-                          />
-                          お使いのブラウザは video タグに対応していません。
-                        </video>
+                    <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg mb-2 overflow-hidden flex items-center justify-center relative">
+                      {isVideo ? (
+                        <div className="w-full h-full relative">
+                          <video
+                            src={item.url}
+                            className="w-full h-full object-cover"
+                            preload="metadata"
+                            data-filename={item.filename}
+                            muted
+                            onLoadedMetadata={(e) => {
+                              // 動画の最初のフレームをサムネイルとして表示
+                              const video = e.currentTarget;
+                              if (editingThumbnail !== item.filename) {
+                                video.currentTime = 0.1; // 0.1秒の位置でサムネイル生成
+                              }
+                            }}
+                          >
+                            {/* アクセシビリティのため空のtrack要素を追加（将来的に字幕ファイルがある場合はsrcを設定） */}
+                            <track kind="captions" srcLang="ja" label="Japanese captions" />
+                            お使いのブラウザは video タグに対応していません。
+                          </video>
+                          {/* サムネイル編集ボタン */}
+                          <button
+                            onClick={() => handleEditThumbnail(item.filename)}
+                            className="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-1 rounded hover:bg-opacity-70 transition-opacity"
+                            title="サムネイルを編集"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                        </div>
                       ) : (
                         <Image
                           src={item.url}
                           alt={item.originalName}
-                          className="w-full h-full object-cover"
+                          className="object-cover"
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
@@ -423,6 +528,78 @@ function MediaAdminPage(): JSX.Element {
             </div>
           </div>
         )}
+        
+        {/* サムネイル編集モーダル */}
+        {editingThumbnail && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+                サムネイルを編集
+              </h3>
+              {(() => {
+                const editingItem = filteredAndSortedMedia.find(item => item.filename === editingThumbnail);
+                if (!editingItem) return null;
+                
+                return (
+                  <div className="space-y-4">
+                    {/* プレビュー動画 */}
+                    <div className="aspect-video bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+                      <video
+                        src={editingItem.url}
+                        controls
+                        className="w-full h-full object-contain"
+                        preload="metadata"
+                        onTimeUpdate={(e) => {
+                          const video = e.currentTarget;
+                          handleThumbnailTimeChange(video.currentTime);
+                        }}
+                      >
+                        <track kind="captions" srcLang="ja" label="Japanese captions" />
+                        お使いのブラウザは video タグに対応していません。
+                      </video>
+                    </div>
+                    
+                    {/* 時間入力 */}
+                    <div className="flex items-center gap-4">
+                      <label htmlFor="thumbnail-time" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        サムネイル時間 (秒):
+                      </label>
+                      <input
+                        id="thumbnail-time"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={thumbnailTime.toFixed(1)}
+                        onChange={(e) => handleThumbnailTimeChange(parseFloat(e.target.value) || 0)}
+                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white w-24"
+                      />
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        現在: {thumbnailTime.toFixed(1)}秒
+                      </span>
+                    </div>
+                    
+                    {/* ボタン */}
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={handleCancelThumbnailEdit}
+                        className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                      >
+                        キャンセル
+                      </button>
+                      <button
+                        onClick={() => handleApplyThumbnail(editingThumbnail)}
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                      >
+                        適用
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+        </div>
       </div>
     </AdminLayout>
   );

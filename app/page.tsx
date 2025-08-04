@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useAdvancedI18n } from './lib/contexts/advanced-i18n-context';
 
 interface Post {
   id: string;
@@ -13,35 +14,111 @@ interface Post {
   updatedAt: string;
 }
 
+const HeroSection = ({ t }: { t: (key: string) => string }) => (
+  <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+      <div className="text-center">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent mb-8">
+          {t('common.site.modernBlog')}
+          <span className="block text-slate-800 dark:text-white">{t('common.site.platform')}</span>
+        </h1>
+        <p className="text-xl sm:text-2xl text-slate-600 dark:text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed">
+          {t('common.site.platformDescription')}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link
+            href="/articles"
+            className="inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+          >
+            {t('common.navigation.articles')}
+            <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </Link>
+          <Link
+            href="/articles/new"
+            className="inline-flex items-center px-8 py-4 text-lg font-semibold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 border-2 border-indigo-200 dark:border-slate-600 rounded-2xl hover:bg-indigo-50 dark:hover:bg-slate-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+          >
+            {t('common.site.createPost')}
+          </Link>
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
+const FeatureCard = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
+  <div className="group p-8 bg-white dark:bg-slate-800 rounded-3xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 border border-slate-100 dark:border-slate-700">
+    <div className="text-4xl mb-6 group-hover:scale-110 transition-transform duration-300">
+      {icon}
+    </div>
+    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">{title}</h3>
+    <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{description}</p>
+  </div>
+);
+
+const FeaturesSection = ({ t }: { t: (key: string) => string }) => (
+  <section className="py-24 bg-slate-50 dark:bg-slate-900">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center mb-16">
+        <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-4">
+          {t('common.site.whyChooseUs')}
+        </h2>
+        <p className="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+          {t('common.site.whyChooseDescription')}
+        </p>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <FeatureCard
+          icon={t('common.features.performance.icon')}
+          title={t('common.features.performance.title')}
+          description={t('common.features.performance.description')}
+        />
+        <FeatureCard
+          icon={t('common.features.design.icon')}
+          title={t('common.features.design.title')}
+          description={t('common.features.design.description')}
+        />
+        <FeatureCard
+          icon={t('common.features.security.icon')}
+          title={t('common.features.security.title')}
+          description={t('common.features.security.description')}
+        />
+      </div>
+    </div>
+  </section>
+);
+
 export default function HomePage() {
   const [latestPosts, setLatestPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t, formatDate } = useAdvancedI18n();
 
   useEffect(() => {
-    const fetchLatestPosts = async () => {
-      try {
-        const response = await fetch('/api/posts/public?limit=3');
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.data) {
-            setLatestPosts(result.data);
+      const fetchLatestPosts = async () => {
+        try {
+          const response = await fetch('/api/posts/public?limit=3');
+          
+          if (response.ok) {
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+              setLatestPosts(result.data);
+            } else {
+              setLatestPosts([]);
+            }
           } else {
-            console.error('API応答の形式が正しくありません:', result);
             setLatestPosts([]);
           }
-        } else {
-          console.error('最新記事の取得に失敗しました:', response.status, response.statusText);
+        } catch (error) {
+          console.error('Failed to fetch latest posts:', error);
           setLatestPosts([]);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('最新記事の取得に失敗しました:', error);
-        setLatestPosts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLatestPosts();
+      };    fetchLatestPosts();
   }, []);
 
   const renderArticlesContent = () => {
@@ -50,13 +127,14 @@ export default function HomePage() {
         const createdDate = new Date(post.createdAt);
         const formattedDate = createdDate.toLocaleDateString('ja-JP', {
           year: 'numeric',
-          month: 'long'
+          month: 'long',
+          day: 'numeric'
         });
         
-        // コンテンツから概要を生成（最初の150文字）
+        // コンテンツから概要を生成（最初の120文字）
         const excerpt = post.content
           .replace(/<[^>]*>/g, '') // HTMLタグを除去
-          .slice(0, 150) + (post.content.length > 150 ? '...' : '');
+          .slice(0, 120) + (post.content.length > 120 ? '...' : '');
         
         // 読了時間を推定（日本語の場合、分あたり400-600文字として計算）
         const readTimeMinutes = Math.max(1, Math.ceil(post.content.length / 500));
@@ -64,35 +142,55 @@ export default function HomePage() {
         return (
           <article 
             key={post.id}
-            className="group bg-white dark:bg-slate-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-300 dark:border-slate-700 overflow-hidden"
+            className="group relative bg-white dark:bg-slate-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border border-slate-100 dark:border-slate-700 overflow-hidden transform hover:-translate-y-2"
           >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-blue-700 dark:text-blue-400 bg-blue-200 dark:bg-blue-900/50 px-2 py-1 rounded-full">
-                  記事
+            {/* グラデーション背景 */}
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            
+            <div className="relative p-8">
+              <div className="flex items-center justify-between mb-6">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 text-indigo-700 dark:text-indigo-300">
+                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  {t('common.site.articleTag')}
                 </span>
-                <span className="text-xs text-slate-600 dark:text-slate-400">
-                  {readTimeMinutes}分
-                </span>
+                <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 space-x-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{t('common.site.readTime', { minutes: readTimeMinutes })}</span>
+                </div>
               </div>
               
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-200 mb-3 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300 line-clamp-2 leading-tight">
                 {post.title}
               </h3>
               
-              <p className="text-slate-700 dark:text-slate-400 text-sm mb-4 line-clamp-3">
+              <p className="text-slate-600 dark:text-slate-300 mb-6 line-clamp-3 leading-relaxed">
                 {excerpt}
               </p>
               
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-600 dark:text-slate-500">
-                  {formattedDate}
-                </span>
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">
+                      {(post.author || t('common.site.anonymous')).charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{post.author || t('common.site.anonymous')}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{formattedDate}</p>
+                  </div>
+                </div>
                 <Link 
                   href={`/articles/${post.slug}`}
-                  className="text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-semibold transition-colors"
+                  className="inline-flex items-center px-4 py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-white hover:bg-indigo-600 dark:hover:bg-indigo-500 rounded-xl transition-all duration-300 group-hover:shadow-lg"
                 >
-                  続きを読む →
+                  {t('common.site.readArticle')}
+                  <svg className="ml-1 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
                 </Link>
               </div>
             </div>
@@ -103,197 +201,91 @@ export default function HomePage() {
     
     // 記事がない場合
     return (
-      <div className="col-span-full text-center py-12">
-        <div className="text-slate-500 dark:text-slate-500 text-lg mb-4">
-          📝
-        </div>
-        <h3 className="text-slate-800 dark:text-slate-400 text-lg font-semibold mb-2">
-          まだ記事がありません
+      <div className="col-span-full text-center py-16">
+        <div className="text-6xl mb-6">📝</div>
+        <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-4">
+          {t('common.site.noArticles')}
         </h3>
-        <p className="text-slate-600 dark:text-slate-500 text-sm">
-          最初の記事を投稿してみましょう！
+        <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-md mx-auto">
+          {t('common.site.noArticlesDescription')}
         </p>
         <Link
-          href="/admin/new"
-          className="inline-block mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+          href="/admin/posts/new"
+          className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
         >
-          記事を投稿する
+          <svg className="mr-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          {t('common.site.createFirstPost')}
         </Link>
       </div>
     );
   };
   return (
-    <main className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900">
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-200 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 text-sm font-medium mb-6 shadow-sm">
-            <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" />
-            <span>技術ブログ運営中</span>
-          </div>
-          
-          {/* Main Heading */}
-          <h1 className="text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-purple-700 to-indigo-700 mb-6 drop-shadow-sm">
-            Tech Blog
-          </h1>
-          
-          {/* Subtitle */}
-          <p className="text-xl md:text-2xl text-slate-700 dark:text-slate-300 mb-4 font-medium">
-            フロントエンド・バックエンド・DevOpsの技術記事
-          </p>
-          
-          {/* Description */}
-          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-3xl mx-auto mb-10 leading-relaxed">
-            Next.js、TypeScript、MongoDB、Dockerなどの最新技術を使った開発経験や、
-            パフォーマンス最適化、アーキテクチャ設計について発信しています。
-          </p>
-          
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Link 
-              href="/articles" 
-              className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold"
-            >
-              <span className="flex items-center justify-center">
-                📚 記事を読む
-                <svg className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
-            <Link 
-              href="/about" 
-              className="px-8 py-4 border-2 border-slate-400 dark:border-slate-600 text-slate-800 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 transition-all duration-300 font-semibold shadow-sm"
-            >
-              👨‍💻 プロフィール
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Tech Stack Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-slate-900 dark:text-slate-200 mb-12">
-            使用技術スタック
-          </h2>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { name: 'Next.js', icon: '⚡', color: 'from-black to-gray-800' },
-              { name: 'TypeScript', icon: '🔷', color: 'from-blue-600 to-blue-800' },
-              { name: 'MongoDB', icon: '🍃', color: 'from-green-600 to-green-800' },
-              { name: 'Tailwind CSS', icon: '🎨', color: 'from-cyan-500 to-blue-500' },
-              { name: 'Docker', icon: '🐳', color: 'from-blue-500 to-blue-700' },
-              { name: 'Node.js', icon: '🟢', color: 'from-green-500 to-green-700' },
-              { name: 'React', icon: '⚛️', color: 'from-blue-400 to-blue-600' },
-              { name: 'Vercel', icon: '▲', color: 'from-black to-gray-700' }
-            ].map((tech) => (
-              <div 
-                key={tech.name}
-                className="group relative p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-slate-300 dark:border-slate-700"
-              >
-                <div className={`absolute inset-0 bg-gradient-to-r ${tech.color} opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-300`}></div>
-                <div className="text-center relative z-10">
-                  <div className="text-3xl mb-2">{tech.icon}</div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-200">{tech.name}</h3>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
+      <HeroSection t={t} />
+      
       {/* Features Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-slate-900 dark:text-slate-200 mb-12">
-            ブログの特徴
-          </h2>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: '🚀',
-                title: 'パフォーマンス重視',
-                description: 'Next.js の最新機能を活用した高速なWebサイト設計と最適化手法について解説'
-              },
-              {
-                icon: '🔒',
-                title: 'セキュリティ',
-                description: 'JWT認証、API設計、SQLインジェクション対策など実践的なセキュリティ実装'
-              },
-              {
-                icon: '📱',
-                title: 'レスポンシブ設計',
-                description: 'モバイルファーストなUI/UX設計とTailwind CSSを使った効率的なスタイリング'
-              }
-            ].map((feature) => (
-              <div 
-                key={feature.title}
-                className="text-center p-8 bg-white dark:bg-slate-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-300 dark:border-slate-700"
-              >
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-200 mb-4">
-                  {feature.title}
-                </h3>
-                <p className="text-slate-700 dark:text-slate-400 leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Latest Articles Preview */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-200">
-              最新記事
+      <FeaturesSection t={t} />
+      
+      {/* Latest Articles Section */}
+      <section className="py-24 bg-white dark:bg-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-4">
+              {t('common.site.latestArticles')}
             </h2>
-            <Link 
-              href="/articles"
-              className="text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold flex items-center transition-colors"
-            >
-              すべて見る
-              <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+              {t('common.site.latestArticlesDescription')}
+            </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {loading ? (
-              // ローディング表示
-              Array.from({ length: 3 }).map((_, index) => (
-                <div 
-                  key={`skeleton-post-${index + 1}`}
-                  className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-300 dark:border-slate-700 overflow-hidden animate-pulse"
-                >
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="h-6 bg-slate-300 dark:bg-slate-700 rounded-full w-20"></div>
-                      <div className="h-4 bg-slate-300 dark:bg-slate-700 rounded w-12"></div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white dark:bg-slate-700 rounded-3xl p-8 shadow-lg animate-pulse">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="h-6 bg-slate-200 dark:bg-slate-600 rounded-full w-16"></div>
+                    <div className="h-4 bg-slate-200 dark:bg-slate-600 rounded w-20"></div>
+                  </div>
+                  <div className="h-6 bg-slate-200 dark:bg-slate-600 rounded mb-4"></div>
+                  <div className="h-4 bg-slate-200 dark:bg-slate-600 rounded mb-2"></div>
+                  <div className="h-4 bg-slate-200 dark:bg-slate-600 rounded mb-6 w-3/4"></div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-slate-200 dark:bg-slate-600 rounded-full"></div>
+                      <div>
+                        <div className="h-4 bg-slate-200 dark:bg-slate-600 rounded w-20 mb-1"></div>
+                        <div className="h-3 bg-slate-200 dark:bg-slate-600 rounded w-16"></div>
+                      </div>
                     </div>
-                    <div className="h-6 bg-slate-300 dark:bg-slate-700 rounded mb-3"></div>
-                    <div className="h-4 bg-slate-300 dark:bg-slate-700 rounded mb-2"></div>
-                    <div className="h-4 bg-slate-300 dark:bg-slate-700 rounded mb-4 w-3/4"></div>
-                    <div className="flex items-center justify-between">
-                      <div className="h-4 bg-slate-300 dark:bg-slate-700 rounded w-16"></div>
-                      <div className="h-4 bg-slate-300 dark:bg-slate-700 rounded w-20"></div>
-                    </div>
+                    <div className="h-8 bg-slate-200 dark:bg-slate-600 rounded-xl w-16"></div>
                   </div>
                 </div>
-              ))
-            ) : (
-              renderArticlesContent()
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {renderArticlesContent()}
+            </div>
+          )}
+          
+          {!loading && latestPosts.length > 0 && (
+            <div className="text-center mt-16">
+              <Link
+                href="/articles"
+                className="inline-flex items-center px-8 py-4 text-lg font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-2xl transition-all duration-200 transform hover:scale-105"
+              >
+                {t('common.site.viewAllArticles')}
+                <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
-    </main>
+    </div>
   );
 }

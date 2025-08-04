@@ -1,251 +1,193 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  AdminPostsResponse, 
-  AdminUsersResponse, 
-  AdminStatsResponse, 
-  PaginationParams, 
-  PostFilters, 
-  UserFilters 
-} from './types';
+/**
+ * 管理者機能フック互換性ファイル
+ * 
+ * 管理者画面で使用される各種フックを提供し、
+ * 既存のコンポーネントとの互換性を保ちます。
+ */
 
-// Generic API Hook
-function useApi<T>(url: string) {
-  const [data, setData] = useState<T | null>(null);
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import type { Post } from './core/types';
+
+// ============================================================================
+// 管理者投稿関連フック
+// ============================================================================
+
+/**
+ * 管理者投稿一覧フック
+ */
+export function useAdminPosts() {
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchPosts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/posts', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch posts');
+      }
+      
+      const data = await response.json();
+      setPosts(data.posts || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  return { posts, loading, error, refetch: fetchPosts };
+}
+
+/**
+ * 管理者統計情報フック
+ */
+export function useAdminStats() {
+  const [stats, setStats] = useState({
+    totalPosts: 0,
+    totalUsers: 0,
+    totalComments: 0,
+    recentActivity: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/stats', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch stats');
+      }
+      
+      const data = await response.json();
+      setStats(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  return { stats, loading, error, refetch: fetchStats };
+}
+
+// ============================================================================
+// 投稿操作フック
+// ============================================================================
+
+/**
+ * 投稿操作フック
+ */
+export function usePostActions() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const deletePost = useCallback(async (postId: string) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(url);
-      const result = await response.json();
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        }
+      });
       
       if (!response.ok) {
-        throw new Error(result.error || `HTTP error! status: ${response.status}`);
+        throw new Error('Failed to delete post');
       }
       
-      if (result.success) {
-        setData(result.data);
-      } else {
-        throw new Error(result.error || 'API request failed');
-      }
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-      setData(null);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return false;
     } finally {
       setLoading(false);
     }
-  }, [url]);
+  }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  return { data, loading, error, refetch: fetchData };
-}
-
-// Admin Posts Hook with Pagination and Filtering
-export function useAdminPosts(
-  pagination: PaginationParams = { page: 1, limit: 20 },
-  filters: PostFilters = { type: 'all' }
-) {
-  const queryParams = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set('page', pagination.page.toString());
-    params.set('limit', pagination.limit.toString());
-    params.set('type', filters.type);
-    
-    if (filters.search) params.set('search', filters.search);
-    if (filters.author) params.set('author', filters.author);
-    if (filters.sortBy) params.set('sortBy', filters.sortBy);
-    if (filters.sortOrder) params.set('sortOrder', filters.sortOrder);
-    
-    return params.toString();
-  }, [pagination, filters]);
-
-  const url = `/api/admin/posts` + (queryParams ? `?${queryParams}` : '');
-  
-  const { data, loading, error, refetch } = useApi<AdminPostsResponse['data']>(url);
-
-  // Memoized computed values
-  const stats = useMemo(() => {
-    if (!data) return { total: 0, published: 0, deleted: 0 };
-    
-    return {
-      total: data.length,
-      published: data.filter(post => !post.isDeleted).length,
-      deleted: data.filter(post => post.isDeleted).length
-    };
-  }, [data]);
-
-  const filteredPosts = useMemo(() => {
-    if (!data) return [];
-    
-    let filtered = [...data];
-    
-    // Apply type filter
-    if (filters.type === 'published') {
-      filtered = filtered.filter(post => !post.isDeleted);
-    } else if (filters.type === 'deleted') {
-      filtered = filtered.filter(post => post.isDeleted);
-    }
-    
-    // Apply search filter
-    if (filters.search) {
-      const search = filters.search.toLowerCase();
-      filtered = filtered.filter(post => 
-        post.title.toLowerCase().includes(search) ||
-        post.content.toLowerCase().includes(search) ||
-        post.author.toLowerCase().includes(search)
-      );
-    }
-    
-    // Apply author filter
-    if (filters.author) {
-      filtered = filtered.filter(post => post.author === filters.author);
-    }
-    
-    // Apply sorting
-    if (filters.sortBy) {
-      filtered.sort((a, b) => {
-        const aValue = a[filters.sortBy!];
-        const bValue = b[filters.sortBy!];
-        
-        // Type-safe comparison
-        if (aValue == null && bValue == null) return 0;
-        if (aValue == null) return 1;
-        if (bValue == null) return -1;
-        
-        let comparison = 0;
-        if (aValue < bValue) comparison = -1;
-        if (aValue > bValue) comparison = 1;
-        
-        return filters.sortOrder === 'desc' ? -comparison : comparison;
-      });
-    }
-    
-    return filtered;
-  }, [data, filters]);
-
-  return {
-    posts: filteredPosts,
-    stats,
-    loading,
-    error,
-    refetch
-  };
-}
-
-// Admin Users Hook
-export function useAdminUsers(
-  pagination: PaginationParams = { page: 1, limit: 20 },
-  filters: UserFilters = {}
-) {
-  const queryParams = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set('page', pagination.page.toString());
-    params.set('limit', pagination.limit.toString());
-    
-    if (filters.role) params.set('role', filters.role);
-    if (filters.search) params.set('search', filters.search);
-    if (filters.sortBy) params.set('sortBy', filters.sortBy);
-    if (filters.sortOrder) params.set('sortOrder', filters.sortOrder);
-    
-    return params.toString();
-  }, [pagination, filters]);
-
-  const url = `/api/admin/users` + (queryParams ? `?${queryParams}` : '');
-  
-  return useApi<AdminUsersResponse['data']>(url);
-}
-
-// Admin Stats Hook
-export function useAdminStats() {
-  return useApi<AdminStatsResponse['data']>('/api/admin/stats');
-}
-
-// Optimized Post Actions Hook
-export function usePostActions() {
-  const [loading, setLoading] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const deletePost = useCallback(async (postId: string, permanent = false) => {
-    setLoading(postId);
-    setError(null);
-    
+  const publishPost = useCallback(async (postId: string) => {
     try {
-      const response = await fetch(`/api/admin/posts/${postId}`, {
-        method: 'DELETE',
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
         },
-        body: JSON.stringify({ permanent }),
+        body: JSON.stringify({ status: 'published' })
       });
       
-      const result = await response.json();
-      
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to delete post');
+        throw new Error('Failed to publish post');
       }
       
-      return result;
+      return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      setError(message);
-      throw err;
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return false;
     } finally {
-      setLoading(null);
+      setLoading(false);
     }
   }, []);
 
-  const restorePost = useCallback(async (postId: string) => {
-    setLoading(postId);
-    setError(null);
-    
+  const unpublishPost = useCallback(async (postId: string) => {
     try {
-      const response = await fetch(`/api/admin/posts/${postId}/restore`, {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/posts/${postId}`, {
         method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        },
+        body: JSON.stringify({ status: 'draft' })
       });
       
-      const result = await response.json();
-      
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to restore post');
+        throw new Error('Failed to unpublish post');
       }
       
-      return result;
+      return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      setError(message);
-      throw err;
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return false;
     } finally {
-      setLoading(null);
+      setLoading(false);
     }
   }, []);
 
   return {
     deletePost,
-    restorePost,
+    publishPost,
+    unpublishPost,
     loading,
     error
   };
-}
-
-// Debounced search hook
-export function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
 }

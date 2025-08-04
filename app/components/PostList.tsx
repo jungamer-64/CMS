@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 // マークダウンやHTMLタグを要素名に置換し、残りはテキストのみ抽出
 function summarizeContent(text: string): string {
@@ -26,15 +28,16 @@ function summarizeContent(text: string): string {
 }
 
 import Link from 'next/link';
-import { Post } from '@/app/lib/types';
+import { Post } from '@/app/lib/core/types';
 
 export interface PostListActionProps {
   onDelete?: (postId: string, permanent?: boolean) => void;
   onRestore?: (postId: string) => void;
+  onBulkDelete?: (postIds: string[], permanent?: boolean) => void;
+  onBulkRestore?: (postIds: string[]) => void;
   showActions?: boolean;
   isAdmin?: boolean;
 }
-
 
 export type PostListVariant = 'default' | 'card';
 
@@ -42,9 +45,27 @@ interface PostListProps extends PostListActionProps {
   posts: Post[];
   filter?: 'all' | 'published' | 'deleted';
   variant?: PostListVariant;
+  enableBulkActions?: boolean;
 }
 
-const PostList: React.FC<PostListProps> = ({ posts, filter = 'all', onDelete, onRestore, showActions = false, isAdmin = false, variant = 'default' }) => {
+const PostList: React.FC<PostListProps> = ({ 
+  posts, 
+  filter = 'all', 
+  onDelete, 
+  onRestore, 
+  onBulkDelete,
+  onBulkRestore,
+  showActions = false, 
+  isAdmin = false, 
+  variant = 'default',
+  enableBulkActions = false
+}) => {
+  console.log('PostList コンポーネント: 受け取った投稿数 =', posts.length);
+  console.log('PostList コンポーネント: 投稿データ =', posts);
+  
+  const [selectedPosts, setSelectedPosts] = React.useState<string[]>([]);
+  const [showBulkActions, setShowBulkActions] = React.useState(false);
+
   const filteredPosts = posts.filter(post => {
     switch (filter) {
       case 'published':
@@ -55,10 +76,123 @@ const PostList: React.FC<PostListProps> = ({ posts, filter = 'all', onDelete, on
         return true;
     }
   });
+  
+  console.log('PostList コンポーネント: フィルター後の投稿数 =', filteredPosts.length);
+
+  // 全て選択/全て解除
+  const handleSelectAll = () => {
+    if (selectedPosts.length === filteredPosts.length) {
+      setSelectedPosts([]);
+    } else {
+      setSelectedPosts(filteredPosts.map(post => post.id));
+    }
+  };
+
+  // 個別選択の切り替え
+  const handleSelectPost = (postId: string) => {
+    setSelectedPosts(prev => 
+      prev.includes(postId) 
+        ? prev.filter(id => id !== postId)
+        : [...prev, postId]
+    );
+  };
+
+  // 一括削除
+  const handleBulkDelete = (permanent = false) => {
+    if (selectedPosts.length === 0) return;
+    
+    const message = permanent 
+      ? `選択した ${selectedPosts.length} 件の投稿を完全に削除しますか？この操作は取り消せません。`
+      : `選択した ${selectedPosts.length} 件の投稿を削除しますか？`;
+    
+    if (confirm(message)) {
+      onBulkDelete?.(selectedPosts, permanent);
+      setSelectedPosts([]);
+      setShowBulkActions(false);
+    }
+  };
+
+  // 一括復元
+  const handleBulkRestore = () => {
+    if (selectedPosts.length === 0) return;
+    
+    if (confirm(`選択した ${selectedPosts.length} 件の投稿を復元しますか？`)) {
+      onBulkRestore?.(selectedPosts);
+      setSelectedPosts([]);
+      setShowBulkActions(false);
+    }
+  };
+
+  // 選択状態をリセット（フィルター変更時）
+  React.useEffect(() => {
+    setSelectedPosts([]);
+    setShowBulkActions(false);
+  }, [filter]);
+
+  // 選択状態に応じてバルクアクションの表示切り替え
+  React.useEffect(() => {
+    setShowBulkActions(selectedPosts.length > 0);
+  }, [selectedPosts]);
+
+  const selectedPublishedCount = selectedPosts.filter(id => 
+    filteredPosts.find(post => post.id === id && !post.isDeleted)
+  ).length;
+  
+  const selectedDeletedCount = selectedPosts.filter(id =>
+    filteredPosts.find(post => post.id === id && post.isDeleted)
+  ).length;
 
   if (filteredPosts.length === 0) {
     return <p className="p-4 text-gray-500">投稿がありません</p>;
   }
+
+  // バルクアクションバー
+  const BulkActionBar = () => (
+    showBulkActions && enableBulkActions && isAdmin && (
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 mb-4 rounded-lg">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-blue-700 dark:text-blue-300">
+            {selectedPosts.length} 件の投稿を選択中
+          </span>
+          <div className="flex space-x-2">
+            {selectedDeletedCount > 0 && (
+              <button
+                onClick={handleBulkRestore}
+                className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 rounded"
+              >
+                選択した投稿を復元 ({selectedDeletedCount})
+              </button>
+            )}
+            {selectedPublishedCount > 0 && (
+              <button
+                onClick={() => handleBulkDelete(false)}
+                className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded"
+              >
+                選択した投稿を削除 ({selectedPublishedCount})
+              </button>
+            )}
+            {selectedDeletedCount > 0 && (
+              <button
+                onClick={() => handleBulkDelete(true)}
+                className="bg-red-800 hover:bg-red-900 text-white text-xs px-3 py-1 rounded"
+              >
+                完全削除 ({selectedDeletedCount})
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setSelectedPosts([]);
+                setShowBulkActions(false);
+              }}
+              className="bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-1 rounded"
+            >
+              選択解除
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  );
 
   if (variant === 'card') {
     return (
@@ -100,75 +234,112 @@ const PostList: React.FC<PostListProps> = ({ posts, filter = 'all', onDelete, on
 
   // 管理画面など従来のリスト
   return (
-    <ul className="divide-y divide-gray-200">
-      {filteredPosts.map((post) => (
-        <li key={post.id} className={`p-4 ${post.isDeleted ? 'bg-red-50' : ''}`}>
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <h3 className={`text-lg font-medium ${post.isDeleted ? 'line-through text-gray-500' : ''}`}>
-                {post.title}
-                {post.isDeleted && <span className="ml-2 text-red-600">(削除済み)</span>}
-              </h3>
-              <p className="text-sm text-gray-600 mb-1">
-                スラッグ: <code className="bg-gray-100 px-1 rounded">{post.slug}</code>
-              </p>
-              <p className="text-sm text-gray-500 mb-2">
-                投稿者: {post.author} | 作成日: {new Date(post.createdAt).toLocaleDateString('ja-JP')}
-                {post.updatedAt && post.updatedAt !== post.createdAt && (
-                  <> | 更新日: {new Date(post.updatedAt).toLocaleDateString('ja-JP')}</>
-                )}
-              </p>
-              {post.content && (
-                <p className="text-sm text-gray-700 truncate">
-                  {post.content.length > 100 ? post.content.substring(0, 100) + '...' : post.content}
-                </p>
+    <div>
+      <BulkActionBar />
+      
+      {/* 全選択ヘッダー */}
+      {enableBulkActions && isAdmin && filteredPosts.length > 0 && (
+        <div className="bg-gray-50 dark:bg-gray-700 p-3 border-b border-gray-200 dark:border-gray-600">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={selectedPosts.length === filteredPosts.length && filteredPosts.length > 0}
+              onChange={handleSelectAll}
+              className="mr-2"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">
+              すべて選択 ({filteredPosts.length} 件)
+            </span>
+          </label>
+        </div>
+      )}
+      
+      <ul className="divide-y divide-gray-200">
+        {filteredPosts.map((post) => (
+          <li key={post.id} className={`p-4 ${post.isDeleted ? 'bg-red-50' : ''}`}>
+            <div className="flex items-start">
+              {/* チェックボックス */}
+              {enableBulkActions && isAdmin && (
+                <div className="mr-3 mt-1">
+                  <input
+                    type="checkbox"
+                    checked={selectedPosts.includes(post.id)}
+                    onChange={() => handleSelectPost(post.id)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </div>
               )}
-            </div>
-            {showActions && isAdmin && (
-              <div className="flex flex-col space-y-1 ml-4">
-                {!post.isDeleted ? (
-                  <>
-                    <Link
-                      href={`/articles/${post.slug}`}
-                      className="text-blue-600 hover:text-blue-900 text-sm px-2 py-1 border border-blue-300 rounded hover:bg-blue-50 text-center"
-                    >
-                      表示
-                    </Link>
-                    <Link
-                      href={`/admin/edit/${post.slug}`}
-                      className="text-green-600 hover:text-green-900 text-sm px-2 py-1 border border-green-300 rounded hover:bg-green-50 text-center"
-                    >
-                      編集
-                    </Link>
-                    <button
-                      onClick={() => onDelete && onDelete(post.id)}
-                      className="text-red-600 hover:text-red-900 text-sm px-2 py-1 border border-red-300 rounded hover:bg-red-50"
-                    >
-                      削除
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => onRestore && onRestore(post.id)}
-                      className="text-green-600 hover:text-green-900 text-sm px-2 py-1 border border-green-300 rounded hover:bg-green-50"
-                    >
-                      復元
-                    </button>
-                    <button
-                      onClick={() => onDelete && onDelete(post.id, true)}
-                      className="text-red-800 hover:text-red-900 text-sm px-2 py-1 border border-red-600 rounded hover:bg-red-50"
-                    >
-                      完全削除
-                    </button>
-                  </>
-                )}
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`text-lg font-medium ${post.isDeleted ? 'line-through text-gray-500' : ''}`}>
+                      {post.title}
+                      {post.isDeleted && <span className="ml-2 text-red-600">(削除済み)</span>}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-1">
+                      スラッグ: <code className="bg-gray-100 px-1 rounded">{post.slug}</code>
+                    </p>
+                    <p className="text-sm text-gray-500 mb-2">
+                      投稿者: {post.author} | 作成日: {new Date(post.createdAt).toLocaleDateString('ja-JP')}
+                      {post.updatedAt && post.updatedAt !== post.createdAt && (
+                        <> | 更新日: {new Date(post.updatedAt).toLocaleDateString('ja-JP')}</>
+                      )}
+                    </p>
+                    {post.content && (
+                      <p className="text-sm text-gray-700 truncate">
+                        {post.content.length > 100 ? post.content.substring(0, 100) + '...' : post.content}
+                      </p>
+                    )}
+                  </div>
+                  {showActions && isAdmin && (
+                    <div className="flex flex-col space-y-1 ml-4">
+                      {!post.isDeleted ? (
+                        <>
+                          <Link
+                            href={`/articles/${post.slug}`}
+                            className="text-blue-600 hover:text-blue-900 text-sm px-2 py-1 border border-blue-300 rounded hover:bg-blue-50 text-center"
+                          >
+                            表示
+                          </Link>
+                          <Link
+                            href={`/admin/posts/edit/${post.slug}`}
+                            className="text-green-600 hover:text-green-900 text-sm px-2 py-1 border border-green-300 rounded hover:bg-green-50 text-center"
+                          >
+                            編集
+                          </Link>
+                          <button
+                            onClick={() => onDelete && onDelete(post.id)}
+                            className="text-red-600 hover:text-red-900 text-sm px-2 py-1 border border-red-300 rounded hover:bg-red-50"
+                          >
+                            削除
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => onRestore && onRestore(post.id)}
+                            className="text-green-600 hover:text-green-900 text-sm px-2 py-1 border border-green-300 rounded hover:bg-green-50"
+                          >
+                            復元
+                          </button>
+                          <button
+                            onClick={() => onDelete && onDelete(post.id, true)}
+                            className="text-red-800 hover:text-red-900 text-sm px-2 py-1 border border-red-600 rounded hover:bg-red-50"
+                          >
+                            完全削除
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        </li>
-      ))}
-    </ul>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 };
 

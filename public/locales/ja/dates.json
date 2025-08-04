@@ -1,0 +1,61 @@
+{
+  "formats": {
+    "short": "M/d",
+    "medium": "MMM d, yyyy",
+    "long": "MMMM d, yyyy",
+    "full": "EEEE, MMMM d, yyyy",
+    "time": "HH:mm",
+    "datetime": "yyyy/MM/dd HH:mm"
+  },
+  "relative": {
+    "now": "たった今",
+    "seconds_ago": "{{count}}秒前",
+    "minutes_ago": "{{count}}分前",
+    "hours_ago": "{{count}}時間前",
+    "days_ago": "{{count}}日前",
+    "weeks_ago": "{{count}}週間前",
+    "months_ago": "{{count}}ヶ月前",
+    "years_ago": "{{count}}年前",
+    "in_seconds": "{{count}}秒後",
+    "in_minutes": "{{count}}分後",
+    "in_hours": "{{count}}時間後",
+    "in_days": "{{count}}日後",
+    "in_weeks": "{{count}}週間後",
+    "in_months": "{{count}}ヶ月後",
+    "in_years": "{{count}}年後"
+  },
+  "calendar": {
+    "today": "今日",
+    "yesterday": "昨日",
+    "tomorrow": "明日",
+    "thisWeek": "今週",
+    "lastWeek": "先週",
+    "nextWeek": "来週",
+    "thisMonth": "今月",
+    "lastMonth": "先月",
+    "nextMonth": "来月"
+  },
+  "weekdays": {
+    "sunday": "日曜日",
+    "monday": "月曜日",
+    "tuesday": "火曜日",
+    "wednesday": "水曜日",
+    "thursday": "木曜日",
+    "friday": "金曜日",
+    "saturday": "土曜日"
+  },
+  "months": {
+    "january": "1月",
+    "february": "2月",
+    "march": "3月",
+    "april": "4月",
+    "may": "5月",
+    "june": "6月",
+    "july": "7月",
+    "august": "8月",
+    "september": "9月",
+    "october": "10月",
+    "november": "11月",
+    "december": "12月"
+  }
+}

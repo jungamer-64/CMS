@@ -1,0 +1,49 @@
+{
+  "title": "記事管理",
+  "list": "記事一覧",
+  "create": "新しい記事を作成",
+  "edit": "記事を編集",
+  "delete": "記事を削除",
+  "fields": {
+    "title": "タイトル",
+    "slug": "スラッグ",
+    "content": "本文",
+    "author": "著者",
+    "status": "ステータス",
+    "publishedAt": "公開日",
+    "createdAt": "作成日",
+    "updatedAt": "更新日",
+    "tags": "タグ",
+    "category": "カテゴリー",
+    "excerpt": "概要",
+    "featuredImage": "アイキャッチ画像"
+  },
+  "actions": {
+    "publish": "公開",
+    "unpublish": "非公開",
+    "saveDraft": "下書き保存",
+    "preview": "プレビュー",
+    "duplicate": "複製",
+    "export": "エクスポート"
+  },
+  "filters": {
+    "all": "すべて",
+    "published": "公開済み",
+    "draft": "下書き",
+    "byAuthor": "著者別",
+    "byDate": "日付別"
+  },
+  "validation": {
+    "titleRequired": "タイトルは必須です",
+    "slugRequired": "スラッグは必須です",
+    "contentRequired": "本文は必須です",
+    "slugInvalid": "スラッグは英数字とハイフンのみ使用できます"
+  },
+  "messages": {
+    "publishSuccess": "記事を公開しました",
+    "draftSaved": "下書きを保存しました",
+    "deleteConfirm": "この記事を削除してもよろしいですか？",
+    "deleteSuccess": "記事を削除しました",
+    "noArticles": "記事がありません"
+  }
+}

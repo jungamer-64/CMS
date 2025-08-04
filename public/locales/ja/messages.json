@@ -1,0 +1,66 @@
+{
+  "success": {
+    "saved": "正常に保存されました",
+    "updated": "正常に更新されました",
+    "created": "正常に作成されました",
+    "deleted": "正常に削除されました",
+    "uploaded": "正常にアップロードされました",
+    "sent": "正常に送信されました",
+    "copied": "正常にコピーされました",
+    "imported": "正常にインポートされました",
+    "exported": "正常にエクスポートされました",
+    "operation": "操作が正常に完了しました",
+    "login": "ログインしました",
+    "logout": "ログアウトしました",
+    "registered": "アカウントが登録されました",
+    "verified": "認証が完了しました",
+    "reset": "パスワードがリセットされました"
+  },
+  "info": {
+    "loading": "読み込み中...",
+    "saving": "保存中...",
+    "uploading": "アップロード中...",
+    "processing": "処理中...",
+    "connecting": "接続中...",
+    "authenticating": "認証中...",
+    "verifying": "検証中...",
+    "preparing": "準備中...",
+    "searching": "検索中...",
+    "filtering": "フィルタリング中...",
+    "sorting": "並び替え中...",
+    "importing": "インポート中...",
+    "exporting": "エクスポート中...",
+    "updating": "更新中...",
+    "refreshing": "更新中...",
+    "noData": "データがありません",
+    "empty": "空です",
+    "notFound": "見つかりません",
+    "comingSoon": "近日公開予定"
+  },
+  "warning": {
+    "unsavedChanges": "保存されていない変更があります",
+    "confirmDelete": "削除してもよろしいですか？",
+    "confirmAction": "この操作を実行してもよろしいですか？",
+    "irreversible": "この操作は元に戻せません",
+    "largeFile": "ファイルサイズが大きすぎます",
+    "slowConnection": "接続が遅くなっています",
+    "sessionExpiring": "セッションの有効期限が近づいています",
+    "browserCompatibility": "お使いのブラウザはサポートされていない可能性があります",
+    "maintenanceMode": "現在メンテナンス中です",
+    "experimental": "この機能は実験的です"
+  },
+  "confirmation": {
+    "delete": "「{{name}}」を削除してもよろしいですか？",
+    "action": "{{action}}を実行してもよろしいですか？",
+    "leave": "変更が保存されていません。ページを離れてもよろしいですか？",
+    "overwrite": "既存のファイルを上書きしてもよろしいですか？",
+    "reset": "すべての設定をリセットしてもよろしいですか？",
+    "clear": "すべてのデータをクリアしてもよろしいですか？"
+  },
+  "toast": {
+    "duration": 5000,
+    "position": "top-right",
+    "closeButton": true,
+    "autoClose": true
+  }
+}

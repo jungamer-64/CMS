@@ -1,0 +1,46 @@
+{
+  "title": "メディア管理",
+  "library": "メディアライブラリ",
+  "uploadButton": "ファイルをアップロード",
+  "fields": {
+    "filename": "ファイル名",
+    "filesize": "ファイルサイズ",
+    "filetype": "ファイル形式",
+    "uploadedAt": "アップロード日",
+    "dimensions": "サイズ",
+    "altText": "代替テキスト",
+    "caption": "キャプション",
+    "description": "説明"
+  },
+  "actions": {
+    "select": "選択",
+    "insert": "挿入",
+    "delete": "削除",
+    "download": "ダウンロード",
+    "edit": "編集",
+    "copy": "URLをコピー"
+  },
+  "filters": {
+    "all": "すべて",
+    "images": "画像",
+    "documents": "ドキュメント",
+    "videos": "動画",
+    "audio": "音声",
+    "recent": "最近のファイル"
+  },
+  "upload": {
+    "dragDrop": "ファイルをドラッグ＆ドロップ",
+    "selectFiles": "ファイルを選択",
+    "maxSize": "最大ファイルサイズ: {{size}}",
+    "allowedTypes": "対応形式: {{types}}",
+    "uploading": "アップロード中...",
+    "uploadSuccess": "アップロードが完了しました",
+    "uploadError": "アップロードに失敗しました"
+  },
+  "messages": {
+    "deleteConfirm": "このファイルを削除してもよろしいですか？",
+    "deleteSuccess": "ファイルを削除しました",
+    "noFiles": "ファイルがありません",
+    "urlCopied": "URLをクリップボードにコピーしました"
+  }
+}

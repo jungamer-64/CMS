@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../lib/auth';
-import AdminLayout from '../../lib/AdminLayout';
-import { ApiKeyPermissions } from '../../lib/types';
+import { useAuth } from '../../lib/ui/contexts/auth-context';
+import AdminLayout from '../../lib/ui/components/layouts/AdminLayout';
+import { ApiKeyPermissions } from '../../lib/core/types';
 
 interface APIKey {
   _id: string;
@@ -69,6 +69,8 @@ export default function APIKeysPage() {
     },
     comments: {
       read: true,
+      create: false,
+      update: false,
       moderate: false,
       delete: false
     },
@@ -76,6 +78,11 @@ export default function APIKeysPage() {
       read: false,
       create: false,
       update: false,
+      delete: false
+    },
+    media: {
+      read: false,
+      upload: false,
       delete: false
     },
     settings: {
@@ -86,7 +93,8 @@ export default function APIKeysPage() {
       create: false,
       read: true,
       delete: false
-    }
+    },
+    admin: false
   });
 
   useEffect(() => {
@@ -97,7 +105,7 @@ export default function APIKeysPage() {
 
   const fetchAPIKeys = async () => {
     try {
-      const response = await fetch('/api/admin/api-keys');
+      const response = await fetch('/api/api-keys');
       if (!response.ok) {
         throw new Error('APIキーの取得に失敗しました');
       }
@@ -121,7 +129,7 @@ export default function APIKeysPage() {
     setError(null);
 
     try {
-      const response = await fetch('/api/admin/api-keys', {
+      const response = await fetch('/api/api-keys', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -140,7 +148,7 @@ export default function APIKeysPage() {
       const data = await response.json();
       console.log('APIキー取得レスポンス:', data);
       // 新しいキーを表示するためのアラート
-      alert(`新しいAPIキーが作成されました:\n${data.data.apiKey}\n\nこのキーは二度と表示されません。安全な場所に保存してください。`);
+      alert(`新しいAPIキーが作成されました:\n${data.data.key}\n\nこのキーは二度と表示されません。安全な場所に保存してください。`);
       
       // フォームをリセット
       setNewKeyName('');
@@ -153,6 +161,8 @@ export default function APIKeysPage() {
         },
         comments: {
           read: true,
+          create: false,
+          update: false,
           moderate: false,
           delete: false
         },
@@ -160,6 +170,11 @@ export default function APIKeysPage() {
           read: false,
           create: false,
           update: false,
+          delete: false
+        },
+        media: {
+          read: false,
+          upload: false,
           delete: false
         },
         settings: {
@@ -170,7 +185,8 @@ export default function APIKeysPage() {
           create: false,
           read: true,
           delete: false
-        }
+        },
+        admin: false
       });
       setShowCreateForm(false);
 
@@ -189,7 +205,7 @@ export default function APIKeysPage() {
     }
 
     try {
-      const response = await fetch(`/api/admin/api-keys/${keyId}`, {
+      const response = await fetch(`/api/api-keys/${keyId}`, {
         method: 'DELETE',
       });
 

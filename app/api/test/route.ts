@@ -1,6 +1,6 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
-import { withApiAuth } from '@/app/lib/auth-middleware';
+import { withApiAuth, AuthContext } from '@/app/lib/auth-middleware';
 
 interface TestResponse {
   success: boolean;
@@ -17,40 +17,40 @@ interface TestResponse {
   receivedData?: Record<string, unknown>;
 }
 
-// APIキー認証をテストするエンドポイント（GET）
+// APIキー認証をテストするエンドポイント (GET)
 export async function GET() {
   try {
-    console.log('テストAPI GET - 認証なし');
+    console.log('Test API GET - No authentication');
 
     const response: TestResponse = {
       success: true,
-      message: '認証が成功しました',
+      message: 'Authentication successful',
       authMethod: 'anonymous',
       timestamp: new Date().toISOString()
     };
 
-    return createSuccessResponse(response, '認証テストが成功しました');
+    return NextResponse.json(createSuccessResponse(response, '認証チE��トが成功しました'));
   } catch (error) {
-    console.error('テストAPI GET エラー:', error);
-    return createErrorResponse('テストAPIでエラーが発生しました', 500);
+    console.error('チE��チEPI GET エラー:', error);
+    return NextResponse.json(createErrorResponse('チE��チEPIでエラーが発生しました', 500));
   }
 }
 
-// 認証必須のテストエンドポイント（POST）
-export const POST = withApiAuth(async (request: NextRequest, context) => {
-  const user = context.user;
+// 認証忁E���EチE��トエンド�Eイント！EOST�E�E
+export const POST = withApiAuth(async (request: NextRequest, authContext: AuthContext) => {
+  const user = authContext.user;
   if (!user) {
-    return createErrorResponse('認証情報がありません', 401);
+    return NextResponse.json(createErrorResponse('認証惁E��がありません', 401));
   }
 
-  console.log('テストAPI POST - ユーザー:', user.username);
+  console.log('チE��チEPI POST - ユーザー:', user.username);
 
   try {
     const body = await request.json() as Record<string, unknown>;
 
     const response: TestResponse = {
       success: true,
-      message: '認証必須エンドポイントへのアクセスが成功しました',
+      message: '認証忁E��エンド�Eイントへのアクセスが�E功しました',
       authMethod: 'user',
       receivedData: body,
       timestamp: new Date().toISOString(),
@@ -61,9 +61,9 @@ export const POST = withApiAuth(async (request: NextRequest, context) => {
       }
     };
 
-    return createSuccessResponse(response, '認証テストが成功しました');
+    return NextResponse.json(createSuccessResponse(response, '認証チE��トが成功しました'));
   } catch (error) {
-    console.error('テストAPI POST エラー:', error);
-    return createErrorResponse('テストAPIでエラーが発生しました', 500);
+    console.error('チE��チEPI POST エラー:', error);
+    return NextResponse.json(createErrorResponse('チE��チEPIでエラーが発生しました', 500));
   }
 });

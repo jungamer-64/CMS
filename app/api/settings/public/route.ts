@@ -1,19 +1,11 @@
-
-import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { NextResponse } from 'next/server';
 import { getSettings } from '@/app/lib/settings';
 
 interface PublicSettings {
-  allowComments: boolean;
-  requireApproval: boolean;
+  enableComments: boolean;
   siteName: string;
   siteDescription: string;
-  maxCommentLength: number;
-  commentsPerPage: number;
-  maxPostsPerPage: number;
-}
-
-interface PublicSettingsResponse {
-  settings: PublicSettings;
+  postsPerPage: number;
 }
 
 // パブリック設定を取得（GET）- 認証不要
@@ -22,28 +14,37 @@ export async function GET() {
     console.log('パブリック設定API呼び出し');
     
     // 管理者設定から公開可能な情報を取得
-    const adminSettings = await getSettings();
+    const settingsResult = await getSettings();
+    
+    if (!settingsResult.success) {
+      console.error('設定取得失敗:', settingsResult.error);
+      return NextResponse.json(
+        { success: false, error: '設定の取得に失敗しました' },
+        { status: 500 }
+      );
+    }
+
+    const adminSettings = settingsResult.data;
     
     // 型安全なパブリック設定オブジェクトを作成
     const publicSettings: PublicSettings = {
-      allowComments: Boolean(adminSettings.allowComments),
-      requireApproval: Boolean(adminSettings.requireApproval),
-      siteName: 'テストブログ',
-      siteDescription: 'Next.js 15で構築された動的ブログサイト',
-      maxCommentLength: 1000,
-      commentsPerPage: 10,
-      maxPostsPerPage: Number(adminSettings.maxPostsPerPage)
+      enableComments: Boolean(adminSettings?.commentsEnabled || false),
+      siteName: adminSettings?.siteName || 'テストブログ',
+      siteDescription: adminSettings?.siteDescription || 'Next.js 15で構築された動的ブログサイト',
+      postsPerPage: 10
     };
     
     console.log('パブリック設定を返します:', publicSettings);
     
-    const response: PublicSettingsResponse = {
-      settings: publicSettings
-    };
-    
-    return createSuccessResponse(response, 'パブリック設定を正常に取得しました');
+    return NextResponse.json({
+      success: true,
+      data: { settings: publicSettings }
+    });
   } catch (error) {
     console.error('パブリック設定取得エラー:', error);
-    return createErrorResponse('設定の取得中にエラーが発生しました', 500);
+    return NextResponse.json(
+      { success: false, error: '設定の取得中にエラーが発生しました' },
+      { status: 500 }
+    );
   }
 }

@@ -41,8 +41,17 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Environment variables (NEVER commit these)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Environment template (this can be committed)
+!.env.example
+!.env.template
 
 # vercel
 .vercel
@@ -69,3 +78,23 @@ pids/
 *.seed
 *.pid.lock
 .pm2/
+
+# Security and sensitive files
+*.key
+*.p12
+*.p8
+*.pem
+*.pfx
+secrets/
+credentials/
+
+# Database dumps and backups
+*.sql
+*.sqlite
+*.db
+backup/
+dumps/
+
+# Uploads and user-generated content (if sensitive)
+# public/uploads/
+# Note: Uncomment above line if uploads contain sensitive data

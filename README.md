@@ -2,25 +2,44 @@
 
 Next.js 15とMongoDBを使用した### 3. 環境変数の設定
 
-`.env`ファイルを作成（または既存のファイルを更新）：
+**重要**: `.env`ファイルは機密情報を含むため、**Gitにコミットしないでください**。
+
+1. `.env.example`をコピーして`.env`ファイルを作成：
 
 ```bash
+cp .env.example .env
+```
+
+2. `.env`ファイルを編集して実際の値を設定：
+
+```env
 # MongoDB接続文字列
 MONGODB_URI=mongodb://localhost:27017/test-website
 MONGODB_DB=test-website
 
-# JWT秘密鍵
-JWT_SECRET=your-secret-key-here
+# JWT秘密鍵（必ず変更してください）
+JWT_SECRET=your-very-long-random-secret-key-here
 
-# API設定（オプション）
+# API設定
 API_KEYS_DATA={"keys":[]}
-DEFAULT_API_KEY=default-test-key
+DEFAULT_API_KEY=your-api-key
 
 # 管理者設定
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=your-admin-password
+ADMIN_PASSWORD=your-secure-password
 ADMIN_EMAIL=admin@example.com
-```。pnpmパッケージマネージャーで最適化されています。
+
+# GitHub設定（オプション）
+GITHUB_TOKEN=your-github-token
+GITHUB_OWNER=your-username
+GITHUB_REPO=your-repository
+```
+
+**セキュリティ注意事項**:
+- ✅ `.env`ファイルは`.gitignore`に含まれており、Gitで追跡されません
+- ✅ 本番環境では別途環境変数を設定してください
+- ✅ JWT_SECRETは最低64文字の強力なランダム文字列を使用
+- ⚠️ **決して`.env`ファイルを公開リポジトリにコミットしないでください**。pnpmパッケージマネージャーで最適化されています。
 
 ## 🚀 特徴
 

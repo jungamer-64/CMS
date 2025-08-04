@@ -1,0 +1,56 @@
+{
+  "title": "設定",
+  "systemSettings": "システム設定",
+  "systemDescription": "アプリケーションの動作やセキュリティの設定",
+  "saveSettings": "設定を保存",
+  "saving": "保存中...",
+  "general": "一般設定",
+  "site": "サイト設定",
+  "users": "ユーザー設定",
+  "securityTab": "セキュリティ設定",
+  "language": {
+    "title": "言語設定",
+    "interface": "インターフェース言語",
+    "description": "管理画面の表示言語を選択します"
+  },
+  "languages": {
+    "japanese": "日本語",
+    "english": "英語"
+  },
+  "fields": {
+    "siteName": "サイト名",
+    "siteDescription": "サイト説明",
+    "siteUrl": "サイトURL",
+    "adminEmail": "管理者メールアドレス",
+    "language": "言語",
+    "timezone": "タイムゾーン",
+    "dateFormat": "日付形式",
+    "timeFormat": "時刻形式",
+    "registrationEnabled": "新規登録を許可",
+    "defaultRole": "デフォルトユーザー権限",
+    "emailNotifications": "メール通知",
+    "maintenanceMode": "メンテナンスモード"
+  },
+  "security": {
+    "twoFactorAuth": "二段階認証",
+    "sessionTimeout": "セッションタイムアウト",
+    "passwordPolicy": "パスワードポリシー",
+    "loginAttempts": "ログイン試行回数制限",
+    "ipWhitelist": "IPホワイトリスト",
+    "sslRequired": "SSL必須"
+  },
+  "backup": {
+    "title": "バックアップ",
+    "create": "バックアップを作成",
+    "restore": "復元",
+    "schedule": "自動バックアップ",
+    "downloadBackup": "バックアップをダウンロード"
+  },
+  "messages": {
+    "settingsSaved": "設定を保存しました",
+    "settingsError": "設定の保存に失敗しました",
+    "backupCreated": "バックアップを作成しました",
+    "backupRestored": "バックアップから復元しました",
+    "confirmRestore": "このバックアップから復元してもよろしいですか？"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "formats": {
+    "decimal": "decimal",
+    "currency": "currency",
+    "percent": "percent",
+    "scientific": "scientific notation"
+  },
+  "currency": {
+    "symbol": "$",
+    "name": "US Dollar",
+    "code": "USD"
+  },
+  "units": {
+    "byte": "byte",
+    "kilobyte": "kilobyte",
+    "megabyte": "megabyte",
+    "gigabyte": "gigabyte",
+    "terabyte": "terabyte",
+    "meter": "meter",
+    "kilometer": "kilometer",
+    "gram": "gram",
+    "kilogram": "kilogram",
+    "second": "second",
+    "minute": "minute",
+    "hour": "hour"
+  },
+  "ordinals": {
+    "first": "1st",
+    "second": "2nd",
+    "third": "3rd",
+    "nth": "{{count}}th"
+  },
+  "ranges": {
+    "to": "to",
+    "from": "from",
+    "between": "between {{start}} and {{end}}"
+  }
+}

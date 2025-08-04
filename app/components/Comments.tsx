@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Comment } from '@/app/lib/types';
+import { Comment } from '@/app/lib/core/types';
 
 interface CommentsProps {
   readonly postSlug: string;
@@ -30,7 +30,6 @@ export default function Comments({ postSlug }: CommentsProps) {
 
   // 設定を確認
   const checkSettings = async () => {
-    console.log('コメント設定を確認中...');
     try {
       const response = await fetch('/api/settings/public');
       
@@ -39,23 +38,20 @@ export default function Comments({ postSlug }: CommentsProps) {
         console.warn(errorMsg);
         setSettingsError(errorMsg);
         setAllowComments(true); // フォールバック
-        setSettingsLoaded(true);
+        setSettingsLoaded(true); // 必ず設定を完了する
         return;
       }
       
       const data = await response.json();
-      console.log('取得した公開設定:', data);
       
       if (data.success && data.data?.settings) {
         const settings = data.data.settings;
-        const allowCommentsValue = settings.allowComments !== false;
-        console.log('コメント許可設定:', allowCommentsValue);
+        const allowCommentsValue = settings.enableComments !== false;
         setAllowComments(allowCommentsValue);
         setSettingsError(null);
       } else if (data.settings) {
         // 直接settingsオブジェクトが返される場合
-        const allowCommentsValue = data.settings.allowComments !== false;
-        console.log('コメント許可設定(直接):', allowCommentsValue);
+        const allowCommentsValue = data.settings.enableComments !== false;
         setAllowComments(allowCommentsValue);
         setSettingsError(null);
       } else {
@@ -64,21 +60,19 @@ export default function Comments({ postSlug }: CommentsProps) {
         setSettingsError('設定の読み込みに一部失敗しました');
       }
       setSettingsLoaded(true);
-      console.log('設定読み込み完了');
     } catch (error) {
       console.error('設定確認エラー:', error);
       const errorMsg = error instanceof Error ? error.message : '不明なエラー';
       setSettingsError(errorMsg);
-      // エラーの場合もデフォルトでコメントを許可
-      setAllowComments(true);
-      setSettingsLoaded(true);
+      setAllowComments(true); // フォールバック
+      setSettingsLoaded(true); // エラー時も設定完了を通知
     }
   };
 
   // コメントを読み込む
   const loadComments = useCallback(async () => {
     try {
-      const response = await fetch(`/api/comments/${postSlug}`);
+      const response = await fetch(`/api/comments?postSlug=${encodeURIComponent(postSlug)}`);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -87,9 +81,11 @@ export default function Comments({ postSlug }: CommentsProps) {
       
       const data = await response.json();
       
+      console.log('取得したコメントデータ:', data);
+      
       if (data.success) {
-        setComments(data.data?.comments || data.comments || []);
-        console.log('コメント読み込み成功:', data.data?.comments || data.comments);
+        const commentsData = Array.isArray(data.data) ? data.data : data.comments;
+        setComments(commentsData || []);
       } else {
         throw new Error(data.error || 'コメントの読み込みに失敗しました');
       }
@@ -102,8 +98,6 @@ export default function Comments({ postSlug }: CommentsProps) {
   }, [postSlug]);
 
   useEffect(() => {
-    console.log('コメントコンポーネント初期化:', { postSlug });
-    
     // 設定とコメントを並行して読み込む
     const initializeComments = async () => {
       try {
@@ -111,7 +105,6 @@ export default function Comments({ postSlug }: CommentsProps) {
           checkSettings(),
           loadComments()
         ]);
-        console.log('コメント初期化完了');
       } catch (error) {
         console.error('コメント初期化エラー:', error);
         // エラーの場合はデフォルトでコメントを許可
@@ -123,28 +116,34 @@ export default function Comments({ postSlug }: CommentsProps) {
     initializeComments();
   }, [postSlug, loadComments]);
 
-  console.log('コメントコンポーネント レンダリング:', { 
-    settingsLoaded, 
-    allowComments, 
-    loading, 
-    commentsCount: comments.length 
-  });
+  useEffect(() => {
+        if (settingsLoaded && allowComments) {
+            console.log('コメントデータ:', comments);
+        }
+    }, [settingsLoaded, allowComments, comments]);
+
+  // 開発環境でのみ表示するログを制限
+  if (process.env.NODE_ENV === 'development') {
+    console.log('コメントコンポーネント レンダリング:', { 
+      settingsLoaded, 
+      allowComments, 
+      loading, 
+      commentsCount: comments.length 
+    });
+  }
 
   // 設定が読み込まれていない場合は何も表示しない
   if (!settingsLoaded) {
-    console.log('設定未読み込みのためコメントを非表示');
     return null;
   }
 
   // コメント機能が無効の場合は何も表示しない
   if (allowComments === false) {
-    console.log('コメント機能が無効のため非表示');
     return null;
   }
 
   // 設定エラーがある場合はエラーメッセージを表示
   if (settingsError) {
-    console.log('設定エラーがあります:', settingsError);
     return (
       <div className="mt-12 border-t pt-8">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -156,8 +155,6 @@ export default function Comments({ postSlug }: CommentsProps) {
       </div>
     );
   }
-
-  console.log('コメントセクションを表示');
 
   // フォーム送信
   const handleSubmit = async (e: React.FormEvent) => {
@@ -172,24 +169,23 @@ export default function Comments({ postSlug }: CommentsProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
-          postSlug
+          postSlug,
+          content: formData.content,
+          author: {
+            name: formData.authorName,
+            email: formData.authorEmail
+          }
         })
       });
-
       const data = await response.json();
-      console.log('コメント投稿APIレスポンス:', data);
 
       if (data.success) {
         setMessage(data.message);
         setMessageType('success');
         setFormData({ authorName: '', authorEmail: '', content: '' });
         
-        // 承認不要の場合は即座にコメントを再読み込み
-        // data.data.commentが存在し、isApprovedがtrueの場合のみ再読み込み
-        if (data.data?.comment?.isApproved) {
-          await loadComments();
-        }
+        // コメントを常に再読み込み
+        await loadComments();
       } else {
         setMessage(data.error || 'コメントの投稿に失敗しました');
         setMessageType('error');
@@ -213,7 +209,7 @@ export default function Comments({ postSlug }: CommentsProps) {
 
   return (
     <div className="mt-12 border-t pt-8">
-      <h3 className="text-2xl font-bold mb-6 text-gray-900">コメント ({comments.length})</h3>
+      <h3 className="text-2xl font-bold mb-6 text-gray-900">コメント ({comments.filter(comment => comment.isApproved && !comment.isDeleted).length})</h3>
       
       {/* コメント一覧 */}
       {loading ? (
@@ -223,9 +219,9 @@ export default function Comments({ postSlug }: CommentsProps) {
         </div>
       ) : (
         <>
-          {comments.length > 0 ? (
+          {comments.filter(comment => comment.isApproved && !comment.isDeleted).length > 0 ? (
             <div className="space-y-6 mb-8">
-              {comments.map((comment) => (
+              {comments.filter(comment => comment.isApproved && !comment.isDeleted).map((comment) => (
                 <div key={comment.id} className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold text-gray-900">{comment.authorName}</h4>

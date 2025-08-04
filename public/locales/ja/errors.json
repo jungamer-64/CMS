@@ -1,0 +1,56 @@
+{
+  "http": {
+    "400": "不正なリクエストです",
+    "401": "認証が必要です",
+    "403": "アクセスが禁止されています",
+    "404": "ページが見つかりません",
+    "405": "許可されていないメソッドです",
+    "500": "内部サーバーエラーが発生しました",
+    "502": "ゲートウェイエラーです",
+    "503": "サービスが利用できません"
+  },
+  "database": {
+    "connectionFailed": "データベース接続に失敗しました",
+    "queryFailed": "データベースクエリに失敗しました",
+    "duplicateEntry": "重複するデータです",
+    "recordNotFound": "レコードが見つかりません",
+    "validationFailed": "データ検証に失敗しました"
+  },
+  "auth": {
+    "invalidCredentials": "認証情報が正しくありません",
+    "userNotFound": "ユーザーが見つかりません",
+    "userExists": "ユーザーが既に存在します",
+    "tokenExpired": "トークンの有効期限が切れています",
+    "tokenInvalid": "無効なトークンです",
+    "sessionExpired": "セッションが期限切れです",
+    "accessDenied": "アクセスが拒否されました",
+    "insufficientPermissions": "権限が不足しています"
+  },
+  "validation": {
+    "required": "{{field}}は必須項目です",
+    "invalidFormat": "{{field}}の形式が正しくありません",
+    "tooShort": "{{field}}が短すぎます",
+    "tooLong": "{{field}}が長すぎます",
+    "invalidEmail": "有効なメールアドレスを入力してください",
+    "passwordTooWeak": "パスワードが弱すぎます",
+    "passwordMismatch": "パスワードが一致しません"
+  },
+  "upload": {
+    "fileTooLarge": "ファイルサイズが大きすぎます",
+    "invalidFileType": "サポートされていないファイル形式です",
+    "uploadFailed": "ファイルのアップロードに失敗しました",
+    "noFileSelected": "ファイルが選択されていません"
+  },
+  "api": {
+    "methodNotAllowed": "許可されていないHTTPメソッドです",
+    "invalidApiKey": "無効なAPIキーです",
+    "rateLimitExceeded": "リクエスト制限を超えています",
+    "serviceUnavailable": "サービスが利用できません"
+  },
+  "generic": {
+    "unknownError": "不明なエラーが発生しました",
+    "networkError": "ネットワークエラーが発生しました",
+    "timeout": "リクエストがタイムアウトしました",
+    "tryAgain": "もう一度お試しください"
+  }
+}

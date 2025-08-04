@@ -1,0 +1,82 @@
+{
+  "title": "Users",
+  "newUser": "New User",
+  "editUser": "Edit User",
+  "allUsers": "All Users",
+  "profile": "Profile",
+  "fields": {
+    "username": "Username",
+    "email": "Email Address",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "displayName": "Display Name",
+    "bio": "Bio",
+    "avatar": "Avatar",
+    "role": "Role",
+    "status": "Status",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "lastLogin": "Last Login",
+    "registrationDate": "Registration Date",
+    "website": "Website",
+    "socialProfiles": "Social Profiles"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "editor": "Editor",
+    "author": "Author",
+    "contributor": "Contributor",
+    "subscriber": "Subscriber"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "suspended": "Suspended"
+  },
+  "actions": {
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "suspend": "Suspend",
+    "delete": "Delete",
+    "resetPassword": "Reset Password",
+    "sendWelcome": "Send Welcome Email",
+    "viewPosts": "View Posts",
+    "editProfile": "Edit Profile"
+  },
+  "messages": {
+    "userCreated": "User created successfully",
+    "userUpdated": "User updated successfully",
+    "userDeleted": "User deleted successfully",
+    "passwordReset": "Password reset email sent",
+    "welcomeEmailSent": "Welcome email sent",
+    "confirmDelete": "Are you sure you want to delete this user?",
+    "noUsersFound": "No users found",
+    "loadingUsers": "Loading users..."
+  },
+  "filters": {
+    "all": "All",
+    "byRole": "By Role",
+    "byStatus": "By Status",
+    "recent": "Recently Registered"
+  },
+  "bulk": {
+    "selectAll": "Select All",
+    "bulkActions": "Bulk Actions",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "changeRole": "Change Role",
+    "delete": "Delete"
+  },
+  "permissions": {
+    "title": "Permissions",
+    "readPosts": "Read Posts",
+    "writePosts": "Write Posts",
+    "editPosts": "Edit Posts",
+    "deletePosts": "Delete Posts",
+    "manageUsers": "Manage Users",
+    "manageSettings": "Manage Settings",
+    "uploadMedia": "Upload Media",
+    "moderateComments": "Moderate Comments"
+  }
+}

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/lib/auth';
+import { useAuth } from '@/app/lib/ui/contexts/auth-context';
+import { useAdvancedI18n } from '@/app/lib/contexts/advanced-i18n-context';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
+  const { t } = useAdvancedI18n();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,15 +21,12 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const result = await login(username, password);
-      if (result.success) {
-        router.push('/blog');
-      } else {
-        setError(result.error || 'ユーザー名またはパスワードが正しくありません');
-      }
+      await login({ username, password });
+      // ログイン成功後、ユーザー情報が更新されるのを待ってリダイレクト
+      router.push('/admin'); // 一旦管理者ダッシュボードに固定
     } catch (error) {
-      console.error('ログインエラー:', error);
-      setError('ログインに失敗しました');
+      console.error('Login error:', error);
+      setError(error instanceof Error ? error.message : t('auth.loginFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -35,7 +34,7 @@ export default function LoginPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-md">
-      <h1 className="text-center">ログイン</h1>
+      <h1 className="text-center">{t('auth.login.title')}</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -43,7 +42,7 @@ export default function LoginPage() {
           </div>
         )}
         <div>
-          <label htmlFor="username" className="block mb-2">ユーザー名</label>
+          <label htmlFor="username" className="block mb-2">{t('auth.login.username')}</label>
           <input
             type="text"
             id="username"
@@ -55,7 +54,7 @@ export default function LoginPage() {
           />
         </div>
         <div>
-          <label htmlFor="password" className="block mb-2">パスワード</label>
+          <label htmlFor="password" className="block mb-2">{t('auth.login.password')}</label>
           <input
             type="password"
             id="password"
@@ -71,15 +70,15 @@ export default function LoginPage() {
           className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'ログイン中...' : 'ログイン'}
+          {isSubmitting ? t('auth.login.signingIn') : t('auth.login.signIn')}
         </button>
       </form>
       <div className="mt-4 text-center space-y-2">
         <Link href="/auth/forgot-password" className="block text-blue-500 hover:underline">
-          パスワードを忘れた場合
+          {t('auth.login.forgotPassword')}
         </Link>
         <Link href="/auth/register" className="block text-blue-500 hover:underline">
-          アカウントをお持ちでない方はこちら
+          {t('auth.login.noAccount')}
         </Link>
       </div>
     </div>
