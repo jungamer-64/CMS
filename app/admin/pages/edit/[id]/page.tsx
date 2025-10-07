@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { Block, BlockEditor } from '@/app/lib/ui/components/editors/SimpleBlockEditor';
+import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 // 一時的な型定義
 type PageStatus = 'draft' | 'published' | 'archived' | 'private';
 
@@ -18,12 +20,11 @@ interface StaticPageInput {
 }
 
 // 一時的な関数定義
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function getPageById(_id: string): Promise<StaticPageInput | null> {
   // 実装は後で追加
   return null;
 }
-import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
-import { Block, BlockEditor } from '@/app/lib/ui/components/editors/SimpleBlockEditor';
 
 export default function EditPagePage() {
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function EditPagePage() {
   useEffect(() => {
     const loadPage = async () => {
       if (!params.id || Array.isArray(params.id)) return;
-      
+
       try {
         const page = await getPageById(params.id);
         if (page) {
@@ -62,7 +63,7 @@ export default function EditPagePage() {
             metaDescription: page.metaDescription || '',
             metaKeywords: page.metaKeywords || ''
           });
-          
+
           // コンテンツからブロックデータを復元を試行（JSON形式の場合）
           try {
             const parsedBlocks = JSON.parse(page.content);
@@ -111,13 +112,13 @@ export default function EditPagePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!params.id || Array.isArray(params.id)) return;
-    
+
     setIsSaving(true);
 
     try {
       // エディターモードに応じてコンテンツを準備
-      const contentToSave = editorMode === 'visual' 
-        ? JSON.stringify(blocks) 
+      const contentToSave = editorMode === 'visual'
+        ? JSON.stringify(blocks)
         : pageData.content;
 
       const response = await fetch(`/api/admin/pages/${params.id}`, {
@@ -284,11 +285,10 @@ export default function EditPagePage() {
               <button
                 type="button"
                 onClick={() => setEditorMode('visual')}
-                className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                  editorMode === 'visual' 
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
+                className={`px-4 py-2 text-sm rounded-md transition-colors ${editorMode === 'visual'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                }`}
+                  }`}
                 disabled={isSaving}
               >
                 ビジュアル
@@ -296,11 +296,10 @@ export default function EditPagePage() {
               <button
                 type="button"
                 onClick={() => setEditorMode('text')}
-                className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                  editorMode === 'text' 
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
+                className={`px-4 py-2 text-sm rounded-md transition-colors ${editorMode === 'text'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                }`}
+                  }`}
                 disabled={isSaving}
               >
                 テキスト
@@ -336,7 +335,7 @@ export default function EditPagePage() {
           {/* SEO設定 */}
           <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">SEO設定</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

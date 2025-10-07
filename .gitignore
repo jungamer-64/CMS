@@ -98,3 +98,7 @@ dumps/
 # Uploads and user-generated content (if sensitive)
 # public/uploads/
 # Note: Uncomment above line if uploads contain sensitive data
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md

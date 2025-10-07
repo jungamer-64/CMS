@@ -1,29 +1,29 @@
 'use client';
 
 import { useState } from 'react';
-import LanguageSwitcher from './LanguageSwitcher';
-import MultilingualSearch from './MultilingualSearch';
-import MultilingualForm, { FieldConfig } from './MultilingualForm';
-import DirectionalText, { DirectionalFlex, useDirectionalSpacing } from './DirectionalText';
 import { useExtendedTranslation } from '../lib/hooks/useExtendedTranslation';
+import DirectionalText, { DirectionalFlex, useDirectionalSpacing } from './DirectionalText';
+import LanguageSwitcher from './LanguageSwitcher';
+import MultilingualForm, { FieldConfig } from './MultilingualForm';
+import MultilingualSearch from './MultilingualSearch';
 
 /**
  * i18n機能のデモンストレーションコンポーネント
  * 実装した全ての多言語機能を実際に使用できる例を提供
  */
 export default function I18nDemo() {
-  const { 
-    t, 
-    formatDate, 
-    formatCurrency, 
-    formatRelativeTime, 
-    formatFileSize, 
+  const {
+    t,
+    formatDate,
+    formatCurrency,
+    formatRelativeTime,
+    formatFileSize,
     formatList,
     tPlural,
     locale,
-    isRTL 
+    isRTL
   } = useExtendedTranslation();
-  
+
   const { marginStart, textStart } = useDirectionalSpacing();
   const [demoData] = useState({
     currentDate: new Date(),
@@ -84,10 +84,10 @@ export default function I18nDemo() {
         <p className="text-lg text-gray-600 dark:text-gray-400">
           {t('site.description')}
         </p>
-        
+
         {/* 言語切り替え */}
         <div className="flex justify-center">
-          <LanguageSwitcher 
+          <LanguageSwitcher
             variant="dropdown"
             showFlag={true}
             showNativeName={true}
@@ -116,7 +116,7 @@ export default function I18nDemo() {
         <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
           {t('demo.formatting', { defaultValue: 'Formatting Demo' })}
         </h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
             <h3 className="font-semibold mb-2">日付 / Date</h3>
@@ -124,42 +124,42 @@ export default function I18nDemo() {
               {formatDate(demoData.currentDate, 'full')}
             </p>
           </div>
-          
+
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
             <h3 className="font-semibold mb-2">通貨 / Currency</h3>
             <p className="text-gray-600 dark:text-gray-400">
               {formatCurrency(demoData.price)}
             </p>
           </div>
-          
+
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
             <h3 className="font-semibold mb-2">相対時間 / Relative Time</h3>
             <p className="text-gray-600 dark:text-gray-400">
               {formatRelativeTime(new Date(Date.now() - 3600000))}
             </p>
           </div>
-          
+
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
             <h3 className="font-semibold mb-2">ファイルサイズ / File Size</h3>
             <p className="text-gray-600 dark:text-gray-400">
               {formatFileSize(demoData.fileSize)}
             </p>
           </div>
-          
+
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
             <h3 className="font-semibold mb-2">リスト / List</h3>
             <p className="text-gray-600 dark:text-gray-400">
               {formatList(demoData.items)}
             </p>
           </div>
-          
+
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
             <h3 className="font-semibold mb-2">複数形 / Plural</h3>
             <p className="text-gray-600 dark:text-gray-400">
-              {tPlural('demo.itemCount', demoData.count, { 
+              {tPlural('demo.itemCount', demoData.count, {
                 defaultValue: 'You have {{count}} item',
                 defaultValue_plural: 'You have {{count}} items',
-                count: demoData.count 
+                count: demoData.count
               })}
             </p>
           </div>
@@ -171,7 +171,7 @@ export default function I18nDemo() {
         <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
           {t('demo.directional', { defaultValue: 'Directional Text Demo' })}
         </h2>
-        
+
         <div className="space-y-4">
           <DirectionalFlex className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
             <div className="bg-blue-500 text-white p-2 rounded">Start</div>
@@ -183,7 +183,7 @@ export default function I18nDemo() {
             </div>
             <div className="bg-red-500 text-white p-2 rounded">End</div>
           </DirectionalFlex>
-          
+
           <div className={`bg-yellow-100 dark:bg-yellow-900/20 p-4 rounded-lg ${marginStart('4')}`}>
             <p className="text-yellow-800 dark:text-yellow-200">
               このボックスは言語方向に応じて適切なマージンが設定されています。
@@ -198,7 +198,7 @@ export default function I18nDemo() {
         <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
           {t('demo.search', { defaultValue: 'Multilingual Search Demo' })}
         </h2>
-        
+
         <MultilingualSearch
           onSearch={handleSearchResults}
           languages={['ja', 'en', 'ko', 'zh']}
@@ -212,7 +212,7 @@ export default function I18nDemo() {
         <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
           {t('demo.form', { defaultValue: 'Multilingual Form Demo' })}
         </h2>
-        
+
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
           <MultilingualForm
             fields={formFields}
@@ -229,18 +229,18 @@ export default function I18nDemo() {
         <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
           {t('demo.languageSwitchers', { defaultValue: 'Language Switcher Variants' })}
         </h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-4">
             <h3 className="font-semibold">Compact Variant</h3>
             <LanguageSwitcher variant="compact" />
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="font-semibold">Dropdown Variant</h3>
             <LanguageSwitcher variant="dropdown" />
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="font-semibold">Full Grid Variant</h3>
             <LanguageSwitcher variant="full" className="max-h-48 overflow-y-auto" />
@@ -251,7 +251,7 @@ export default function I18nDemo() {
       {/* フッター */}
       <footer className="text-center text-gray-500 dark:text-gray-400 border-t pt-8">
         <p>
-          {t('demo.footer', { 
+          {t('demo.footer', {
             defaultValue: 'This demo showcases advanced i18n features implemented with Next.js and React.',
           })}
         </p>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../lib/ui/contexts/auth-context';
 import AdminLayout from '../../lib/ui/components/layouts/AdminLayout';
+import { LoadingSpinner, ErrorMessage, StatsCard } from '@/app/admin/components';
 import { ApiKeyPermissions } from '../../lib/core/types';
 
 interface APIKey {
@@ -14,37 +15,6 @@ interface APIKey {
   expiresAt?: Date;
   createdAt: Date;
 }
-
-const LoadingSpinner = () => (
-  <div className="flex justify-center items-center h-64">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-500"></div>
-  </div>
-);
-
-const ErrorMessage = ({ message }: { message: string }) => (
-  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
-    {message}
-  </div>
-);
-
-const StatsCard = ({ title, value, icon, bgColor }: { 
-  title: string; 
-  value: number; 
-  icon: React.ReactNode;
-  bgColor: string; 
-}) => (
-  <div className={`${bgColor} dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700`}>
-    <div className="flex items-center">
-      <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-        {icon}
-      </div>
-      <div className="ml-4">
-        <p className="text-sm text-gray-600 dark:text-gray-400">{title}</p>
-        <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-      </div>
-    </div>
-  </div>
-);
 
 const KeyIcon = () => (
   <svg className="w-6 h-6" fill="none" stroke="white" viewBox="0 0 24 24">
@@ -259,14 +229,14 @@ export default function APIKeysPage() {
           <StatsCard
             title="総APIキー数"
             value={apiKeys.length}
+            variant="primary"
             icon={<KeyIcon />}
-            bgColor="bg-white"
           />
           <StatsCard
             title="アクティブキー"
             value={apiKeys.filter(key => !key.expiresAt || new Date(key.expiresAt) > new Date()).length}
+            variant="success"
             icon={<KeyIcon />}
-            bgColor="bg-white"
           />
           <StatsCard
             title="管理権限キー"
@@ -276,8 +246,8 @@ export default function APIKeysPage() {
               key.permissions.users.delete ||
               key.permissions.settings.update
             ).length}
+            variant="warning"
             icon={<KeyIcon />}
-            bgColor="bg-white"
           />
         </div>
 

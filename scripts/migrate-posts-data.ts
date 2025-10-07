@@ -36,7 +36,7 @@ async function migratePostsData() {
         console.log(`📝 移行中: "${post.title}" (ID: ${post.id})`);
 
         // 新しいスキーマに必要なフィールドを準備
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
         let needsUpdate = false;
 
         // status フィールド追加（存在しない場合）
@@ -108,11 +108,11 @@ async function migratePostsData() {
         if (needsUpdate) {
           const result = await postsCollection.updateOne(
             { _id: post._id },
-            { 
-              $set: { 
+            {
+              $set: {
                 ...updateData,
                 updatedAt: new Date()
-              } 
+              }
             }
           );
 

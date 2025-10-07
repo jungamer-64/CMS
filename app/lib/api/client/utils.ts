@@ -3,6 +3,9 @@
  * LIB_COMMONIZATION_PLAN.md フェーズ4対応
  * 
  * APIクライアント用のユーティリティ関数
+ * 
+ * Note: createSuccessResponse と createErrorResponse は
+ * @/app/lib/api-utils からインポートして NextResponse でラップします
  */
 
 import { NextResponse } from 'next/server';
@@ -12,26 +15,25 @@ import type {
   ApiErrorCode 
 } from '../../core/types';
 import { ApiError as ApiErrorClass } from '../../core/errors';
+import {
+  createSuccessResponse as baseCreateSuccessResponse,
+  createErrorResponse as baseCreateErrorResponse,
+} from '../../api-utils';
 
 /**
- * 成功レスポンスを作成
+ * 成功レスポンスを作成（NextResponse版）
  */
 export function createSuccessResponse<T>(
   data: T,
   message?: string,
   status: number = 200
 ): NextResponse {
-  const response: ApiSuccess<T> = {
-    success: true,
-    data,
-    message,
-  };
-  
+  const response = baseCreateSuccessResponse(data, message);
   return NextResponse.json(response, { status });
 }
 
 /**
- * エラーレスポンスを作成
+ * エラーレスポンスを作成（NextResponse版）
  */
 export function createErrorResponse(
   error: string,
@@ -39,13 +41,7 @@ export function createErrorResponse(
   code?: ApiErrorCode,
   details?: Record<string, unknown>
 ): NextResponse {
-  const response: ApiError = {
-    success: false,
-    error,
-    code,
-    details,
-  };
-  
+  const response = baseCreateErrorResponse(error, code, details);
   return NextResponse.json(response, { status });
 }
 

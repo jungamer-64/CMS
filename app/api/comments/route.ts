@@ -1,8 +1,8 @@
-import { NextRequest } from 'next/server';
 import { createRestGetHandler, createRestPostHandler } from '@/app/lib/api/factory/rest-factory';
-import { isCommentCreateRequest, CommentCreateRequest } from '@/app/lib/api/schemas/validation-schemas';
-import { commentRepository } from '@/app/lib/data/repositories/comment-repository';
+import { CommentCreateRequest, isCommentCreateRequest } from '@/app/lib/api/schemas/validation-schemas';
 import { CommentEntity, UserEntity } from '@/app/lib/core/types/entity-types';
+import { commentRepository } from '@/app/lib/data/repositories/comment-repository';
+import { NextRequest } from 'next/server';
 
 // ============================================================================
 // RESTful Resource: Comments (/api/comments) - 統一パターン使用
@@ -13,9 +13,9 @@ import { CommentEntity, UserEntity } from '@/app/lib/core/types/entity-types';
 // ============================================================================
 
 export const GET = createRestGetHandler<CommentEntity[]>(
-  async (request: NextRequest, currentUser?: UserEntity) => {
+  async (request: NextRequest) => {
     const url = new URL(request.url);
-    
+
     // クエリパラメータ解析
     const page = Number(url.searchParams.get('page')) || 1;
     const limit = Math.min(Number(url.searchParams.get('limit')) || 50, 200);
@@ -68,15 +68,15 @@ export const POST = createRestPostHandler<CommentCreateRequest, CommentEntity>(
       authorEmail: currentUser.email,
       postSlug: postSlug
     };
-    
+
     const result = await commentRepository.create(commentInput);
-    
+
     if (!result.success || !result.data) {
       // エラーメッセージを適切に取得
       const errorMessage = result.success === false && 'error' in result ? result.error : 'Failed to create comment';
       throw new Error(errorMessage);
     }
-    
+
     return result.data;
   },
   isCommentCreateRequest,

@@ -1,7 +1,7 @@
 /**
  * Advanced I18n Hooks and Utilities
  * 高度なi18nフックとユーティリティ
- * 
+ *
  * 機能:
  * - 条件付き翻訳フック
  * - 翻訳パフォーマンス最適化
@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useCallback, useMemo, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAdvancedI18n, type Locale } from '../contexts/advanced-i18n-context';
 
 // 条件付き翻訳フック
@@ -23,7 +23,7 @@ export function useConditionalTranslation(
   variables?: Record<string, string | number>
 ) {
   const { t } = useAdvancedI18n();
-  
+
   return useMemo(() => {
     const key = condition ? trueKey : falseKey;
     return t(key, variables);
@@ -33,7 +33,7 @@ export function useConditionalTranslation(
 // 複数キー翻訳フック
 export function useMultipleTranslations(keys: string[], variables?: Record<string, Record<string, string | number>>) {
   const { t } = useAdvancedI18n();
-  
+
   return useMemo(() => {
     return keys.reduce((acc, key) => {
       acc[key] = t(key, variables?.[key]);
@@ -46,12 +46,12 @@ export function useMultipleTranslations(keys: string[], variables?: Record<strin
 export function useTranslationPerformance() {
   const performanceRef = useRef<Map<string, number>>(new Map());
   const { t: originalT } = useAdvancedI18n();
-  
+
   const t = useCallback((key: string, variables?: Record<string, string | number>) => {
     const start = performance.now();
     const result = originalT(key, variables);
     const end = performance.now();
-    
+
     performanceRef.current.set(key, end - start);
     return result;
   }, [originalT]);
@@ -61,7 +61,7 @@ export function useTranslationPerformance() {
       key,
       time,
     }));
-    
+
     return {
       totalCalls: stats.length,
       averageTime: stats.reduce((sum, stat) => sum + stat.time, 0) / stats.length,
@@ -79,15 +79,15 @@ export function useTranslationPerformance() {
 
 // 翻訳デバッグフック
 export function useTranslationDebug() {
-  const { 
-    t, 
-    locale, 
-    hasTranslation, 
-    getTranslationWithFallback, 
-    validateTranslation 
+  const {
+    t,
+    locale,
+    hasTranslation,
+    getTranslationWithFallback,
+    validateTranslation
   } = useAdvancedI18n();
-  
-  const debugInfo = useRef<Map<string, any>>(new Map());
+
+  const debugInfo = useRef<Map<string, unknown>>(new Map());
 
   const debugT = useCallback((key: string, variables?: Record<string, string | number>) => {
     const info = {
@@ -99,7 +99,7 @@ export function useTranslationDebug() {
       fallbackValue: getTranslationWithFallback(key),
       timestamp: new Date(),
     };
-    
+
     debugInfo.current.set(key, info);
     return t(key, variables);
   }, [t, locale, hasTranslation, validateTranslation, getTranslationWithFallback]);
@@ -127,10 +127,10 @@ export function useBatchTranslations(keys: string[]) {
 
   const loadTranslations = useCallback(async () => {
     if (keys.length === 0) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const results = await bulkTranslate(keys, locale);
       setTranslations(results);
@@ -168,7 +168,7 @@ export function useTranslationHistory() {
       locale,
       timestamp: new Date(),
     });
-    
+
     // 履歴のサイズ制限
     if (history.current.length > 100) {
       history.current = history.current.slice(-100);
@@ -178,7 +178,7 @@ export function useTranslationHistory() {
   const updateTranslation = useCallback((key: string, value: string, oldValue?: string) => {
     const namespace = key.split('.')[0];
     const keyPath = key.split('.').slice(1).join('.');
-    
+
     addToHistory(key, oldValue || '', value);
     addTranslations(locale, namespace, {
       [keyPath]: value
@@ -204,31 +204,31 @@ export function useTranslationHistory() {
     }
   }, [getHistory, updateTranslation]);
 
-  return { 
-    updateTranslation, 
-    getHistory, 
-    clearHistory, 
+  return {
+    updateTranslation,
+    getHistory,
+    clearHistory,
     undo,
-    historyLength: history.current.length 
+    historyLength: history.current.length
   };
 }
 
 // 翻訳検索フック
 export function useTranslationSearch() {
   const { availableLocales, hasTranslation, getTranslationWithFallback } = useAdvancedI18n();
-  
+
   const searchTranslations = useCallback((
-    query: string, 
+    query: string,
     options: {
       searchIn?: 'keys' | 'values' | 'both';
       locales?: Locale[];
       fuzzy?: boolean;
     } = {}
   ) => {
-    const { 
-      searchIn = 'both', 
-      locales = availableLocales, 
-      fuzzy = false 
+    const {
+      searchIn = 'both',
+      locales = availableLocales,
+      fuzzy = false
     } = options;
 
     const results: Array<{
@@ -239,7 +239,7 @@ export function useTranslationSearch() {
     }> = [];
 
     // 簡単な検索実装（実際のプロジェクトではより高度な検索ライブラリを使用）
-    const searchPattern = fuzzy 
+    const searchPattern = fuzzy
       ? new RegExp(query.split('').join('.*'), 'i')
       : new RegExp(query, 'i');
 
@@ -258,7 +258,7 @@ export function useTranslationComparison() {
 
   const compareTranslations = useCallback((key: string, locales?: Locale[]) => {
     const targetLocales = locales || availableLocales;
-    
+
     return targetLocales.map(locale => ({
       locale,
       translation: getTranslationWithFallback(key, [locale]),
@@ -268,7 +268,7 @@ export function useTranslationComparison() {
 
   const findMissingTranslations = useCallback((keys: string[], locales?: Locale[]) => {
     const targetLocales = locales || availableLocales;
-    const missing: Record<Locale, string[]> = {};
+    const missing: Partial<Record<Locale, string[]>> = {};
 
     targetLocales.forEach(locale => {
       missing[locale] = keys.filter(key => {
@@ -288,7 +288,7 @@ export function useAutoSaveTranslation(key: string, interval = 5000) {
   const [value, setValue] = useState('');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { addTranslations, locale, t } = useAdvancedI18n();
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 初期値の設定
   useEffect(() => {
@@ -305,11 +305,11 @@ export function useAutoSaveTranslation(key: string, interval = 5000) {
       if (value && value !== t(key)) {
         const namespace = key.split('.')[0];
         const keyPath = key.split('.').slice(1).join('.');
-        
+
         addTranslations(locale, namespace, {
           [keyPath]: value
         });
-        
+
         setLastSaved(new Date());
       }
     }, interval);
@@ -347,7 +347,7 @@ export function useTranslationQualityAnalysis() {
 
     keys.forEach(key => {
       const validation = validateTranslation(key, locale);
-      
+
       if (validation.isValid) {
         analysis.validTranslations++;
       } else {
@@ -388,7 +388,7 @@ export function useTranslationQualityAnalysis() {
 
   const generateQualityReport = useCallback((locale: Locale) => {
     const stats = getTranslationStats(locale);
-    
+
     return {
       completionScore: stats.completionPercentage,
       qualityScore: (stats.translatedKeys / stats.totalKeys) * 100,

@@ -40,8 +40,8 @@ export abstract class BaseRepository<
 
   // 共通メソッド
   protected buildPagination(
-    total: number, 
-    page: number = 1, 
+    total: number,
+    page: number = 1,
     limit: number = 10
   ): PaginationMeta {
     return {
@@ -65,5 +65,38 @@ export abstract class BaseRepository<
   protected buildSearchRegex(search?: string): RegExp | undefined {
     if (!search || search.trim().length === 0) return undefined;
     return new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+  }
+
+  /**
+   * エラーレスポンスを作成
+   */
+  protected createErrorResponse<T>(
+    error: unknown,
+    defaultMessage: string = 'An error occurred'
+  ): ApiResponse<T> {
+    const errorMessage = error instanceof Error ? error.message : defaultMessage;
+    console.error(`Repository Error: ${errorMessage}`, error);
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+
+  /**
+   * 成功レスポンスを作成
+   */
+  protected createSuccessResponse<T>(data: T): ApiResponse<T> {
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  /**
+   * ObjectIdのバリデーション
+   */
+  protected isValidObjectId(id: string): boolean {
+    return /^[0-9a-fA-F]{24}$/.test(id);
   }
 }

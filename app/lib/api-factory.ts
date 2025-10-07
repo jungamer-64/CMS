@@ -13,17 +13,7 @@ import type { ApiResponse, User } from './core/types';
 import { RateLimiter } from '@/app/lib/security/rate-limiter';
 
 // ユーティリティ関数をエクスポート
-export { createErrorResponse } from './api-utils';
-
-/**
- * 成功レスポンス作成
- */
-export function createSuccessResponse<T>(data: T): ApiResponse<T> {
-  return {
-    success: true,
-    data
-  };
-}
+export { createErrorResponse, createSuccessResponse } from './api-utils';
 
 /**
  * GET ハンドラー型定義
@@ -66,12 +56,45 @@ export type DeleteHandler<T = unknown> = (
 /**
  * ハンドラーオプション
  */
-interface HandlerOptions {
+export interface HandlerOptions {
   rateLimit?: {
     maxRequests: number;
     windowMs: number;
-    message: string;
+    message?: string;
   };
+}
+
+/**
+ * レートリミットをチェックする共通関数
+ */
+async function checkRateLimit(
+  userId: string,
+  options?: HandlerOptions['rateLimit']
+): Promise<{ allowed: boolean; error?: NextResponse }> {
+  if (!options) {
+    return { allowed: true };
+  }
+
+  const rateLimiter = RateLimiter.getInstance();
+  const rateLimitConfig = {
+    maxAttempts: options.maxRequests,
+    windowMs: options.windowMs,
+    blockDurationMs: 60000,
+  };
+  
+  const result = await rateLimiter.checkLimit(userId, rateLimitConfig);
+  
+  if (!result.allowed) {
+    return {
+      allowed: false,
+      error: NextResponse.json(
+        createErrorResponse(options.message || 'Too many requests'),
+        { status: 429 }
+      ),
+    };
+  }
+  
+  return { allowed: true };
 }
 
 /**
@@ -86,21 +109,10 @@ export function createGetHandler<T = unknown>(
 ) {
   return withApiAuth(async (request: NextRequest, context: AuthContext, params?: Record<string, string>) => {
     try {
-      if (options?.rateLimit) {
-        const rateLimiter = RateLimiter.getInstance();
-        // Correct `RateLimitConfig` usage
-        const rateLimitConfig = {
-          maxAttempts: options.rateLimit.maxRequests,
-          windowMs: options.rateLimit.windowMs,
-          blockDurationMs: 60000 // Default block duration
-        };
-        const rateLimitResult = await rateLimiter.checkLimit(context.user.id, rateLimitConfig);
-        if (!rateLimitResult.allowed) {
-          return NextResponse.json(
-            createErrorResponse(options.rateLimit.message),
-            { status: 429 }
-          );
-        }
+      // Rate limit check
+      const rateLimitCheck = await checkRateLimit(context.user.id, options?.rateLimit);
+      if (!rateLimitCheck.allowed) {
+        return rateLimitCheck.error!;
       }
 
       const result = await handler(request, context.user, params);
@@ -140,23 +152,11 @@ export function createOptionalAuthGetHandler<T = unknown>(
         console.log('オプション認証失敗（無視）:', authError);
       }
 
-      if (options?.rateLimit) {
-        const rateLimiter = RateLimiter.getInstance();
-        const rateLimitConfig = {
-          maxAttempts: options.rateLimit.maxRequests,
-          windowMs: options.rateLimit.windowMs,
-          blockDurationMs: 60000
-        };
-        const rateLimitResult = await rateLimiter.checkLimit(
-          user?.id || request.headers.get('x-forwarded-for') || 'anonymous',
-          rateLimitConfig
-        );
-        if (!rateLimitResult.allowed) {
-          return NextResponse.json(
-            createErrorResponse(options.rateLimit.message || 'Too many requests'),
-            { status: 429 }
-          );
-        }
+      // Rate limit check (anonymous or authenticated)
+      const identifier = user?.id || request.headers.get('x-forwarded-for') || 'anonymous';
+      const rateLimitCheck = await checkRateLimit(identifier, options?.rateLimit);
+      if (!rateLimitCheck.allowed) {
+        return rateLimitCheck.error!;
       }
 
       const result = await handler(request, user, params);
@@ -172,7 +172,50 @@ export function createOptionalAuthGetHandler<T = unknown>(
 }
 
 /**
- * 高速 POST ハンドラー作成
+ * リクエストボディをパースして検証する共通関数の戻り値型
+ */
+type ParseResult<TBody> = 
+  | { success: true; data: TBody }
+  | { success: false; error: NextResponse };
+
+/**
+ * リクエストボディをパースして検証する共通関数
+ */
+async function parseAndValidateBody<TBody>(
+  request: NextRequest,
+  requiredFields?: (keyof TBody)[]
+): Promise<ParseResult<TBody>> {
+  const bodyResult = await parseJsonSafely<TBody>(request);
+  
+  if (!bodyResult.success) {
+    return {
+      success: false,
+      error: NextResponse.json(
+        createErrorResponse(bodyResult.error),
+        { status: 400 }
+      ),
+    };
+  }
+
+  // 必須フィールドのバリデーション
+  if (requiredFields) {
+    const validationError = validateRequired(bodyResult.data as Record<string, unknown>, requiredFields);
+    if (validationError) {
+      return {
+        success: false,
+        error: NextResponse.json(
+          createErrorResponse(validationError),
+          { status: 400 }
+        ),
+      };
+    }
+  }
+
+  return { success: true, data: bodyResult.data };
+}
+
+/**
+ * POST ハンドラー作成
  */
 export function createPostHandler<TBody = unknown, TResponse = unknown>(
   handler: PostHandler<TBody, TResponse>,
@@ -180,27 +223,12 @@ export function createPostHandler<TBody = unknown, TResponse = unknown>(
 ) {
   return withApiAuth(async (request: NextRequest, context: AuthContext, params?: Record<string, string>) => {
     try {
-      const bodyResult = await parseJsonSafely<TBody>(request);
-      
-      if (!bodyResult.success) {
-        return NextResponse.json(
-          createErrorResponse(bodyResult.error),
-          { status: 400 }
-        );
+      const bodyValidation = await parseAndValidateBody<TBody>(request, requiredFields);
+      if (!bodyValidation.success) {
+        return bodyValidation.error;
       }
 
-      // 必須フィールドのバリデーション
-      if (requiredFields) {
-        const validationError = validateRequired(bodyResult.data as Record<string, unknown>, requiredFields);
-        if (validationError) {
-          return NextResponse.json(
-            createErrorResponse(validationError),
-            { status: 400 }
-          );
-        }
-      }
-
-      const result = await handler(request, bodyResult.data, context.user, params);
+      const result = await handler(request, bodyValidation.data, context.user, params);
       return NextResponse.json(result);
     } catch (error) {
       console.error('POST handler error:', error);
@@ -213,7 +241,7 @@ export function createPostHandler<TBody = unknown, TResponse = unknown>(
 }
 
 /**
- * 高速 PUT ハンドラー作成
+ * PUT ハンドラー作成
  */
 export function createPutHandler<TBody = unknown, TResponse = unknown>(
   handler: PutHandler<TBody, TResponse>,
@@ -222,44 +250,19 @@ export function createPutHandler<TBody = unknown, TResponse = unknown>(
 ) {
   return withApiAuth(async (request: NextRequest, context: AuthContext, params?: Record<string, string>) => {
     try {
-      const bodyResult = await parseJsonSafely<TBody>(request);
-      
-      if (!bodyResult.success) {
-        return NextResponse.json(
-          createErrorResponse(bodyResult.error),
-          { status: 400 }
-        );
+      // Body parsing and validation
+      const bodyValidation = await parseAndValidateBody<TBody>(request, requiredFields);
+      if (!bodyValidation.success) {
+        return bodyValidation.error;
       }
 
-      // 必須フィールドのバリデーション
-      if (requiredFields) {
-        const validationError = validateRequired(bodyResult.data as Record<string, unknown>, requiredFields);
-        if (validationError) {
-          return NextResponse.json(
-            createErrorResponse(validationError),
-            { status: 400 }
-          );
-        }
+      // Rate limit check
+      const rateLimitCheck = await checkRateLimit(context.user.id, options?.rateLimit);
+      if (!rateLimitCheck.allowed) {
+        return rateLimitCheck.error!;
       }
 
-      if (options?.rateLimit) {
-        const rateLimiter = RateLimiter.getInstance();
-        // Correct `RateLimitConfig` usage
-        const rateLimitConfig = {
-          maxAttempts: options.rateLimit.maxRequests,
-          windowMs: options.rateLimit.windowMs,
-          blockDurationMs: 60000 // Default block duration
-        };
-        const rateLimitResult = await rateLimiter.checkLimit(context.user.id, rateLimitConfig);
-        if (!rateLimitResult.allowed) {
-          return NextResponse.json(
-            createErrorResponse(options.rateLimit.message),
-            { status: 429 }
-          );
-        }
-      }
-
-      const result = await handler(request, bodyResult.data, context.user, params);
+      const result = await handler(request, bodyValidation.data, context.user, params);
       return NextResponse.json(result);
     } catch (error) {
       console.error('PUT handler error:', error);
@@ -272,13 +275,20 @@ export function createPutHandler<TBody = unknown, TResponse = unknown>(
 }
 
 /**
- * 高速 DELETE ハンドラー作成
+ * DELETE ハンドラー作成
  */
 export function createDeleteHandler<T = unknown>(
-  handler: DeleteHandler<T>
+  handler: DeleteHandler<T>,
+  options?: HandlerOptions
 ) {
   return withApiAuth(async (request: NextRequest, context: AuthContext, params?: Record<string, string>) => {
     try {
+      // Rate limit check
+      const rateLimitCheck = await checkRateLimit(context.user.id, options?.rateLimit);
+      if (!rateLimitCheck.allowed) {
+        return rateLimitCheck.error!;
+      }
+
       const result = await handler(request, context.user, params);
       return NextResponse.json(result);
     } catch (error) {

@@ -49,11 +49,15 @@ export async function saveHomePage(pageData: HomePageInput): Promise<HomePage> {
   const now = new Date();
   
   // LayoutComponentInputをLayoutComponentに変換
-  const components: any[] = (pageData.components || []).map((comp, index) => ({
-    ...comp,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const components: readonly any[] = (pageData.components || []).map((comp, index) => ({
     id: comp.id || crypto.randomUUID(), // idが未定義の場合は生成
+    type: comp.type,
+    content: JSON.stringify(comp.content), // Record<string, unknown>をstringに変換
     isActive: comp.isActive ?? true, // 未定義の場合はtrueに設定
-    order: comp.order ?? index // 未定義の場合はインデックスを使用
+    order: comp.order ?? index, // 未定義の場合はインデックスを使用
+    createdAt: now,
+    updatedAt: now,
   }));
   
   const homePage: HomePage = {

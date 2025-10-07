@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 export interface ThemeContextType {
   readonly isDarkMode: boolean;
@@ -25,10 +25,10 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   useEffect(() => {
     // システムの設定を確認
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    // ローカルストレージから設定を取得
-    const stored = localStorage.getItem('darkMode');
-    const initialDarkMode = stored ? JSON.parse(stored) : systemPrefersDark;
-    
+    // ローカルストレージから設定を取得（'theme'キーを使用）
+    const stored = localStorage.getItem('theme');
+    const initialDarkMode = stored === 'dark' || (!stored && systemPrefersDark);
+
     setIsDarkMode(initialDarkMode);
     updateDocumentClass(initialDarkMode);
   }, []);
@@ -43,7 +43,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   const setDarkMode = (isDark: boolean) => {
     setIsDarkMode(isDark);
-    localStorage.setItem('darkMode', JSON.stringify(isDark));
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
     updateDocumentClass(isDark);
   };
 

@@ -1,7 +1,7 @@
 // APIエラーコード定義
 export enum ApiErrorCode {
   VALIDATION_ERROR = 'VALIDATION_ERROR',
-  UNAUTHORIZED = 'UNAUTHORIZED', 
+  UNAUTHORIZED = 'UNAUTHORIZED',
   FORBIDDEN = 'FORBIDDEN',
   NOT_FOUND = 'NOT_FOUND',
   INTERNAL_ERROR = 'INTERNAL_ERROR'
@@ -23,6 +23,7 @@ export interface ApiResponse<T = unknown> {
 export interface ApiSuccess<T> extends ApiResponse<T> {
   success: true;
   data: T;
+  message?: string;
 }
 
 export interface ApiError extends ApiResponse<never> {
@@ -221,6 +222,8 @@ export interface UserUpdateInput {
 }
 
 // 投稿関連型
+export type PostStatus = 'draft' | 'published';
+
 export interface Post {
   id: string;
   title: string;
@@ -230,6 +233,10 @@ export interface Post {
   isPublished: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface PostResource extends Post {
+  readonly status: PostStatus;
 }
 
 export interface PostCreateRequest {
@@ -290,10 +297,198 @@ export function createApiError(
   };
 }
 
-// 成功レスポンス作成ヘルパー関数  
-export function createApiSuccess<T>(data: T): ApiSuccess<T> {
+// 成功レスポンス作成ヘルパー関数
+export function createApiSuccess<T>(data: T, message?: string): ApiSuccess<T> {
   return {
     success: true,
-    data
+    data,
+    ...(message && { message })
   };
+}
+
+// 特別なAPIレスポンス型
+export interface UserSessionInfo {
+  readonly id: string;
+  readonly username: string;
+  readonly email: string;
+  readonly displayName: string;
+  readonly role: 'admin' | 'user';
+  readonly isActive: boolean;
+  readonly lastLogin?: Date;
+  readonly preferences?: Record<string, unknown>;
+}
+
+export interface PostResponse {
+  readonly post: Post;
+  readonly author?: {
+    readonly id: string;
+    readonly username: string;
+    readonly displayName: string;
+  };
+  readonly stats?: {
+    readonly views: number;
+    readonly likes: number;
+    readonly comments: number;
+  };
+}
+
+export interface RegisterRequest {
+  readonly username: string;
+  readonly email: string;
+  readonly password: string;
+  readonly displayName?: string;
+}
+
+export interface AuthResponse {
+  readonly user: UserSessionInfo;
+  readonly token?: string;
+  readonly expiresAt?: Date;
+}
+
+export interface SettingsUpdateRequest {
+  readonly siteName?: string;
+  readonly siteDescription?: string;
+  readonly adminEmail?: string;
+  readonly allowRegistration?: boolean;
+  readonly theme?: string;
+}
+
+export interface ThemeUpdateRequest {
+  readonly darkMode: boolean;
+}
+
+export interface ThemeResponse {
+  readonly darkMode: boolean;
+  readonly theme?: string;
+}
+
+// バリデーションスキーマ型
+export interface ValidationSchema {
+  readonly required?: readonly string[];
+  readonly optional?: readonly string[];
+  readonly rules?: Record<string, unknown>;
+}
+
+// ページネーション結果型
+export interface PaginatedResult<T> {
+  readonly data: readonly T[];
+  readonly pagination: {
+    readonly page: number;
+    readonly limit: number;
+    readonly total: number;
+    readonly totalPages: number;
+  };
+}
+
+// ホームページエンティティ
+export interface HomePage {
+  readonly id: string;
+  readonly title: string;
+  readonly content: string;
+  readonly components: readonly LayoutComponent[];
+  readonly styles: GlobalStyles;
+  readonly isActive: boolean;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+export interface HomePageInput {
+  readonly title?: string;
+  readonly content?: string;
+  readonly components?: readonly LayoutComponentInput[];
+  readonly styles?: GlobalStylesInput;
+  readonly isActive?: boolean;
+}
+
+// グローバルスタイル型
+export interface GlobalStyles {
+  readonly primaryColor: string;
+  readonly secondaryColor: string;
+  readonly accentColor: string;
+  readonly backgroundColor: string;
+  readonly fontFamily: string;
+  readonly fontSize: string;
+  readonly darkMode: boolean;
+  readonly variables?: Record<string, string>;
+  readonly customCss?: string;
+  readonly colorScheme: {
+    readonly primary: string;
+    readonly secondary: string;
+    readonly accent: string;
+    readonly background: string;
+    readonly text: string;
+  };
+  readonly typography: {
+    readonly fontFamily: string;
+    readonly fontSize: {
+      readonly base: string;
+      readonly heading?: string;
+      readonly small: string;
+    };
+  };
+  readonly spacing: {
+    readonly containerMaxWidth: string;
+  };
+  readonly layout: {
+    readonly maxWidth?: string;
+    readonly spacing: string;
+    readonly borderRadius: string;
+  };
+}
+
+export interface GlobalStylesInput {
+  readonly name?: string;
+  readonly primaryColor?: string;
+  readonly secondaryColor?: string;
+  readonly accentColor?: string;
+  readonly backgroundColor?: string;
+  readonly fontFamily?: string;
+  readonly fontSize?: string;
+  readonly darkMode?: boolean;
+  readonly isActive?: boolean;
+  readonly variables?: Record<string, string>;
+  readonly customCss?: string;
+  readonly colorScheme?: {
+    readonly primary?: string;
+    readonly secondary?: string;
+    readonly accent?: string;
+    readonly background?: string;
+    readonly text?: string;
+  };
+  readonly typography?: {
+    readonly fontFamily?: string;
+    readonly fontSize?: {
+      readonly base?: string;
+      readonly heading?: string;
+      readonly small?: string;
+    };
+  };
+  readonly spacing?: {
+    readonly containerMaxWidth?: string;
+    readonly maxWidth?: string;
+  };
+  readonly layout?: {
+    readonly maxWidth?: string;
+    readonly spacing?: string;
+    readonly borderRadius?: string;
+  };
+}
+
+// レイアウトコンポーネント型
+export interface LayoutComponent {
+  readonly id: string;
+  readonly type: string;
+  readonly content: string;
+  readonly isActive: boolean;
+  readonly order: number;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+export interface LayoutComponentInput {
+  readonly id?: string;
+  readonly type: string;
+  readonly content: Record<string, unknown>;
+  readonly isActive?: boolean;
+  readonly order?: number;
 }

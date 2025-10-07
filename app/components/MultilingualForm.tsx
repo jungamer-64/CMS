@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useState } from 'react';
 import { useExtendedTranslation } from '../lib/hooks/useExtendedTranslation';
 
 export interface ValidationRule {
@@ -41,8 +41,8 @@ interface FieldError {
 
 // バリデーション関数を分離
 class FormValidator {
-  private readonly t: (key: string, options?: Record<string, unknown>) => string;
-  private readonly locale: string;
+  private t: (key: string, options?: Record<string, unknown>) => string;
+  private locale: string;
 
   constructor(t: (key: string, options?: Record<string, unknown>) => string, locale: string) {
     this.t = t;
@@ -98,7 +98,7 @@ class FormValidator {
       zh: /^(\+86-?|0)\d{3}-?\d{4}-?\d{4}$/,
       default: /^\+?\d{1,4}[-\s]?\d{1,4}[-\s]?\d{1,9}$/,
     };
-    
+
     const pattern = phonePatterns[this.locale as keyof typeof phonePatterns] || phonePatterns.default;
     if (!pattern.test(value)) {
       return this.t('validation:validation.phone');
@@ -149,78 +149,78 @@ export default function MultilingualForm({
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const validator = useMemo(() => new FormValidator(t, locale), [t, locale]);
-  
+
   // バリデーション関数
   const validateField = useCallback((field: FieldConfig, value: string): string | null => {
+    const validator = new FormValidator(t, locale);
+
     const { rules } = field;
     if (!rules) return null;
-    
+
     // 必須チェック
     if (rules.required) {
       const requiredError = validator.validateRequired(value);
       if (requiredError) return requiredError;
     }
-    
+
     // 値が空の場合、他のバリデーションは実行しない
     if (!value || value.trim() === '') {
       return null;
     }
-    
+
     // 長さチェック
     const lengthError = validator.validateLength(value, rules.minLength, rules.maxLength);
     if (lengthError) return lengthError;
-    
+
     // メールアドレスチェック
     if (rules.email) {
       const emailError = validator.validateEmail(value);
       if (emailError) return emailError;
     }
-    
+
     // URLチェック
     if (rules.url) {
       const urlError = validator.validateUrl(value);
       if (urlError) return urlError;
     }
-    
+
     // 数値チェック
     if (rules.number) {
       const numberError = validator.validateNumber(value);
       if (numberError) return numberError;
     }
-    
+
     // 電話番号チェック
     if (rules.phone) {
       const phoneError = validator.validatePhone(value);
       if (phoneError) return phoneError;
     }
-    
+
     // 日付チェック
     if (rules.date) {
       const dateError = validator.validateDate(value);
       if (dateError) return dateError;
     }
-    
+
     // パターンチェック
     if (rules.pattern) {
       const patternError = validator.validatePattern(value, rules.pattern);
       if (patternError) return patternError;
     }
-    
+
     // カスタムバリデーション
     if (rules.custom) {
       const customError = validator.validateCustom(value, rules.custom);
       if (customError) return customError;
     }
-    
+
     return null;
-  }, [validator]);
-  
+  }, [t, locale]);
+
   // 全フィールドをバリデーション
   const validateForm = useCallback((): boolean => {
     const newErrors: FieldError[] = [];
-    
+
     fields.forEach(field => {
       const value = formData[field.name] || '';
       const error = validateField(field, value);
@@ -228,15 +228,15 @@ export default function MultilingualForm({
         newErrors.push({ field: field.name, message: error });
       }
     });
-    
+
     setErrors(newErrors);
     return newErrors.length === 0;
   }, [fields, formData, validateField]);
-  
+
   // フィールド値の変更
   const handleFieldChange = useCallback((fieldName: string, value: string) => {
     setFormData(prev => ({ ...prev, [fieldName]: value }));
-    
+
     // リアルタイムバリデーション
     const field = fields.find(f => f.name === fieldName);
     if (field) {
@@ -247,15 +247,15 @@ export default function MultilingualForm({
       });
     }
   }, [fields, validateField]);
-  
+
   // フォーム送信
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       const result = onSubmit(formData);
@@ -268,25 +268,25 @@ export default function MultilingualForm({
       setIsSubmitting(false);
     }
   }, [validateForm, onSubmit, formData]);
-  
+
   // フォームリセット
   const handleReset = useCallback(() => {
     setFormData({});
     setErrors([]);
   }, []);
-  
+
   // フィールドのエラーを取得
   const getFieldError = useCallback((fieldName: string): string | null => {
     const error = errors.find(e => e.field === fieldName);
     return error?.message || null;
   }, [errors]);
-  
+
   return (
     <form onSubmit={handleSubmit} className={`space-y-6 ${className}`}>
       {fields.map(field => {
         const error = getFieldError(field.name);
         const value = formData[field.name] || '';
-        
+
         return (
           <div key={field.name} className="space-y-2">
             <label
@@ -298,7 +298,7 @@ export default function MultilingualForm({
                 <span className="text-red-500 ml-1">*</span>
               )}
             </label>
-            
+
             {field.type === 'textarea' ? (
               <textarea
                 id={field.name}
@@ -306,11 +306,10 @@ export default function MultilingualForm({
                 value={value}
                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
                 placeholder={field.placeholder}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  error
-                    ? 'border-red-500 focus:border-red-500'
-                    : 'border-gray-300 dark:border-gray-600 focus:border-blue-500'
-                } bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${error
+                  ? 'border-red-500 focus:border-red-500'
+                  : 'border-gray-300 dark:border-gray-600 focus:border-blue-500'
+                  } bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`}
                 rows={4}
               />
             ) : (
@@ -321,14 +320,13 @@ export default function MultilingualForm({
                 value={value}
                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
                 placeholder={field.placeholder}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  error
-                    ? 'border-red-500 focus:border-red-500'
-                    : 'border-gray-300 dark:border-gray-600 focus:border-blue-500'
-                } bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${error
+                  ? 'border-red-500 focus:border-red-500'
+                  : 'border-gray-300 dark:border-gray-600 focus:border-blue-500'
+                  } bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`}
               />
             )}
-            
+
             {error && (
               <p className="text-sm text-red-600 dark:text-red-400 flex items-center">
                 <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -337,7 +335,7 @@ export default function MultilingualForm({
                 {error}
               </p>
             )}
-            
+
             {!error && field.helpText && showHelp && (
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {field.helpText}
@@ -346,7 +344,7 @@ export default function MultilingualForm({
           </div>
         );
       })}
-      
+
       <div className="flex space-x-4 pt-4">
         <button
           type="submit"
@@ -362,7 +360,7 @@ export default function MultilingualForm({
             submitLabel || t('forms:buttons.submit')
           )}
         </button>
-        
+
         <button
           type="button"
           onClick={handleReset}

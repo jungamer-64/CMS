@@ -12,7 +12,7 @@
 
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAdvancedI18n, type Locale } from '../contexts/advanced-i18n-context';
 
 // インライン翻訳エディタ
@@ -50,11 +50,11 @@ export function InlineTranslationEditor({
     if (value.trim()) {
       const namespace = translationKey.split('.')[0];
       const keyPath = translationKey.split('.').slice(1).join('.');
-      
+
       addTranslations(locale, namespace, {
         [keyPath]: value.trim()
       });
-      
+
       onSave?.(translationKey, value.trim());
     }
     setIsEditing(false);
@@ -109,9 +109,8 @@ export function InlineTranslationEditor({
   return (
     <span
       onClick={() => setIsEditing(true)}
-      className={`inline-block cursor-pointer px-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
-        !isTranslated ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200' : ''
-      }`}
+      className={`inline-block cursor-pointer px-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${!isTranslated ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200' : ''
+        }`}
       title={`Click to edit: ${translationKey}`}
     >
       {currentTranslation || fallback}
@@ -135,10 +134,10 @@ export function TranslationQualityBadge({
 }: TranslationQualityBadgeProps) {
   const { locale, validateTranslation } = useAdvancedI18n();
   const currentLocale = targetLocale || locale;
-  
+
   const validation = validateTranslation(translationKey, currentLocale);
   const qualityScore = validation.isValid ? 100 : Math.max(0, 100 - (validation.issues.length * 25));
-  
+
   const getColor = (score: number) => {
     if (score >= 90) return 'bg-green-500';
     if (score >= 70) return 'bg-yellow-500';
@@ -208,15 +207,21 @@ export function TranslationProgress({
 }
 
 // 言語検出ウィジェット
+interface DetectionResult {
+  detected: string;
+  confidence: number;
+  alternatives: Array<{ locale: string; confidence: number }>;
+}
+
 interface LanguageDetectorProps {
-  readonly onDetected?: (detected: any) => void;
+  readonly onDetected?: (detected: DetectionResult) => void;
   readonly autoDetect?: boolean;
 }
 
 export function LanguageDetector({ onDetected, autoDetect = false }: LanguageDetectorProps) {
   const { detectLanguage } = useAdvancedI18n();
   const [text, setText] = useState('');
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<DetectionResult | null>(null);
 
   useEffect(() => {
     if (autoDetect && text.length > 10) {
@@ -246,7 +251,7 @@ export function LanguageDetector({ onDetected, autoDetect = false }: LanguageDet
           placeholder="Type or paste text here..."
         />
       </div>
-      
+
       {!autoDetect && (
         <button
           onClick={handleDetect}
@@ -265,7 +270,7 @@ export function LanguageDetector({ onDetected, autoDetect = false }: LanguageDet
             <div className="mt-2">
               <div className="text-sm font-medium">Alternatives:</div>
               <ul className="text-sm text-gray-500">
-                {result.alternatives.map((alt: any, index: number) => (
+                {result.alternatives.map((alt, index: number) => (
                   <li key={index}>
                     {alt.locale} ({(alt.confidence * 100).toFixed(1)}%)
                   </li>
@@ -280,14 +285,22 @@ export function LanguageDetector({ onDetected, autoDetect = false }: LanguageDet
 }
 
 // 翻訳メモリ検索ウィジェット
+interface TranslationMemoryResult {
+  source: string;
+  target: string;
+  locale: string;
+  quality: number;
+  lastUsed: Date;
+}
+
 interface TranslationMemorySearchProps {
-  readonly onSelect?: (memory: any) => void;
+  readonly onSelect?: (memory: TranslationMemoryResult) => void;
 }
 
 export function TranslationMemorySearch({ onSelect }: TranslationMemorySearchProps) {
   const { searchMemory, locale } = useAdvancedI18n();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<TranslationMemoryResult[]>([]);
 
   useEffect(() => {
     if (query.length > 2) {
@@ -366,7 +379,7 @@ export function TranslationStatsWidget({ locale: targetLocale, compact = false }
         <h3 className="font-medium">{localeInfo.nativeName}</h3>
         <span className="text-sm text-gray-500">{currentLocale}</span>
       </div>
-      
+
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="text-center">
           <div className="text-lg font-bold text-blue-600">{stats.totalKeys}</div>

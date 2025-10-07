@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { createErrorResponse, createSuccessResponse } from '@/app/lib/api-utils';
+import { AuthContext, withApiAuth } from '@/app/lib/auth-middleware';
+import { addWebhook, getWebhooks, type Webhook } from '@/app/lib/utils/webhooks';
 import { randomUUID } from 'crypto';
-import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
-import { withApiAuth, AuthContext } from '@/app/lib/auth-middleware';
-import { getWebhooks, addWebhook, type Webhook } from '@/app/lib/utils/webhooks';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Type guard function
 function isWebhookCreateRequest(obj: unknown): obj is { url: string; event: string; enabled?: boolean } {
   if (!obj || typeof obj !== 'object') return false;
   const req = obj as Record<string, unknown>;
-  return typeof req.url === 'string' && 
-         typeof req.event === 'string' &&
-         req.url.trim().length > 0 &&
-         req.event.trim().length > 0;
+  return typeof req.url === 'string' &&
+    typeof req.event === 'string' &&
+    req.url.trim().length > 0 &&
+    req.event.trim().length > 0;
 }
 
 // GET: Get all webhooks
@@ -28,7 +28,7 @@ export async function GET() {
   }
 }
 
-// POST: Create new webhook  
+// POST: Create new webhook
 export const POST = withApiAuth(async (request: NextRequest, context: AuthContext) => {
   try {
     if (!context.user || context.user.role !== 'admin') {
@@ -38,7 +38,7 @@ export const POST = withApiAuth(async (request: NextRequest, context: AuthContex
     let requestData;
     try {
       requestData = await request.json();
-    } catch (error) {
+    } catch {
       return NextResponse.json(createErrorResponse('Invalid JSON data', 400));
     }
 

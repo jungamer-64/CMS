@@ -12,21 +12,16 @@
 
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAdvancedI18n, type Locale } from '../contexts/advanced-i18n-context';
-
-interface AdvancedLanguageSwitcherProps {
-  readonly variant?: 'dropdown' | 'tabs' | 'flags' | 'compact' | 'grid' | 'carousel';
-  readonly className?: string;
-  readonly showProgress?: boolean;
-  readonly showNativeNames?: boolean;
-  readonly preloadOnHover?: boolean;
-  readonly autoDetectLanguage?: boolean;
-  readonly enableTranslationMemory?: boolean;
-  readonly showBookmarks?: boolean;
-  readonly groupByRegion?: boolean;
-  readonly sortBy?: 'alphabetical' | 'usage' | 'completion';
-}
+import type { AdvancedLanguageSwitcherProps } from './language-switcher/types';
+import { getFlagEmoji } from './language-switcher/helpers';
+import { GridLanguageSwitcher } from './language-switcher/GridLanguageSwitcher';
+import { CarouselLanguageSwitcher } from './language-switcher/CarouselLanguageSwitcher';
+import { CompactLanguageSwitcher } from './language-switcher/CompactLanguageSwitcher';
+import { TabsLanguageSwitcher } from './language-switcher/TabsLanguageSwitcher';
+import { FlagsLanguageSwitcher } from './language-switcher/FlagsLanguageSwitcher';
+import { DropdownLanguageSwitcher } from './language-switcher/DropdownLanguageSwitcher';
 
 export function AdvancedLanguageSwitcher({ 
   variant = 'dropdown',
@@ -35,7 +30,6 @@ export function AdvancedLanguageSwitcher({
   showNativeNames = true,
   preloadOnHover = true,
   autoDetectLanguage = false,
-  enableTranslationMemory = false,
   showBookmarks = false,
   groupByRegion = false,
   sortBy = 'alphabetical'
@@ -49,25 +43,22 @@ export function AdvancedLanguageSwitcher({
     preloadLocale,
     isRTL,
     getTextDirection,
-    detectLanguage,
     getBookmarks
   } = useAdvancedI18n();
   
-  const [isOpen, setIsOpen] = useState(false);
   const [preloadedLocales, setPreloadedLocales] = useState<Set<Locale>>(new Set([locale]));
-  const [detectedLanguage, setDetectedLanguage] = useState<string>('');
   const [bookmarkedLocales, setBookmarkedLocales] = useState<Set<Locale>>(new Set());
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // 自動言語検出
   useEffect(() => {
     if (autoDetectLanguage && typeof navigator !== 'undefined') {
       const userLanguage = navigator.language.split('-')[0] as Locale;
       if (availableLocales.includes(userLanguage) && userLanguage !== locale) {
-        setDetectedLanguage(userLanguage);
+        // 自動検出された言語に切り替え
+        setLocale(userLanguage);
       }
     }
-  }, [autoDetectLanguage, availableLocales, locale]);
+  }, [autoDetectLanguage, availableLocales, locale, setLocale]);
 
   // ブックマークされた言語の取得
   useEffect(() => {
@@ -79,7 +70,7 @@ export function AdvancedLanguageSwitcher({
 
   // 言語のソート
   const getSortedLocales = useCallback(() => {
-    let sorted = [...availableLocales];
+    const sorted = [...availableLocales];
     
     switch (sortBy) {
       case 'alphabetical':
@@ -120,23 +111,10 @@ export function AdvancedLanguageSwitcher({
     return groups;
   }, [groupByRegion, getSortedLocales, getLocaleInfo]);
 
-  // クリック外での閉じる処理
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   // 言語切り替え処理
-  const handleLocaleChange = async (newLocale: Locale) => {
+  const handleLocaleChange = useCallback(async (newLocale: Locale) => {
     if (newLocale !== locale) {
       setLocale(newLocale);
-      setIsOpen(false);
       
       // プリロードされていない場合は読み込み
       if (!preloadedLocales.has(newLocale)) {
@@ -144,305 +122,104 @@ export function AdvancedLanguageSwitcher({
         setPreloadedLocales(prev => new Set([...prev, newLocale]));
       }
     }
-  };
+  }, [locale, setLocale, preloadedLocales, preloadLocale]);
 
   // ホバー時のプリロード
-  const handleMouseEnter = async (targetLocale: Locale) => {
+  const handleMouseEnter = useCallback(async (targetLocale: Locale) => {
     if (preloadOnHover && !preloadedLocales.has(targetLocale)) {
       await preloadLocale(targetLocale);
       setPreloadedLocales(prev => new Set([...prev, targetLocale]));
     }
-  };
-
-  // 言語フラグの取得
-  const getFlagEmoji = (localeCode: Locale): string => {
-    const flags: Record<Locale, string> = {
-      ja: '🇯🇵',
-      en: '🇺🇸',
-      fr: '🇫🇷',
-      de: '🇩🇪',
-      ko: '🇰🇷',
-      zh: '🇨🇳',
-      ar: '🇸🇦',
-      es: '🇪🇸',
-      it: '🇮🇹',
-      pt: '🇵🇹',
-      ru: '🇷🇺',
-      hi: '🇮🇳',
-      th: '🇹🇭',
-      vi: '🇻🇳',
-      ms: '🇲🇾',
-      tl: '🇵🇭'
-    };
-    return flags[localeCode] || '🌐';
-  };
+  }, [preloadOnHover, preloadedLocales, preloadLocale]);
 
   // 翻訳進捗の取得
-  const getProgress = (localeCode: Locale) => {
+  const getProgress = useCallback((localeCode: Locale) => {
     if (!showProgress) return null;
     const stats = getTranslationStats(localeCode);
     return stats.completionPercentage;
+  }, [showProgress, getTranslationStats]);
+
+  // 共通のprops
+  const commonProps = {
+    locale,
+    availableLocales,
+    showProgress,
+    showNativeNames,
+    preloadOnHover,
+    showBookmarks,
+    bookmarkedLocales,
+    getFlagEmoji,
+    getProgress,
+    handleLocaleChange,
+    handleMouseEnter,
+    getLocaleInfo,
+    getTextDirection
   };
 
+  // Gridバリアント
   if (variant === 'grid') {
-    const groupedLocales = getGroupedLocales();
-    
     return (
-      <div className={`${className}`} dir={getTextDirection()}>
-        {Object.entries(groupedLocales).map(([region, locales]) => (
-          <div key={region} className="mb-4">
-            {groupByRegion && <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">{region}</h3>}
-            <div className="grid grid-cols-4 gap-2">
-              {locales.map((localeCode) => {
-                const localeInfo = getLocaleInfo(localeCode);
-                const isActive = localeCode === locale;
-                const progress = getProgress(localeCode);
-                
-                return (
-                  <button
-                    key={localeCode}
-                    onClick={() => handleLocaleChange(localeCode)}
-                    onMouseEnter={() => handleMouseEnter(localeCode)}
-                    className={`relative p-3 rounded-lg border-2 transition-all hover:scale-105 ${
-                      isActive 
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                    title={localeInfo.nativeName}
-                  >
-                    <div className="text-2xl mb-1">{getFlagEmoji(localeCode)}</div>
-                    <div className="text-xs font-medium">{localeCode.toUpperCase()}</div>
-                    {showProgress && progress !== null && (
-                      <div className="absolute bottom-1 left-1 right-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-green-500 transition-all duration-300" 
-                             style={{ width: `${progress}%` }} />
-                      </div>
-                    )}
-                    {showBookmarks && bookmarkedLocales.has(localeCode) && (
-                      <div className="absolute top-1 right-1 text-yellow-500">⭐</div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
+      <GridLanguageSwitcher
+        {...commonProps}
+        className={className}
+        groupByRegion={groupByRegion}
+        groupedLocales={getGroupedLocales()}
+      />
     );
   }
 
+  // Carouselバリアント
   if (variant === 'carousel') {
     return (
-      <div className={`flex items-center space-x-2 ${className}`} dir={getTextDirection()}>
-        <button 
-          onClick={() => {
-            const sorted = getSortedLocales();
-            const currentIndex = sorted.indexOf(locale);
-            const prevIndex = currentIndex > 0 ? currentIndex - 1 : sorted.length - 1;
-            handleLocaleChange(sorted[prevIndex]);
-          }}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-        >
-          ◀
-        </button>
-        
-        <div className="flex items-center min-w-0">
-          <span className="text-2xl mr-2">{getFlagEmoji(locale)}</span>
-          <div className="min-w-0">
-            <div className="font-medium truncate">
-              {showNativeNames ? getLocaleInfo(locale).nativeName : getLocaleInfo(locale).name}
-            </div>
-            {showProgress && (
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                {getProgress(locale)}% complete
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <button 
-          onClick={() => {
-            const sorted = getSortedLocales();
-            const currentIndex = sorted.indexOf(locale);
-            const nextIndex = currentIndex < sorted.length - 1 ? currentIndex + 1 : 0;
-            handleLocaleChange(sorted[nextIndex]);
-          }}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-        >
-          ▶
-        </button>
-      </div>
+      <CarouselLanguageSwitcher
+        {...commonProps}
+        className={className}
+        sortedLocales={getSortedLocales()}
+      />
     );
   }
 
+  // Compactバリアント
   if (variant === 'compact') {
     return (
-      <button
-        onClick={() => {
-          const currentIndex = availableLocales.indexOf(locale);
-          const nextIndex = (currentIndex + 1) % availableLocales.length;
-          handleLocaleChange(availableLocales[nextIndex]);
-        }}
-        className={`inline-flex items-center px-2 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 ${className}`}
-        title="Toggle Language"
-        dir={getTextDirection()}
-      >
-        <span className="mr-1">{getFlagEmoji(locale)}</span>
-        <span className="uppercase">{locale}</span>
-      </button>
+      <CompactLanguageSwitcher
+        locale={locale}
+        availableLocales={availableLocales}
+        className={className}
+        getFlagEmoji={getFlagEmoji}
+        getTextDirection={getTextDirection}
+        handleLocaleChange={handleLocaleChange}
+      />
     );
   }
 
+  // Tabsバリアント
   if (variant === 'tabs') {
     return (
-      <div className={`flex rounded-lg bg-gray-100 dark:bg-gray-800 p-1 ${className}`} dir={getTextDirection()}>
-        {availableLocales.map((localeCode) => {
-          const localeInfo = getLocaleInfo(localeCode);
-          const isActive = localeCode === locale;
-          const progress = getProgress(localeCode);
-          
-          return (
-            <button
-              key={localeCode}
-              onClick={() => handleLocaleChange(localeCode)}
-              onMouseEnter={() => handleMouseEnter(localeCode)}
-              className={`relative flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all ${
-                isActive
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-              }`}
-              dir={localeInfo.isRTL ? 'rtl' : 'ltr'}
-            >
-              <span className="mr-2">{getFlagEmoji(localeCode)}</span>
-              <span>{showNativeNames ? localeInfo.nativeName : localeInfo.name}</span>
-              {showProgress && progress !== null && (
-                <div className="absolute bottom-0 left-0 h-0.5 bg-green-500 transition-all duration-300" 
-                     style={{ width: `${progress}%` }} />
-              )}
-            </button>
-          );
-        })}
-      </div>
+      <TabsLanguageSwitcher
+        {...commonProps}
+        className={className}
+      />
     );
   }
 
+  // Flagsバリアント
   if (variant === 'flags') {
     return (
-      <div className={`flex items-center space-x-2 ${className}`} dir={getTextDirection()}>
-        {availableLocales.map((localeCode) => {
-          const isActive = localeCode === locale;
-          const progress = getProgress(localeCode);
-          
-          return (
-            <button
-              key={localeCode}
-              onClick={() => handleLocaleChange(localeCode)}
-              onMouseEnter={() => handleMouseEnter(localeCode)}
-              className={`relative p-2 rounded-full transition-all hover:scale-110 ${
-                isActive ? 'ring-2 ring-blue-500 ring-offset-2' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
-              title={getLocaleInfo(localeCode).nativeName}
-            >
-              <span className="text-2xl">{getFlagEmoji(localeCode)}</span>
-              {showProgress && progress !== null && (
-                <div className="absolute bottom-1 left-1 right-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500 transition-all duration-300" 
-                       style={{ width: `${progress}%` }} />
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      <FlagsLanguageSwitcher
+        {...commonProps}
+        className={className}
+      />
     );
   }
 
-  // Default: dropdown variant
-  const currentLocaleInfo = getLocaleInfo(locale);
-  
+  // Default: Dropdownバリアント
   return (
-    <div className={`relative ${className}`} ref={dropdownRef} dir={getTextDirection()}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        dir={currentLocaleInfo.isRTL ? 'rtl' : 'ltr'}
-      >
-        <div className="flex items-center">
-          <span className={`text-lg ${isRTL ? 'ml-2' : 'mr-2'}`}>{getFlagEmoji(locale)}</span>
-          <span>{showNativeNames ? currentLocaleInfo.nativeName : currentLocaleInfo.name}</span>
-        </div>
-        <svg
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <div className="absolute z-50 right-0 mt-1 w-60 min-w-60 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
-        <div className="py-1">
-          {availableLocales.map((localeCode) => {
-              const localeInfo = getLocaleInfo(localeCode);
-              const isActive = localeCode === locale;
-              const progress = getProgress(localeCode);
-              
-              return (
-                <div key={localeCode}>
-                  <button
-                    onClick={() => handleLocaleChange(localeCode)}
-                    onMouseEnter={() => handleMouseEnter(localeCode)}
-                    className={`relative w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700 transition-colors ${
-                      isActive ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'
-                    }`}
-                    dir={localeInfo.isRTL ? 'rtl' : 'ltr'}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center min-w-0 flex-1">
-                        <span className={`text-lg flex-shrink-0 ${localeInfo.isRTL ? 'ml-3' : 'mr-3'}`}>{getFlagEmoji(localeCode)}</span>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium truncate">
-                            {showNativeNames ? localeInfo.nativeName : localeInfo.name}
-                          </div>
-                          {showNativeNames && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                              {localeInfo.name}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {isActive && (
-                        <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    {showProgress && progress !== null && (
-                      <div className="mt-2">
-                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                          <span>Translation Progress</span>
-                          <span>{progress}%</span>
-                        </div>
-                        <div className="mt-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-300" 
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
+    <DropdownLanguageSwitcher
+      {...commonProps}
+      className={className}
+      isRTL={isRTL}
+    />
   );
 }
 

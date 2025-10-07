@@ -6,6 +6,7 @@ import { useAuth } from '@/app/lib/ui/contexts/auth-context';
 import { useCMSI18n } from '@/app/lib/contexts/cms-i18n-context';
 import Link from 'next/link';
 import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
+import { LoadingSpinner, ErrorMessage } from '@/app/admin/components';
 import type { Post, User } from '@/app/lib/core/types';
 
 interface DashboardStats {
@@ -87,24 +88,6 @@ const ChevronDownIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
   </svg>
-);
-
-const LoadingSpinner = () => (
-  <div className="flex justify-center items-center h-64">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-500"></div>
-  </div>
-);
-
-const ErrorMessage = ({ message }: { message: string }) => (
-  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200 px-4 py-3 rounded-lg flex items-start space-x-3">
-    <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-    <div>
-      <h4 className="font-medium">お知らせ</h4>
-      <p className="mt-1">{message}</p>
-    </div>
-  </div>
 );
 
 const WelcomeSection = ({ userName }: { userName: string }) => {

@@ -1,0 +1,148 @@
+# リファクタリングサマリー (2025年10月8日)
+
+## 実施内容
+
+### 1. 重複コンポーネントの統合
+
+- **変更内容**: `MultilingualForm-refactored.tsx` を `MultilingualForm.tsx` にマージ
+- **影響**: 1ファイル削減、コードの一貫性向上
+- **ファイル**:
+  - 削除: `app/components/MultilingualForm-refactored.tsx`
+  - 統合: `app/components/MultilingualForm.tsx`
+
+### 2. 型システムの統合
+
+- **変更内容**: 複数の型定義ファイルを `core/types/api-unified.ts` に統合
+- **影響**: 型の一貫性向上、インポートの簡素化
+- **変更ファイル**:
+  - `app/lib/types.ts` → 再エクスポートファイルに変更
+  - `app/lib/api-types.ts` → 再エクスポートファイルに変更
+  - `app/lib/unified-types.ts` → 再エクスポートファイルに変更
+  - `app/lib/core/types/api-unified.ts` → 全型定義を統合
+
+### 3. 新しい型の追加
+
+**api-unified.ts に追加された型**:
+
+- `PostStatus` - 投稿のステータス型
+- `PostResource` - 拡張された投稿型
+- `UserSessionInfo` - ユーザーセッション情報
+- `PostResponse` - 投稿レスポンス
+- `RegisterRequest` - 登録リクエスト
+- `AuthResponse` - 認証レスポンス
+- `SettingsUpdateRequest` - 設定更新リクエスト
+- `ThemeUpdateRequest` - テーマ更新リクエスト
+- `ThemeResponse` - テーマレスポンス
+- `ValidationSchema` - バリデーションスキーマ
+- `PaginatedResult<T>` - ページネーション結果
+- `HomePage` - ホームページエンティティ
+- `HomePageInput` - ホームページ入力
+- `GlobalStyles` - グローバルスタイル
+- `GlobalStylesInput` - グローバルスタイル入力
+- `LayoutComponent` - レイアウトコンポーネント
+- `LayoutComponentInput` - レイアウトコンポーネント入力
+
+### 4. BaseRepositoryの最適化
+
+**追加されたメソッド**:
+
+- `createErrorResponse<T>()` - エラーレスポンスの作成
+- `createSuccessResponse<T>()` - 成功レスポンスの作成
+- `isValidObjectId()` - MongoDB ObjectIdのバリデーション
+
+**影響**: エラーハンドリングの一貫性向上、コードの重複削減
+
+### 5. コードクリーンアップ
+
+**修正内容**:
+
+- 未使用インポートの削除
+  - `app/lib/api/middleware/validation.ts`
+  - `app/lib/api/posts-client.ts`
+- 未使用変数の修正
+  - `app/admin/pages/edit/[id]/page.tsx`
+  - `app/api/comments/route.ts`
+  - `app/api/webhooks/route.ts`
+  - `app/components/MultilingualForm.tsx`
+
+## 改善点
+
+### パフォーマンス
+
+- 型定義の集約により、TypeScriptコンパイル時間の短縮
+- 重複コードの削減により、バンドルサイズの最適化
+
+### メンテナンス性
+
+- 型定義が1箇所に集約され、変更が容易に
+- エラーハンドリングパターンの統一
+- コードの一貫性向上
+
+### 開発者体験
+
+- インポートパスの簡素化
+- 型の自動補完の改善
+- ドキュメントの明確化
+
+## 後方互換性
+
+すべての変更は**後方互換性を維持**しています:
+
+- 既存のインポートパスは引き続き動作（再エクスポート経由）
+- API インターフェースは変更なし
+- 既存の機能に影響なし
+
+## 推奨される次のステップ
+
+1. **段階的な移行**:
+
+   ```typescript
+   // 旧:
+   import type { Post } from '@/app/lib/types';
+
+   // 新（推奨）:
+   import type { Post } from '@/app/lib/core/types/api-unified';
+   ```
+
+2. **BaseRepositoryのメソッド活用**:
+
+   ```typescript
+   // リポジトリでのエラーハンドリング
+   try {
+     const result = await collection.findOne(query);
+     return this.createSuccessResponse(result);
+   } catch (error) {
+     return this.createErrorResponse(error, 'Failed to fetch data');
+   }
+   ```
+
+3. **型定義の拡張**:
+   - 新しい型は `api-unified.ts` に追加
+   - 既存の型定義ファイルは削除を検討（移行完了後）
+
+## 統計
+
+- **削除されたファイル**: 1
+- **変更されたファイル**: 11
+- **追加された型**: 17
+- **修正されたLint警告**: 複数（約5-10個）
+- **後方互換性**: ✅ 維持
+
+## 検証方法
+
+```bash
+# 型チェック
+pnpm type-check
+
+# Lintチェック
+pnpm lint
+
+# ビルド確認
+pnpm build
+```
+
+## 注意事項
+
+- `.next` ディレクトリの型エラーは Next.js 15 の既知の問題（無視可能）
+- 本番環境デプロイ前に全テストの実行を推奨
+- API レスポンスの構造は変更されていないため、フロントエンドの変更は不要

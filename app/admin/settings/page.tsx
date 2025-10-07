@@ -1,10 +1,12 @@
 'use client';
-import { useState, useEffect, useLayoutEffect, useCallback } from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/app/lib/ui/contexts/auth-context';
-import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
 import { useCMSI18n } from '@/app/lib/contexts/cms-i18n-context';
 import type { ApiResponse } from '@/app/lib/core/types/response-types';
+import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
+import { useAuth } from '@/app/lib/ui/contexts/auth-context';
+import { useTheme } from '@/app/lib/ui/contexts/theme-context';
+import { LoadingSpinner, SuccessMessage, ErrorMessage } from '@/app/admin/components';
+import Link from 'next/link';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 
 // 型定義
 
@@ -25,28 +27,6 @@ type ThemeState = Readonly<{
 }>;
 
 type SettingKey = keyof Settings;
-
-// LoadingSpinnerは props を受け取らないため、型定義を削除
-const LoadingSpinner: React.FC = () => (
-  <div className="flex justify-center items-center h-64">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-500" />
-  </div>
-);
-
-export type MessageType = 'success' | 'error';
-interface MessageProps {
-  message: string;
-  type: MessageType;
-}
-const Message: React.FC<MessageProps> = ({ message, type }) => (
-  <div className={`p-4 rounded-lg ${
-    type === 'success'
-      ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-600'
-      : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-600'
-  }`}>
-    {message}
-  </div>
-);
 
 interface ToggleSwitchProps {
   checked: boolean;
@@ -116,8 +96,10 @@ const SettingItem: React.FC<SettingItemProps> = ({ label, description, children 
 interface DisplaySettingsProps {
   settings: Settings;
   onChange: (key: SettingKey, value: unknown) => void;
+  darkMode: boolean;
+  onDarkModeChange: (checked: boolean) => void;
 }
-const DisplaySettings: React.FC<DisplaySettingsProps> = ({ settings, onChange }) => (
+const DisplaySettings: React.FC<DisplaySettingsProps> = ({ settings, onChange, darkMode, onDarkModeChange }) => (
   <SettingCard title="表示設定">
     <div>
       <label htmlFor="maxPostsPerPage" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -133,10 +115,16 @@ const DisplaySettings: React.FC<DisplaySettingsProps> = ({ settings, onChange })
         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
       />
     </div>
-    <div className="mt-4">
-      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">ダークモード</span>
-      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">（ユーザーごとに設定されます。右上のトグルで切り替えてください）</span>
-    </div>
+    <SettingItem
+      label="ダークモード"
+      description="ユーザーごとに設定されます"
+    >
+      <ToggleSwitch
+        checked={darkMode}
+        onChange={onDarkModeChange}
+        label="ダークモード切替"
+      />
+    </SettingItem>
   </SettingCard>
 );
 
@@ -146,13 +134,13 @@ interface ApiSettingsProps {
 }
 const ApiSettings: React.FC<ApiSettingsProps> = ({ settings, onChange }) => (
   <SettingCard title="API設定">
-    <SettingItem 
-      label="APIアクセス" 
+    <SettingItem
+      label="APIアクセス"
       description="外部APIからのアクセスを許可します"
     >
-      <ToggleSwitch 
-        checked={settings.apiAccess} 
-        onChange={(checked) => onChange('apiAccess', checked)} 
+      <ToggleSwitch
+        checked={settings.apiAccess}
+        onChange={(checked) => onChange('apiAccess', checked)}
       />
     </SettingItem>
 
@@ -163,7 +151,7 @@ const ApiSettings: React.FC<ApiSettingsProps> = ({ settings, onChange }) => (
       <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
         APIキーの作成、編集、削除、権限管理は専用ページで行えます。
       </p>
-      <Link 
+      <Link
         href="/admin/api-keys"
         className="inline-flex items-center px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
       >
@@ -182,24 +170,24 @@ interface SystemSettingsProps {
 }
 const SystemSettings: React.FC<SystemSettingsProps> = ({ settings, onChange }) => (
   <SettingCard title="システム設定">
-    <SettingItem 
-      label="メンテナンスモード" 
+    <SettingItem
+      label="メンテナンスモード"
       description="サイトを一時的に非公開にします"
     >
-      <ToggleSwitch 
-        checked={settings.maintenanceMode} 
-        onChange={(checked) => onChange('maintenanceMode', checked)} 
+      <ToggleSwitch
+        checked={settings.maintenanceMode}
+        onChange={(checked) => onChange('maintenanceMode', checked)}
         color="red"
       />
     </SettingItem>
 
-    <SettingItem 
-      label="メール通知" 
+    <SettingItem
+      label="メール通知"
       description="新規投稿やコメントの通知を受け取ります"
     >
-      <ToggleSwitch 
-        checked={settings.emailNotifications} 
-        onChange={(checked) => onChange('emailNotifications', checked)} 
+      <ToggleSwitch
+        checked={settings.emailNotifications}
+        onChange={(checked) => onChange('emailNotifications', checked)}
       />
     </SettingItem>
   </SettingCard>
@@ -211,23 +199,23 @@ interface CommentSettingsProps {
 }
 const CommentSettings: React.FC<CommentSettingsProps> = ({ settings, onChange }) => (
   <SettingCard title="コメント設定">
-    <SettingItem 
-      label="コメント機能" 
+    <SettingItem
+      label="コメント機能"
       description="投稿へのコメントを許可します"
     >
-      <ToggleSwitch 
-        checked={settings.allowComments} 
-        onChange={(checked) => onChange('allowComments', checked)} 
+      <ToggleSwitch
+        checked={settings.allowComments}
+        onChange={(checked) => onChange('allowComments', checked)}
       />
     </SettingItem>
 
-    <SettingItem 
-      label="承認が必要" 
+    <SettingItem
+      label="承認が必要"
       description="コメントの公開前に管理者の承認を求めます"
     >
-      <ToggleSwitch 
-        checked={settings.requireApproval} 
-        onChange={(checked) => onChange('requireApproval', checked)} 
+      <ToggleSwitch
+        checked={settings.requireApproval}
+        onChange={(checked) => onChange('requireApproval', checked)}
         disabled={!settings.allowComments}
       />
     </SettingItem>
@@ -255,7 +243,7 @@ const SystemInfo: React.FC = () => (
 
 const LanguageSettings: React.FC = () => {
   const { locale, setLocale, t } = useCMSI18n();
-  
+
   const languages = [
     { code: 'ja' as const, name: t('settings.languages.japanese'), nativeName: '日本語' },
     { code: 'en' as const, name: t('settings.languages.english'), nativeName: 'English' }
@@ -268,8 +256,8 @@ const LanguageSettings: React.FC = () => {
 
   return (
     <SettingCard title={t('settings.language.title')}>
-      <SettingItem 
-        label={t('settings.language.interface')} 
+      <SettingItem
+        label={t('settings.language.interface')}
         description={t('settings.language.description')}
       >
         <div className="space-y-2">
@@ -306,14 +294,13 @@ const DangerZone: React.FC<DangerZoneProps> = ({ onCacheClear, isCacheClearing }
           <h3 className="text-sm font-medium text-red-700 dark:text-red-400">キャッシュをクリア</h3>
           <p className="text-xs text-red-600 dark:text-red-500">アプリケーションのキャッシュを削除します</p>
         </div>
-        <button 
+        <button
           onClick={onCacheClear}
           disabled={isCacheClearing}
-          className={`px-4 py-2 text-white rounded-md transition-colors ${
-            isCacheClearing
+          className={`px-4 py-2 text-white rounded-md transition-colors ${isCacheClearing
               ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
               : 'bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-700'
-          }`}
+            }`}
         >
           {isCacheClearing ? 'クリア中...' : 'キャッシュクリア'}
         </button>
@@ -335,6 +322,7 @@ const DangerZone: React.FC<DangerZoneProps> = ({ onCacheClear, isCacheClearing }
 export default function SettingsPage() {
   const { user } = useAuth();
   const { t } = useCMSI18n();
+  const { isDarkMode, setDarkMode } = useTheme();
   const [settings, setSettings] = useState<Settings>({
     apiAccess: true,
     apiKey: '',
@@ -348,22 +336,16 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isCacheClearing, setIsCacheClearing] = useState(false);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<MessageType>('success');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
 
-  // 初回マウント時: localStorageのtheme値を即時反映（DB取得前の一瞬ライト/ダークを防ぐ）
+  // 初回マウント時: ThemeProviderのisDarkModeをローカル状態に反映
   useLayoutEffect(() => {
-    const html = document.documentElement;
-    const localTheme = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
-    if (localTheme === 'dark') {
-      html.classList.add('dark');
-    } else {
-      html.classList.remove('dark');
-    }
-  }, []);
+    setTheme(prev => ({ ...prev, ui: isDarkMode }));
+  }, [isDarkMode]);
 
-  // DBからdarkMode取得し、ローカル状態と同期
+  // DBからdarkMode取得し、ローカル状態とThemeProviderを同期
   useEffect(() => {
     if (user?.role !== 'admin' || !user?.id) return;
     fetch(`/api/users/${user.id}/theme`, { credentials: 'include' })
@@ -376,6 +358,7 @@ export default function SettingsPage() {
       .then((data: ApiResponse<{ darkMode: boolean }>) => {
         if (data.success && typeof data.data?.darkMode === 'boolean') {
           setTheme({ ui: data.data.darkMode, loaded: true });
+          setDarkMode(data.data.darkMode);
         } else {
           setTheme(prev => ({ ...prev, loaded: true }));
         }
@@ -384,7 +367,7 @@ export default function SettingsPage() {
         console.warn('ユーザーテーマ取得エラー:', error);
         setTheme(prev => ({ ...prev, loaded: true }));
       });
-  }, [user?.role, user?.id]);
+  }, [user?.role, user?.id, setDarkMode]);
 
 
 
@@ -432,9 +415,9 @@ export default function SettingsPage() {
         throw new Error(errorMsg);
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : '設定の読み込みに失敗しました';
-      setMessage(errorMessage);
-      setMessageType('error');
+      const errorMsg = error instanceof Error ? error.message : '設定の読み込みに失敗しました';
+      setErrorMessage(errorMsg);
+      setSuccessMessage('');
     } finally {
       setIsLoading(false);
     }
@@ -469,24 +452,27 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ darkMode: theme.ui }),
       });
-      
+
       const themeData: ApiResponse<{ darkMode: boolean }> = await themeRes.json();
-      
+
       if (!themeRes.ok || !themeData.success) {
         const errorMessage = 'error' in themeData ? themeData.error : 'ダークモードの保存に失敗しました';
         throw new Error(errorMessage);
       }
-      
+
       // 保存後にレスポンスから値を反映
       setTheme(prev => ({ ...prev, ui: themeData.data?.darkMode ?? prev.ui }));
-      setMessage('設定が正常に保存されました');
-      setMessageType('success');
+      setSuccessMessage('設定が正常に保存されました');
+      setErrorMessage('');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '設定の保存中にエラーが発生しました');
-      setMessageType('error');
+      setErrorMessage(error instanceof Error ? error.message : '設定の保存中にエラーが発生しました');
+      setSuccessMessage('');
     } finally {
       setIsSaving(false);
-      setTimeout(() => setMessage(''), 3000);
+      setTimeout(() => {
+        setSuccessMessage('');
+        setErrorMessage('');
+      }, 3000);
     }
   }, [settings, theme.ui, user?.id]);
 
@@ -495,7 +481,11 @@ export default function SettingsPage() {
     setSettings(prev => ({ ...prev, [key]: value }));
   }, []);
 
-
+  // ダークモード切り替え
+  const handleDarkModeChange = useCallback((checked: boolean) => {
+    setTheme(prev => ({ ...prev, ui: checked }));
+    setDarkMode(checked);
+  }, [setDarkMode]);
 
   // キャッシュクリア
   const handleCacheClear = useCallback(async () => {
@@ -513,17 +503,20 @@ export default function SettingsPage() {
       }
       const data: ApiResponse<unknown> = await response.json();
       if (data.success) {
-        setMessage(data.message || 'キャッシュが正常にクリアされました');
+        setSuccessMessage(data.message || 'キャッシュが正常にクリアされました');
       } else {
-        setMessage('キャッシュが正常にクリアされました');
+        setSuccessMessage('キャッシュが正常にクリアされました');
       }
-      setMessageType('success');
+      setErrorMessage('');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'キャッシュクリア中にエラーが発生しました');
-      setMessageType('error');
+      setErrorMessage(error instanceof Error ? error.message : 'キャッシュクリア中にエラーが発生しました');
+      setSuccessMessage('');
     } finally {
       setIsCacheClearing(false);
-      setTimeout(() => setMessage(''), 3000);
+      setTimeout(() => {
+        setSuccessMessage('');
+        setErrorMessage('');
+      }, 3000);
     }
   }, []);
 
@@ -549,22 +542,24 @@ export default function SettingsPage() {
             <button
               onClick={saveSettings}
               disabled={isSaving}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                isSaving
+              className={`px-4 py-2 rounded-lg transition-colors ${isSaving
                   ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
                   : 'bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800 text-white'
-              }`}
+                }`}
             >
               {isSaving ? t('settings.saving') : t('settings.saveSettings')}
             </button>
           </div>
 
-          {message && <Message message={message} type={messageType} />}
+          {successMessage && <SuccessMessage message={successMessage} />}
+          {errorMessage && <ErrorMessage message={errorMessage} />}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <DisplaySettings
               settings={settings}
               onChange={handleInputChange}
+              darkMode={theme.ui}
+              onDarkModeChange={handleDarkModeChange}
             />
             <ApiSettings settings={settings} onChange={handleInputChange} />
             <SystemSettings settings={settings} onChange={handleInputChange} />

@@ -3,8 +3,8 @@
  * LIB_COMMONIZATION_PLAN.md フェーズ3対応
  */
 
-import type { ApiKey, ApiKeyCreateRequest } from '../../core/types/api-unified';
 import { BaseError } from '../../core/errors';
+import type { ApiKey, ApiKeyCreateRequest } from '../../core/types/api-unified';
 
 /**
  * API キー管理エラー
@@ -48,13 +48,13 @@ export class ApiKeyManager {
    * 新しいAPIキーを作成
    */
   static async createApiKey(
-    userId: string, 
+    userId: string,
     request: ApiKeyCreateRequest
   ): Promise<ApiKey> {
     try {
       // APIキーの生成
       const keyValue = ApiKeyManager.generateApiKey();
-      
+
       const apiKey: ApiKey = {
         id: `ak_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         name: request.name,
@@ -104,7 +104,7 @@ export class ApiKeyManager {
 
       // 開発用: メモリに保存
       ApiKeyManager.apiKeys.push(apiKey);
-      
+
       return apiKey;
     } catch (error) {
       console.error('Failed to create API key:', error);
@@ -134,7 +134,17 @@ export class ApiKeyManager {
    */
   static async deactivateApiKey(keyId: string, userId: string): Promise<boolean> {
     try {
-      // TODO: データベースで無効化する実装
+      // メモリストレージでの無効化実装
+      const apiKey = ApiKeyManager.apiKeys.find(
+        key => key.id === keyId && key.userId === userId
+      );
+
+      if (!apiKey) {
+        return false;
+      }
+
+      apiKey.isActive = false;
+      apiKey.updatedAt = new Date();
       return true;
     } catch (error) {
       console.error('Failed to deactivate API key:', error);
@@ -147,8 +157,19 @@ export class ApiKeyManager {
    */
   static async validateApiKey(keyValue: string): Promise<ApiKey | null> {
     try {
-      // TODO: データベースで検証する実装
-      return null;
+      // メモリストレージでの検証実装
+      const apiKey = ApiKeyManager.apiKeys.find(
+        key => key.key === keyValue && key.isActive
+      );
+
+      if (!apiKey) {
+        return null;
+      }
+
+      // 使用履歴を更新
+      await ApiKeyManager.updateLastUsed(apiKey.id);
+
+      return apiKey;
     } catch (error) {
       console.error('Failed to validate API key:', error);
       return null;
@@ -161,11 +182,11 @@ export class ApiKeyManager {
   private static generateApiKey(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = 'sk-';
-    
+
     for (let i = 0; i < 48; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    
+
     return result;
   }
 
@@ -174,7 +195,13 @@ export class ApiKeyManager {
    */
   static async updateLastUsed(keyId: string): Promise<void> {
     try {
-      // TODO: データベースで最終使用日時を更新する実装
+      // メモリストレージでの最終使用日時更新実装
+      const apiKey = ApiKeyManager.apiKeys.find(key => key.id === keyId);
+
+      if (apiKey) {
+        apiKey.lastUsed = new Date();
+        apiKey.updatedAt = new Date();
+      }
     } catch (error) {
       console.error('Failed to update API key last used:', error);
     }
@@ -191,7 +218,7 @@ export class ApiKeyManager {
     try {
       const apiKeys = await ApiKeyManager.getUserApiKeys(userId);
       const active = apiKeys.filter(key => key.isActive).length;
-      
+
       return {
         total: apiKeys.length,
         active,

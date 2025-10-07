@@ -3,12 +3,13 @@ import { ObjectId } from 'mongodb';
 
 // スタブファイル - 削除されたモジュールの代替
 export * from '../core/types/api-unified';
-export const createUser = async () => { throw new Error('Not implemented'); };
+
+export const createUser = async (_userData: unknown) => { throw new Error('Not implemented'); };
 export const getAllUsers = async () => { throw new Error('Not implemented'); };
-export const getUserByUsername = async () => { throw new Error('Not implemented'); };
-export const updateUser = async () => { throw new Error('Not implemented'); };
-export const getUserSessionInfo = async () => { throw new Error('Not implemented'); };
-export const changePassword = async () => { throw new Error('Not implemented'); };
+export const getUserByUsername = async (_username: string) => { throw new Error('Not implemented'); };
+export const updateUser = async (_id: string, _updateData: unknown) => { throw new Error('Not implemented'); };
+export const getUserSessionInfo = async (_id: string) => { throw new Error('Not implemented'); };
+export const changePassword = async (_userId: string, _currentPassword: string, _newPassword: string) => { throw new Error('Not implemented'); };
 export const updateUserDarkMode = async (userId: string, darkMode: boolean): Promise<boolean> => {
   const db = await getDatabase();
   const result = await db.collection('users').updateOne(

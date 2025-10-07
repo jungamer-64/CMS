@@ -1,7 +1,7 @@
 /**
  * Advanced i18n Context
  * 高度な国際化対応のコンテキスト
- * 
+ *
  * 機能:
  * - 複数形対応
  * - 変数補間
@@ -15,7 +15,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 export type Locale = 'ja' | 'en' | 'fr' | 'de' | 'ko' | 'zh' | 'ar' | 'es' | 'it' | 'pt' | 'ru' | 'hi' | 'th' | 'vi' | 'ms' | 'tl';
 
@@ -102,14 +102,14 @@ interface AdvancedI18nContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   t: (key: string, variables?: Record<string, string | number>) => string;
-  
+
   // 複数形対応
   tn: (key: string, count: number, variables?: Record<string, string | number>) => string;
-  
+
   // 利用可能な言語
   availableLocales: readonly Locale[];
   getLocaleInfo: (locale: Locale) => LocaleInfo;
-  
+
   // フォーマット機能
   formatDate: (date: Date | string, options?: Intl.DateTimeFormatOptions) => string;
   formatNumber: (num: number, options?: Intl.NumberFormatOptions) => string;
@@ -117,47 +117,47 @@ interface AdvancedI18nContextType {
   formatRelativeTime: (date: Date | string) => string;
   formatList: (items: string[], options?: Intl.ListFormatOptions) => string;
   formatUnit: (value: number, unit: string) => string;
-  
+
   // RTL対応
   isRTL: boolean;
   getTextDirection: () => 'ltr' | 'rtl';
-  
+
   // 翻訳管理
   preloadLocale: (locale: Locale) => Promise<void>;
   getTranslationStats: (locale?: Locale) => TranslationStats;
   addTranslations: (locale: Locale, namespace: string, translations: Record<string, unknown>) => void;
-  
+
   // 高度な機能
   interpolate: (template: string, variables: Record<string, unknown>) => string;
   hasTranslation: (key: string, locale?: Locale) => boolean;
   getTranslationWithFallback: (key: string, fallbackLocales?: Locale[]) => string;
-  
+
   // 新機能: 言語検出
   detectLanguage: (text: string) => LanguageDetection;
-  
+
   // 新機能: 翻訳メモリ
   saveToMemory: (source: string, target: string, locale: Locale, quality?: number) => void;
   searchMemory: (source: string, locale: Locale) => TranslationMemory[];
-  
+
   // 新機能: ブックマーク
   bookmarkTranslation: (key: string, locale: Locale, note?: string, category?: string) => void;
   getBookmarks: (locale?: Locale, category?: string) => Bookmark[];
   removeBookmark: (key: string, locale: Locale) => void;
-  
+
   // 新機能: 翻訳セッション
   startTranslationSession: (locale: Locale) => string;
   endTranslationSession: (sessionId: string) => TranslationSession;
   getActiveSessions: () => TranslationSession[];
-  
+
   // 新機能: 品質管理
   validateTranslation: (key: string, locale: Locale) => { isValid: boolean; issues: string[] };
   suggestTranslation: (key: string, targetLocale: Locale) => string;
-  
+
   // 新機能: バッチ操作
   bulkTranslate: (keys: string[], targetLocale: Locale) => Promise<Record<string, string>>;
   exportTranslations: (locale: Locale, format: 'json' | 'csv' | 'xlsx') => Promise<Blob>;
   importTranslations: (locale: Locale, data: File | string) => Promise<void>;
-  
+
   // 新機能: プラグインサポート
   registerPlugin: (name: string, plugin: I18nPlugin) => void;
   unregisterPlugin: (name: string) => void;
@@ -484,7 +484,7 @@ async function loadTranslations(locale: Locale): Promise<NamespaceTranslations> 
 
     const results = await Promise.all(promises);
     const translations = Object.fromEntries(results);
-    
+
     translationCache[locale] = translations;
     return translations;
   } catch (error) {
@@ -499,8 +499,8 @@ interface AdvancedI18nProviderProps {
   readonly fallbackLocale?: Locale;
 }
 
-export function AdvancedI18nProvider({ 
-  children, 
+export function AdvancedI18nProvider({
+  children,
   initialLocale = 'ja',
   fallbackLocale = 'en'
 }: AdvancedI18nProviderProps) {
@@ -516,10 +516,10 @@ export function AdvancedI18nProvider({
           loadTranslations(currentLocale),
           loadTranslations(fallbackLocale)
         ]);
-        
+
         setTranslations(localeTranslations);
         setFallbackTranslations(fallbackData);
-        
+
         // LocalStorageに保存
         localStorage.setItem('i18n-locale', currentLocale);
       } catch (error) {
@@ -543,19 +543,19 @@ export function AdvancedI18nProvider({
     const parts = key.split('.');
     const namespace = parts[0];
     const translationKey = parts.slice(1).join('.');
-    
+
     let value = getNestedValue(translations[namespace], translationKey);
-    
+
     if (!value || typeof value !== 'string') {
       // フォールバックを試行
       value = getNestedValue(fallbackTranslations[namespace], translationKey);
     }
-    
+
     if (!value || typeof value !== 'string') {
       console.warn(`Translation missing for key: ${key}`);
       return key;
     }
-    
+
     return variables ? interpolateString(value, variables) : value;
   }, [translations, fallbackTranslations]);
 
@@ -564,21 +564,21 @@ export function AdvancedI18nProvider({
     const parts = key.split('.');
     const namespace = parts[0];
     const translationKey = parts.slice(1).join('.');
-    
+
     let pluralData = getNestedValue(translations[namespace], translationKey) as PluralRule;
-    
+
     if (!pluralData || typeof pluralData !== 'object') {
       pluralData = getNestedValue(fallbackTranslations[namespace], translationKey) as PluralRule;
     }
-    
+
     if (!pluralData || typeof pluralData !== 'object') {
       console.warn(`Plural translation missing for key: ${key}`);
       return key;
     }
-    
+
     const rule = selectPluralRule(count, currentLocale);
     const template = pluralData[rule] || pluralData.other || key;
-    
+
     const allVariables = { ...variables, count };
     return interpolateString(template, allVariables);
   }, [translations, fallbackTranslations, currentLocale]);
@@ -619,9 +619,9 @@ export function AdvancedI18nProvider({
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
-    
+
     const rtf = new Intl.RelativeTimeFormat(currentLocale, { numeric: 'auto' });
-    
+
     if (Math.abs(diffInSeconds) < 60) {
       return rtf.format(-diffInSeconds, 'second');
     } else if (Math.abs(diffInSeconds) < 3600) {
@@ -643,7 +643,7 @@ export function AdvancedI18nProvider({
       try {
         const formatter = new Intl.NumberFormat(currentLocale, {
           style: 'unit',
-          unit: unit as any
+          unit: unit as Intl.NumberFormatOptions['unit']
         });
         return formatter.format(value);
       } catch {
@@ -655,13 +655,13 @@ export function AdvancedI18nProvider({
 
   // 翻訳統計のためのヘルパー関数
   const countTranslationKeys = useCallback((
-    obj: unknown, 
-    namespace: string, 
+    obj: unknown,
+    namespace: string,
     stats: { total: number; translated: number; missing: string[] },
     prefix = ''
   ) => {
     if (typeof obj !== 'object' || obj === null) return;
-    
+
     Object.entries(obj).forEach(([key, value]) => {
       const fullKey = prefix ? `${prefix}.${key}` : key;
       if (typeof value === 'string') {
@@ -681,13 +681,13 @@ export function AdvancedI18nProvider({
   const getTranslationStats = useCallback((locale?: Locale): TranslationStats => {
     const targetLocale = locale || currentLocale;
     const localeTranslations = translationCache[targetLocale] || {};
-    
+
     const stats = { total: 0, translated: 0, missing: [] as string[] };
-    
+
     Object.entries(localeTranslations).forEach(([namespace, nsTranslations]) => {
       countTranslationKeys(nsTranslations, namespace, stats);
     });
-    
+
     return {
       totalKeys: stats.total,
       translatedKeys: stats.translated,
@@ -701,12 +701,12 @@ export function AdvancedI18nProvider({
     if (!translationCache[locale]) {
       translationCache[locale] = {};
     }
-    
+
     translationCache[locale][namespace] = {
       ...translationCache[locale][namespace],
       ...newTranslations
     };
-    
+
     if (locale === currentLocale) {
       setTranslations(prev => ({
         ...prev,
@@ -721,7 +721,7 @@ export function AdvancedI18nProvider({
   // 新機能: 言語検出
   const detectLanguage = useCallback((text: string): LanguageDetection => {
     const scores: Array<{ locale: Locale; confidence: number }> = [];
-    
+
     Object.entries(languagePatterns).forEach(([locale, patterns]) => {
       let confidence = 0;
       patterns.forEach(pattern => {
@@ -734,9 +734,9 @@ export function AdvancedI18nProvider({
         scores.push({ locale: locale as Locale, confidence });
       }
     });
-    
+
     scores.sort((a, b) => b.confidence - a.confidence);
-    
+
     return {
       detected: scores[0]?.locale || 'en',
       confidence: scores[0]?.confidence || 0,
@@ -749,7 +749,7 @@ export function AdvancedI18nProvider({
     const existing = translationMemory.find(
       item => item.source === source && item.locale === locale
     );
-    
+
     if (existing) {
       existing.target = target;
       existing.quality = quality;
@@ -767,8 +767,8 @@ export function AdvancedI18nProvider({
 
   const searchMemory = useCallback((source: string, locale: Locale): TranslationMemory[] => {
     return translationMemory
-      .filter(item => 
-        item.locale === locale && 
+      .filter(item =>
+        item.locale === locale &&
         (item.source.includes(source) || source.includes(item.source))
       )
       .sort((a, b) => b.quality - a.quality || b.lastUsed.getTime() - a.lastUsed.getTime());
@@ -789,7 +789,7 @@ export function AdvancedI18nProvider({
   }, []);
 
   const getBookmarks = useCallback((locale?: Locale, category?: string): Bookmark[] => {
-    return bookmarks.filter(bookmark => 
+    return bookmarks.filter(bookmark =>
       (!locale || bookmark.locale === locale) &&
       (!category || bookmark.category === category)
     );
@@ -853,7 +853,7 @@ export function AdvancedI18nProvider({
   const validateTranslation = useCallback((key: string, locale: Locale) => {
     const issues: string[] = [];
     const translation = getNestedValue(translationCache[locale], key);
-    
+
     if (!translation || typeof translation !== 'string') {
       issues.push('Translation missing');
     } else {
@@ -870,7 +870,7 @@ export function AdvancedI18nProvider({
         issues.push('Variable placeholder mismatch');
       }
     }
-    
+
     return {
       isValid: issues.length === 0,
       issues
@@ -883,26 +883,26 @@ export function AdvancedI18nProvider({
     if (memoryResults.length > 0) {
       return memoryResults[0].target;
     }
-    
+
     // フォールバック言語から提案
     const fallbackTranslation = getTranslationWithFallback(key, [targetLocale, fallbackLocale]);
     if (fallbackTranslation !== key) {
       return fallbackTranslation;
     }
-    
+
     return key;
   }, [searchMemory, getTranslationWithFallback, fallbackLocale]);
 
   // 新機能: バッチ操作
   const bulkTranslate = useCallback(async (keys: string[], targetLocale: Locale): Promise<Record<string, string>> => {
     const results: Record<string, string> = {};
-    
+
     keys.forEach(key => {
       const parts = key.split('.');
       const namespace = parts[0];
       const translationKey = parts.slice(1).join('.');
       const localeData = translationCache[targetLocale];
-      
+
       if (localeData) {
         const value = getNestedValue(localeData[namespace], translationKey);
         if (value && typeof value === 'string') {
@@ -914,26 +914,27 @@ export function AdvancedI18nProvider({
         results[key] = key;
       }
     });
-    
+
     return results;
   }, [suggestTranslation]);
 
   const exportTranslations = useCallback(async (locale: Locale, format: 'json' | 'csv' | 'xlsx'): Promise<Blob> => {
     const data = translationCache[locale] || {};
-    
+
     switch (format) {
       case 'json':
         return new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       case 'csv':
         // CSV形式での出力
         let csv = 'Key,Translation\n';
-        const flattenObject = (obj: any, prefix = ''): void => {
+        const flattenObject = (obj: Record<string, unknown>, prefix = ''): void => {
           Object.keys(obj).forEach(key => {
             const fullKey = prefix ? `${prefix}.${key}` : key;
-            if (typeof obj[key] === 'object' && obj[key] !== null) {
-              flattenObject(obj[key], fullKey);
+            const value = obj[key];
+            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+              flattenObject(value as Record<string, unknown>, fullKey);
             } else {
-              csv += `"${fullKey}","${String(obj[key]).replace(/"/g, '""')}"\n`;
+              csv += `"${fullKey}","${String(value).replace(/"/g, '""')}"\n`;
             }
           });
         };
@@ -949,19 +950,19 @@ export function AdvancedI18nProvider({
 
   const importTranslations = useCallback(async (locale: Locale, data: File | string): Promise<void> => {
     let content: string;
-    
+
     if (data instanceof File) {
       content = await data.text();
     } else {
       content = data;
     }
-    
+
     try {
       const parsed = JSON.parse(content);
       Object.keys(parsed).forEach(namespace => {
         addTranslations(locale, namespace, parsed[namespace]);
       });
-    } catch (error) {
+    } catch {
       throw new Error('Invalid translation data format');
     }
   }, [addTranslations]);
@@ -1030,7 +1031,7 @@ export function AdvancedI18nProvider({
     unregisterPlugin,
     getPlugins
   }), [
-    currentLocale, t, tn, setLocale, formatDate, formatNumber, formatCurrency, 
+    currentLocale, t, tn, setLocale, formatDate, formatNumber, formatCurrency,
     formatRelativeTime, formatList, formatUnit, preloadLocale, getTranslationStats, addTranslations,
     getTranslationWithFallback, detectLanguage, saveToMemory, searchMemory, bookmarkTranslation, getBookmarks, removeBookmark,
     startTranslationSession, endTranslationSession, getActiveSessions, validateTranslation, suggestTranslation,

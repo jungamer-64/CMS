@@ -12,18 +12,49 @@ import { NextResponse } from 'next/server';
 
 /**
  * 成功レスポンスを作成
+ * @param data レスポンスデータ
+ * @param message オプションのメッセージ
+ * @param meta オプションのメタデータ
  */
 export function createSuccessResponse<T>(
   data: T,
   message?: string,
   meta?: Record<string, unknown>
 ): ApiSuccess<T> {
-  return {
-    success: true,
+  const baseResponse = {
+    success: true as const,
     data,
-    ...(message && { message }),
-    ...(meta && { meta: { ...meta, timestamp: new Date().toISOString() } }),
   };
+  
+  if (message && meta) {
+    return {
+      ...baseResponse,
+      message,
+      meta: {
+        ...meta,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
+  
+  if (message) {
+    return {
+      ...baseResponse,
+      message,
+    };
+  }
+  
+  if (meta) {
+    return {
+      ...baseResponse,
+      meta: {
+        ...meta,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
+  
+  return baseResponse;
 }
 
 /**

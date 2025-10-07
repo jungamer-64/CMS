@@ -1,3 +1,11 @@
+/**
+ * Tailwind CSS v4 Configuration
+ * 
+ * v4では、ほとんどの設定をCSSの@themeディレクティブで行います。
+ * このファイルは主にcontentパスの指定のために使用します。
+ * 
+ * テーマ設定、カラー、フォントファミリーなどは app/globals.css を参照してください。
+ */
 import type { Config } from "tailwindcss";
 
 const config: Config = {
@@ -7,30 +15,6 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
-  darkMode: "media",
-  theme: {
-    extend: {
-      colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-      },
-      /**
-       * 日本語フォントのサポート強化
-       * 'font-japanese' で利用可能
-       */
-      fontFamily: {
-        japanese: [
-          '"Hiragino Kaku Gothic ProN"',
-          '"ヒラギノ角ゴ ProN W3"',
-          '"Hiragino Sans"',
-          '"メイリオ"',
-          '"MS PGothic"',
-          'sans-serif',
-        ],
-      },
-    },
-  },
-  plugins: [],
 };
 
 export default config;
