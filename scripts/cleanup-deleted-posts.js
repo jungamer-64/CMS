@@ -1,21 +1,41 @@
+/* eslint-env node */
+
 // 削除済み投稿をデータベースから完全に削除するスクリプト
-const fs = require('fs');
 
-// .env.localファイルの内容を読み込み
-const envContent = fs.readFileSync('.env.local', 'utf8');
-const envLines = envContent.split('\n');
+// Load environment variables from .env.local using dotenv (optional)
+try {
+  require('dotenv').config({ path: '.env.local' });
+} catch (e) {
+  // dotenv optional in some environments
+}
 
-// 環境変数を設定
-envLines.forEach(line => {
-  if (line.trim() && !line.startsWith('#')) {
-    const [key, ...valueParts] = line.split('=');
-    if (key && valueParts.length > 0) {
-      process.env[key.trim()] = valueParts.join('=').trim();
-    }
+let MongoClient;
+try {
+  // dynamic require to avoid bundlers trying to resolve at build-time
+  const mongodbModule = require('mongo' + 'db');
+  MongoClient = mongodbModule.MongoClient;
+} catch (err) {
+  // sanitizeForLog は下で定義しているため、ここでは簡潔にメッセージを表示
+  console.error("The 'mongodb' package is not installed or could not be resolved. Install it with 'pnpm add mongodb' or 'npm install mongodb'. Error: " + (err && err.message ? String(err.message) : String(err)));
+  process.exit(1);
+}
+
+function sanitizeForLog(value) {
+  try {
+    if (value === undefined || value === null) return '未設定';
+    const s = typeof value === 'string' ? value : JSON.stringify(value);
+    const noNewline = s.replace(/\r\n|\r|\n/g, ' ');
+    const cleaned = Array.from(noNewline)
+      .map((ch) => {
+        const code = ch.charCodeAt(0);
+        return (code >= 0 && code <= 31) || code === 127 ? ' ' : ch;
+      })
+      .join('');
+    return cleaned.slice(0, 300);
+  } catch (e) {
+    return String(value);
   }
-});
-
-const { MongoClient, ObjectId } = require('mongodb');
+}
 
 async function cleanupDeletedPosts() {
   if (!process.env.MONGODB_URI) {
@@ -24,38 +44,42 @@ async function cleanupDeletedPosts() {
   }
 
   const client = new MongoClient(process.env.MONGODB_URI);
-  
+
   try {
     await client.connect();
     console.log('MongoDB接続成功');
-    
+
     const db = client.db();
-    
+
     // 削除済み投稿を確認
     const deletedPosts = await db.collection('posts').find({ isDeleted: true }).toArray();
-    console.log(`削除済み投稿数: ${deletedPosts.length}`);
-    
+    console.log('削除済み投稿数: ' + sanitizeForLog(deletedPosts.length));
+
     if (deletedPosts.length > 0) {
       console.log('\n削除済み投稿:');
-      deletedPosts.forEach((post, index) => {
-        console.log(`${index + 1}. タイトル: ${post.title} (ID: ${post._id})`);
-      });
-      
+      for (const [index, post] of deletedPosts.entries()) {
+        console.log((index + 1) + '. タイトル: ' + sanitizeForLog(post.title) + ' (ID: ' + sanitizeForLog(post._id) + ')');
+      }
+
       // 削除済み投稿を完全に削除
       const result = await db.collection('posts').deleteMany({ isDeleted: true });
-      console.log(`\n${result.deletedCount}件の削除済み投稿を完全に削除しました`);
+      console.log(sanitizeForLog(result.deletedCount) + '件の削除済み投稿を完全に削除しました');
     } else {
       console.log('削除済み投稿はありません');
     }
-    
+
     // 残った投稿を確認
     const remainingPosts = await db.collection('posts').find({}).toArray();
-    console.log(`\n残った投稿数: ${remainingPosts.length}`);
-    
+    console.log('\n残った投稿数: ' + sanitizeForLog(remainingPosts.length));
+
   } catch (error) {
-    console.error('エラー:', error);
+    console.error('エラー: ' + (error && error.message ? sanitizeForLog(error.message) : sanitizeForLog(error)));
   } finally {
-    await client.close();
+    try {
+      await client.close();
+    } catch (e) {
+      // ignore close errors
+    }
   }
 }
 

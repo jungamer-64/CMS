@@ -1,8 +1,18 @@
 import { config } from 'dotenv';
 config({ path: '.env' });
 
+function sanitizeForLog(value: unknown) {
+  if (value == null) return '未設定';
+  try {
+    const s = typeof value === 'string' ? value : JSON.stringify(value);
+    return String(s).replace(/[\r\n]+/g, ' ').slice(0, 300);
+  } catch {
+    return '非表示';
+  }
+}
+
+import type { Db, ObjectId } from 'mongodb';
 import { getDatabase } from '../app/lib/data/connections/mongodb';
-import type { ObjectId, Db } from 'mongodb';
 
 // 型定義
 interface PostDocument {
@@ -39,31 +49,30 @@ function convertUrlsToFilenames(
 ): ConversionResult {
   const foundMedia: string[] = [];
   let newContent = content;
-  
-  for (const url of urls) {
-    const filename = urlToFilename.get(url);
+
+  for (const originalUrl of urls) {
+    const filename = urlToFilename.get(originalUrl);
     if (filename && !foundMedia.includes(filename)) {
       foundMedia.push(filename);
-      // URL を安全にエスケープして置換
-      const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      newContent = newContent.replace(new RegExp(escapedUrl, 'g'), `/uploads/${filename}`);
+      // 文字列ベースの全置換 (RegExp コンストラクタを避ける)
+      newContent = newContent.split(originalUrl).join(`/uploads/${filename}`);
     }
   }
-  
+
   return { foundMedia, newContent };
 }
 
 // メディアファイルのURLマップを作成する関数
 function createUrlToFilenameMap(media: MediaDocument[]): Map<string, string> {
   const urlToFilename = new Map<string, string>();
-  
+
   for (const m of media) {
     if (m.url && m.filename) {
       urlToFilename.set(m.url, m.filename);
       urlToFilename.set(`/uploads/${m.filename}`, m.filename);
     }
   }
-  
+
   return urlToFilename;
 }
 
@@ -96,12 +105,12 @@ async function processPost(
         { $set: { media: foundMedia, content: newContent } }
       );
     }
-    
+
     const actionText = isDryRun ? 'Would update' : 'Updated';
-    console.log(`${actionText} post ${post.slug || post.id}: media=[${foundMedia.join(', ')}]`);
+    console.log(actionText + ' post ' + sanitizeForLog(post.slug || post.id) + ': media=[' + sanitizeForLog(foundMedia.join(', ')) + ']');
     return true;
   }
-  
+
   return false;
 }
 
@@ -109,13 +118,13 @@ async function main(): Promise<void> {
   try {
     // コマンドライン引数からドライランモードを確認
     const isDryRun = process.argv.includes('--dry-run');
-    
+
     const db = await getDatabase();
     const posts = await db.collection('posts').find({}).toArray() as PostDocument[];
     const media = await db.collection('media').find({}).toArray() as MediaDocument[];
 
-    console.log(`投稿数: ${posts.length}, メディア数: ${media.length}`);
-    
+    console.log('投稿数: ' + sanitizeForLog(posts.length) + ', メディア数: ' + sanitizeForLog(media.length));
+
     if (isDryRun) {
       console.log('🔍 ドライランモード: 実際の更新は行いません');
     }
@@ -125,19 +134,17 @@ async function main(): Promise<void> {
     let updatedCount = 0;
     for (const post of posts) {
       const wasUpdated = await processPost(post, urlToFilename, db, isDryRun);
-      if (wasUpdated) {
-        updatedCount++;
-      }
+      if (wasUpdated) updatedCount++;
     }
 
     if (isDryRun) {
-      console.log(`\nドライラン完了: ${updatedCount}件の投稿が変換対象です。`);
+      console.log('\nドライラン完了: ' + sanitizeForLog(updatedCount) + '件の投稿が変換対象です。');
       console.log('実際に変換するには --dry-run オプションを外して実行してください。');
     } else {
-      console.log(`\n変換完了: ${updatedCount}件の投稿をmedia参照に変換しました。`);
+      console.log('\n変換完了: ' + sanitizeForLog(updatedCount) + '件の投稿をmedia参照に変換しました。');
     }
   } catch (error) {
-    console.error('変換処理中にエラーが発生しました:', error);
+    console.error('変換処理中にエラーが発生しました: ' + (error && (error as any).message ? sanitizeForLog((error as any).message) : sanitizeForLog(error)));
     process.exit(1);
   }
 }
@@ -148,6 +155,6 @@ main()
     process.exit(0);
   })
   .catch((error) => {
-    console.error('スクリプト実行中にエラーが発生しました:', error);
+    console.error('スクリプト実行中にエラーが発生しました: ' + (error && (error as any).message ? sanitizeForLog((error as any).message) : sanitizeForLog(error)));
     process.exit(1);
   });

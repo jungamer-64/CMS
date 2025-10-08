@@ -1,0 +1,291 @@
+diff --git a/app/admin/posts/new/temp_new_post.tsx b/app/admin/posts/new/temp_new_post.tsx
+--- a/app/admin/posts/new/temp_new_post.tsx
++++ b/app/admin/posts/new/temp_new_post.tsx
+@@ -44,1 +44,1 @@
+-        router.push(`/admin/posts`);
++        router.push("/admin/posts");
+diff --git a/scripts/init-api-keys.ts b/scripts/init-api-keys.ts
+--- a/scripts/init-api-keys.ts
++++ b/scripts/init-api-keys.ts
+@@ -38,1 +38,1 @@
+-initializeApiKeySystem();
++void initializeApiKeySystem();
+diff --git a/app/admin/settings/page.tsx b/app/admin/settings/page.tsx
+--- a/app/admin/settings/page.tsx
++++ b/app/admin/settings/page.tsx
+@@ -55,1 +55,1 @@
+-      <div className={`w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-300 dark:peer-focus:ring-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 ${colorClasses[color]}`}></div>
++      <div className={"w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-300 dark:peer-focus:ring-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 "+colorClasses[color]}></div>
+diff --git a/app/admin/webhooks/page.tsx b/app/admin/webhooks/page.tsx
+--- a/app/admin/webhooks/page.tsx
++++ b/app/admin/webhooks/page.tsx
+@@ -20,1 +20,1 @@
+-      .then((res) => res.json())
++      .then(function(res) { return res.json() })
+diff --git a/app/components/MultilingualForm.tsx b/app/components/MultilingualForm.tsx
+--- a/app/components/MultilingualForm.tsx
++++ b/app/components/MultilingualForm.tsx
+@@ -57,1 +57,1 @@
+-    if (rules.required) {
++    if (rules.required ?? false) {
+@@ -59,1 +59,1 @@
+-      if (error) return error;
++      if (error != null) return error;
+@@ -67,1 +67,1 @@
+-    if (lengthError) return lengthError;
++    if (lengthError != null) return lengthError;
+@@ -72,1 +72,1 @@
+-    if (methodError) return methodError;
++    if (methodError != null) return methodError;
+@@ -84,1 +84,1 @@
+-      if (error) newErrors.push({ field: field.name, message: error });
++      if (error != null) newErrors.push({ field: field.name, message: error });
+diff --git a/app/components/PostList.tsx b/app/components/PostList.tsx
+--- a/app/components/PostList.tsx
++++ b/app/components/PostList.tsx
+@@ -9,1 +9,1 @@
+-    .replace(/<([a-zA-Z0-9]+)(\s[^>]*)?\/>/g, (_, tag) => `[${tag}]`)
++    .replace(/<([a-zA-Z0-9]+)(\s[^>]*)?\/>/g, function(_, tag) { return `[${tag}]` })
+diff --git a/app/page.tsx b/app/page.tsx
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -107,1 +107,1 @@
+-          if (result.success && result.data) {
++          if ((Boolean(result.success)) && result.data) {
+@@ -189,1 +189,1 @@
+-                  href={`/articles/${post.slug}`}
++                  href={"/articles/"+post.slug}
+diff --git a/app/api/posts/route.ts b/app/api/posts/route.ts
+--- a/app/api/posts/route.ts
++++ b/app/api/posts/route.ts
+@@ -99,1 +99,1 @@
+-      const tags = url.searchParams.get('tags')?.split(',').filter(Boolean) || undefined;
++      const tags = url.searchParams.get('tags')?.split(',').filter(Boolean) ?? undefined;
+diff --git a/scripts/test-database-migration.ts b/scripts/test-database-migration.ts
+--- a/scripts/test-database-migration.ts
++++ b/scripts/test-database-migration.ts
+@@ -42,1 +42,1 @@
+-      console.log(`   - è¨­å®ãã¼ã¿ãªã`);
++      console.log("   - è¨­å®ãã¼ã¿ãªã");
+@@ -51,1 +51,1 @@
+-    apiKeys.slice(0, 5).forEach(key => {
++    for (const key of apiKeys.slice(0, 5)) {
+diff --git a/next-i18next.config.js b/next-i18next.config.js
+--- a/next-i18next.config.js
++++ b/next-i18next.config.js
+@@ -135,1 +135,1 @@
+-      console.warn(`Missing translation key: ${lng}.${ns}.${key}`, fallbackValue || 'no fallback');
++      console.warn("Missing translation key: "+lng+"."+ns+"."+key, fallbackValue || 'no fallback');
+diff --git a/scripts/migrate-posts-data.ts b/scripts/migrate-posts-data.ts
+--- a/scripts/migrate-posts-data.ts
++++ b/scripts/migrate-posts-data.ts
+@@ -21,1 +21,1 @@
+-    console.log(`ð ç§»è¡å¯¾è±¡æç¨¿æ°: ${existingPosts.length}ä»¶\n`);
++    console.log("ð ç§»è¡å¯¾è±¡æç¨¿æ°: "+existingPosts.length+"ä»¶\n");
+diff --git a/app/api/auth/register/route.ts b/app/api/auth/register/route.ts
+--- a/app/api/auth/register/route.ts
++++ b/app/api/auth/register/route.ts
+@@ -77,1 +77,1 @@
+-      id: `user-${Date.now()}`,
++      id: "user-"+Date.now(),
+diff --git a/app/api/comments/route.ts b/app/api/comments/route.ts
+--- a/app/api/comments/route.ts
++++ b/app/api/comments/route.ts
+@@ -22,1 +22,1 @@
+-    const search = url.searchParams.get('search') || undefined;
++    const search = url.searchParams.get('search') ?? undefined;
+@@ -35,1 +35,1 @@
+-    if (!result.success || !result.data) {
++    if (!(Boolean(result.success)) || !result.data) {
+diff --git a/app/admin/pages/new/page.tsx b/app/admin/pages/new/page.tsx
+--- a/app/admin/pages/new/page.tsx
++++ b/app/admin/pages/new/page.tsx
+@@ -43,1 +43,1 @@
+-  if (!isLoading && (!user || user.role !== 'admin')) {
++  if (!(Boolean(isLoading)) && (!user || user.role !== 'admin')) {
+diff --git a/scripts/cleanup-deleted-posts.js b/scripts/cleanup-deleted-posts.js
+--- a/scripts/cleanup-deleted-posts.js
++++ b/scripts/cleanup-deleted-posts.js
+@@ -9,1 +9,1 @@
+-envLines.forEach(line => {
++for (const line of envLines) {
+@@ -35,1 +35,1 @@
+-    const deletedPosts = await db.collection('posts').find({ isDeleted: true }).toArray();
++    const deletedPosts = await [...db.collection('posts').find({ isDeleted: true })];
+@@ -36,1 +36,1 @@
+-    console.log(`åé¤æ¸ã¿æç¨¿æ°: ${deletedPosts.length}`);
++    console.log("åé¤æ¸ã¿æç¨¿æ°: "+deletedPosts.length);
+@@ -40,1 +40,1 @@
+-      deletedPosts.forEach((post, index) => {
++      for (const [index, post] of deletedPosts.entries()) {
+@@ -41,1 +41,1 @@
+-        console.log(`${index + 1}. ã¿ã¤ãã«: ${post.title} (ID: ${post._id})`);
++        console.log(""+index + 1+". ã¿ã¤ãã«: "+post.title+" (ID: "+post._id+")");
+@@ -46,1 +46,1 @@
+-      console.log(`\n${result.deletedCount}ä»¶ã®åé¤æ¸ã¿æç¨¿ãå®å¨ã«åé¤ãã¾ãã`);
++      console.log("\n"+result.deletedCount+"ä»¶ã®åé¤æ¸ã¿æç¨¿ãå®å¨ã«åé¤ãã¾ãã");
+@@ -52,1 +52,1 @@
+-    const remainingPosts = await db.collection('posts').find({}).toArray();
++    const remainingPosts = await [...db.collection('posts').find({})];
+@@ -53,1 +53,1 @@
+-    console.log(`\næ®ã£ãæç¨¿æ°: ${remainingPosts.length}`);
++    console.log("\næ®ã£ãæç¨¿æ°: "+remainingPosts.length);
+diff --git a/app/admin/appearance/page.tsx b/app/admin/appearance/page.tsx
+--- a/app/admin/appearance/page.tsx
++++ b/app/admin/appearance/page.tsx
+@@ -73,1 +73,1 @@
+-            onChange={(e) => onUpdate(component.id, { order: parseInt(e.target.value) })}
++            onChange={function(e) { return onUpdate(component.id, { order: parseInt(e.target.value) }) }}
+@@ -78,1 +78,1 @@
+-            onClick={() => onDelete(component.id)}
++            onClick={() => { onDelete(component.id); }}
+diff --git a/app/admin/layout.tsx b/app/admin/layout.tsx
+--- a/app/admin/layout.tsx
++++ b/app/admin/layout.tsx
+@@ -34,1 +34,1 @@
+-        onClick={() => setIsOpen(!isOpen)}
++        onClick={function() { return setIsOpen(!isOpen) }}
+@@ -38,1 +38,1 @@
+-          className={`w-6 h-6 transition-transform duration-300 ${isOpen ? 'rotate-45' : ''}`}
++          className={"w-6 h-6 transition-transform duration-300 "+isOpen ? 'rotate-45' : ''}
+diff --git a/scripts/check-existing-posts.ts b/scripts/check-existing-posts.ts
+--- a/scripts/check-existing-posts.ts
++++ b/scripts/check-existing-posts.ts
+@@ -25,1 +25,1 @@
+-      console.log(`   ID: ${post.id || post._id}`);
++      console.log("   ID: "+post.id || post._id);
+diff --git a/fix-author-fields.js b/fix-author-fields.js
+--- a/fix-author-fields.js
++++ b/fix-author-fields.js
+@@ -16,1 +16,1 @@
+-    const posts = await collection.find({}).toArray();
++    const posts = await [...collection.find({})];
+@@ -32,1 +32,1 @@
+-        console.log(`Updated post: ${post.title}, result:`, updateResult.modifiedCount);
++        console.log("Updated post: "+post.title+", result:", updateResult.modifiedCount);
+diff --git a/scripts/init-admin-user.ts b/scripts/init-admin-user.ts
+--- a/scripts/init-admin-user.ts
++++ b/scripts/init-admin-user.ts
+@@ -19,1 +19,1 @@
+-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
++const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'admin123';
+diff --git a/app/components/DirectionalText.tsx b/app/components/DirectionalText.tsx
+--- a/app/components/DirectionalText.tsx
++++ b/app/components/DirectionalText.tsx
+@@ -85,1 +85,1 @@
+-    marginEnd: (value: string) => isRTL ? `ml-${value}` : `mr-${value}`,
++    marginEnd: function(value: string) { return isRTL ? `ml-${value}` : `mr-${value}` },
+@@ -86,1 +86,1 @@
+-    paddingStart: (value: string) => isRTL ? `pr-${value}` : `pl-${value}`,
++    paddingStart: (value: string) => isRTL ? "pr-"+value : `pl-${value}`,
+diff --git a/app/admin/posts/page.tsx b/app/admin/posts/page.tsx
+--- a/app/admin/posts/page.tsx
++++ b/app/admin/posts/page.tsx
+@@ -62,1 +62,1 @@
+-  <div className={`flex justify-center items-center h-64 ${className}`}>
++  <div className={"flex justify-center items-center h-64 "+className}>
+@@ -68,1 +68,1 @@
+-  <div className={`bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg ${className}`}>
++  <div className={"bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg "+className}>
+@@ -74,1 +74,1 @@
+-  <div className={`${bgColor} dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700`}>
++  <div className={""+bgColor+" dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700"}>
+@@ -75,1 +75,1 @@
+-    <h3 className={`text-sm font-medium ${textColor} dark:text-gray-300`}>{title}</h3>
++    <h3 className={"text-sm font-medium "+textColor+" dark:text-gray-300"}>{title}</h3>
+@@ -76,1 +76,1 @@
+-    <p className={`text-2xl font-bold ${textColor} dark:text-white`}>{value}</p>
++    <p className={"text-2xl font-bold "+textColor+" dark:text-white"}>{value}</p>
+@@ -205,1 +205,1 @@
+-      fetchPosts();
++      void fetchPosts();
+diff --git a/scripts/check-env.js b/scripts/check-env.js
+--- a/scripts/check-env.js
++++ b/scripts/check-env.js
+@@ -3,1 +3,1 @@
+-console.log(`MONGODB_URI: ${process.env.MONGODB_URI ? 'è¨­å®æ¸ã¿' : 'æªè¨­å®'}`);
++console.log("MONGODB_URI: "+process.env.MONGODB_URI ? 'è¨­å®æ¸ã¿' : 'æªè¨­å®');
+@@ -4,1 +4,1 @@
+-console.log(`MONGODB_DB: ${process.env.MONGODB_DB || 'æªè¨­å®'}`);
++console.log("MONGODB_DB: "+process.env.MONGODB_DB || 'æªè¨­å®');
+@@ -5,1 +5,1 @@
+-console.log(`JWT_SECRET: ${process.env.JWT_SECRET ? 'è¨­å®æ¸ã¿' : 'æªè¨­å®'}`);
++console.log("JWT_SECRET: "+process.env.JWT_SECRET ? 'è¨­å®æ¸ã¿' : 'æªè¨­å®');
+@@ -6,1 +6,1 @@
+-console.log(`NODE_ENV: ${process.env.NODE_ENV || 'æªè¨­å®'}`);
++console.log("NODE_ENV: "+process.env.NODE_ENV || 'æªè¨­å®');
+diff --git a/app/api/debug/check-user/route.ts b/app/api/debug/check-user/route.ts
+--- a/app/api/debug/check-user/route.ts
++++ b/app/api/debug/check-user/route.ts
+@@ -29,1 +29,1 @@
+-      hasPasswordHash: !!user.passwordHash,
++      hasPasswordHash: !!(Boolean(user.passwordHash)),
+diff --git a/app/api/posts/public/route.ts b/app/api/posts/public/route.ts
+--- a/app/api/posts/public/route.ts
++++ b/app/api/posts/public/route.ts
+@@ -26,1 +26,1 @@
+-      page,
++      page: page,
+diff --git a/app/components/form-validation.ts b/app/components/form-validation.ts
+--- a/app/components/form-validation.ts
++++ b/app/components/form-validation.ts
+@@ -32,1 +32,1 @@
+-        if (minLength && value.length < minLength) {
++        if ((minLength != null) && value.length < minLength) {
+@@ -35,1 +35,1 @@
+-        if (maxLength && value.length > maxLength) {
++        if ((maxLength != null) && value.length > maxLength) {
+@@ -116,1 +116,1 @@
+-        if (result === false) {
++        if (!result) {
+@@ -125,1 +125,1 @@
+-        { check: rules.required, fn: () => validator.validateRequired },
++        { check: rules.required, fn: function() { return validator.validateRequired } },
+@@ -126,1 +126,1 @@
+-        { check: rules.email, fn: () => validator.validateEmail },
++        { check: rules.email, fn: function() { return validator.validateEmail } },
+@@ -127,1 +127,1 @@
+-        { check: rules.url, fn: () => validator.validateUrl },
++        { check: rules.url, fn: function() { return validator.validateUrl } },
+@@ -128,1 +128,1 @@
+-        { check: rules.number, fn: () => validator.validateNumber },
++        { check: rules.number, fn: function() { return validator.validateNumber } },
+diff --git a/scripts/check-db-users.js b/scripts/check-db-users.js
+--- a/scripts/check-db-users.js
++++ b/scripts/check-db-users.js
+@@ -17,1 +17,1 @@
+-    const users = await collection.find({}).limit(5).toArray();
++    const users = await [...collection.find({}).limit(5)];
+@@ -18,1 +18,1 @@
+-    console.log(`Found ${users.length} users:`);
++    console.log("Found "+users.length+" users:");
+@@ -20,1 +20,1 @@
+-    users.forEach((user, index) => {
++    for (const [index, user] of users.entries()) {
+@@ -21,1 +21,1 @@
+-      console.log(`\nUser ${index + 1}:`);
++      console.log("\nUser "+index + 1+":");
+@@ -33,1 +33,1 @@
+-      console.log(`\nSearching for ID: ${testId}`);
++      console.log("\nSearching for ID: "+testId);
+@@ -45,1 +45,1 @@
+-        console.log(`Query ${JSON.stringify(query)}:`, result ? 'Found' : 'Not found');
++        console.log("Query "+JSON.stringify(query)+":", result ? 'Found' : 'Not found');
+diff --git a/scripts/test-database.ts b/scripts/test-database.ts
+--- a/scripts/test-database.ts
++++ b/scripts/test-database.ts
+@@ -50,1 +50,1 @@
+-    console.log(`ð¥ ç¾å¨ã®ã¦ã¼ã¶ã¼æ°: ${userCount}`);
++    console.log("ð¥ ç¾å¨ã®ã¦ã¼ã¶ã¼æ°: "+userCount);
+diff --git a/app/admin/users/page.tsx b/app/admin/users/page.tsx
+--- a/app/admin/users/page.tsx
++++ b/app/admin/users/page.tsx
+@@ -44,1 +44,1 @@
+-              {user.displayName?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase() || 'U'}
++              {(Boolean((user.displayName?.[0]?.toUpperCase()))) || user.username?.[0]?.toUpperCase() || 'U'}
+@@ -59,1 +59,1 @@
+-                {!user.isActive && (
++                {!(Boolean(user.isActive)) && (
+@@ -100,1 +100,1 @@
+-          onClick={() => onRoleChange(user.id, user.role === 'admin' ? 'user' : 'admin')}
++          onClick={() => { onRoleChange(user.id, user.role === 'admin' ? 'user' : 'admin'); }}

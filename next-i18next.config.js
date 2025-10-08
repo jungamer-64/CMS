@@ -1,3 +1,5 @@
+/* eslint-env node, es2021 */
+/* global Intl, module, process, console */
 /** @type {import('next-i18next').UserConfig} */
 module.exports = {
   i18n: {
@@ -7,17 +9,17 @@ module.exports = {
     domains: [
       {
         domain: 'example.com',
-        defaultLocale: 'ja',
+        defaultLocale: 'ja'
       },
       {
         domain: 'en.example.com',
-        defaultLocale: 'en',
+        defaultLocale: 'en'
       },
       {
         domain: 'ko.example.com',
-        defaultLocale: 'ko',
-      },
-    ],
+        defaultLocale: 'ko'
+      }
+    ]
   },
   reloadOnPrerender: process.env.NODE_ENV === 'development',
   fallbackLng: {
@@ -35,21 +37,21 @@ module.exports = {
     ru: ['en', 'ja'],
     hi: ['en', 'ja'],
     th: ['en', 'ja'],
-    vi: ['en', 'ja'],
+    vi: ['en', 'ja']
   },
   debug: process.env.NODE_ENV === 'development',
   interpolation: {
     escapeValue: false, // React already escapes
-    format: function(value, format, lng) {
+    format: function (value, format, lng) {
       if (format === 'uppercase') return value.toUpperCase();
       if (format === 'lowercase') return value.toLowerCase();
       if (format === 'capitalize') return value.charAt(0).toUpperCase() + value.slice(1);
-      
+
       // 数値フォーマット
       if (format === 'number' && typeof value === 'number') {
         return new Intl.NumberFormat(lng).format(value);
       }
-      
+
       // 通貨フォーマット
       if (format === 'currency' && typeof value === 'number') {
         const currencyMap = {
@@ -67,19 +69,19 @@ module.exports = {
           'ru': 'RUB',
           'hi': 'INR',
           'th': 'THB',
-          'vi': 'VND',
+          'vi': 'VND'
         };
         return new Intl.NumberFormat(lng, {
           style: 'currency',
           currency: currencyMap[lng] || 'USD'
         }).format(value);
       }
-      
+
       // 日付フォーマット
       if (format === 'date' && value instanceof Date) {
         return new Intl.DateTimeFormat(lng).format(value);
       }
-      
+
       if (format === 'datetime' && value instanceof Date) {
         return new Intl.DateTimeFormat(lng, {
           year: 'numeric',
@@ -89,25 +91,25 @@ module.exports = {
           minute: '2-digit'
         }).format(value);
       }
-      
+
       // 相対時間フォーマット
       if (format === 'relative' && value instanceof Date) {
         const rtf = new Intl.RelativeTimeFormat(lng, { numeric: 'auto' });
         const diff = value.getTime() - Date.now();
         const diffInDays = Math.floor(diff / (1000 * 60 * 60 * 24));
-        
+
         if (Math.abs(diffInDays) < 1) {
           const diffInHours = Math.floor(diff / (1000 * 60 * 60));
           return rtf.format(diffInHours, 'hour');
         }
         return rtf.format(diffInDays, 'day');
       }
-      
+
       return value;
     },
     formatSeparator: ',',
     prefix: '{{',
-    suffix: '}}',
+    suffix: '}}'
   },
   react: {
     useSuspense: false,
@@ -115,7 +117,7 @@ module.exports = {
     bindI18nStore: 'added removed',
     transEmptyNodeValue: '',
     transSupportBasicHtmlNodes: true,
-    transKeepBasicHtmlNodesFor: ['br', 'strong', 'i', 'em', 'span', 'a'],
+    transKeepBasicHtmlNodesFor: ['br', 'strong', 'i', 'em', 'span', 'a']
   },
   ns: ['common', 'admin', 'auth', 'errors', 'validation', 'dates', 'numbers', 'forms', 'messages'],
   defaultNS: 'common',
@@ -130,7 +132,7 @@ module.exports = {
   resources: {},
   // 翻訳キーの検証
   saveMissing: process.env.NODE_ENV === 'development',
-  missingKeyHandler: function(lng, ns, key, fallbackValue) {
+  missingKeyHandler: function (lng, ns, key, fallbackValue) {
     if (process.env.NODE_ENV === 'development') {
       console.warn(`Missing translation key: ${lng}.${ns}.${key}`, fallbackValue || 'no fallback');
     }
@@ -143,12 +145,12 @@ module.exports = {
   // バックエンド設定
   backend: {
     loadPath: '/locales/{{lng}}/{{ns}}.json',
-    addPath: '/locales/{{lng}}/{{ns}}.missing.json',
+    addPath: '/locales/{{lng}}/{{ns}}.missing.json'
   },
   // 翻訳の後処理
   postProcess: ['interval', 'plural'],
   // カスタムフォーマッター
-  parseMissingKeyHandler: function(key) {
+  parseMissingKeyHandler: function (key) {
     return key.split('.').pop();
-  },
+  }
 }

@@ -1,12 +1,22 @@
 // 初期メディアデータをMongoDBに登録するスクリプト
-import fs from 'fs';
-import path from 'path';
-import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import { MongoClient } from 'mongodb';
+import path from 'path';
 
 // 環境変数を読み込み（プロジェクトルートの.envファイルを指定）
 const projectRoot = path.resolve(__dirname, '..');
 dotenv.config({ path: path.join(projectRoot, '.env') });
+
+function sanitizeForLog(value: unknown) {
+  if (value == null) return '未設定';
+  try {
+    const s = String(value);
+    return s.replace(/[\r\n]+/g, ' ').slice(0, 300);
+  } catch {
+    return '非表示';
+  }
+}
 
 // 環境変数の型定義
 interface EnvConfig {
@@ -68,14 +78,14 @@ function normalizePath(inputPath: string): string {
 // ディレクトリを再帰的に走査してメディアファイルを収集する関数
 function walk(dir: string, relDir: string = ''): MediaItem[] {
   let results: MediaItem[] = [];
-  
+
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const entryPath = path.join(dir, entry.name);
       const entryRelPath = path.join(relDir, entry.name);
-      
+
       if (entry.isDirectory()) {
         // ディレクトリの場合は再帰的に処理
         results = results.concat(walk(entryPath, entryRelPath));
@@ -83,14 +93,14 @@ function walk(dir: string, relDir: string = ''): MediaItem[] {
         // ファイルの場合はメディアファイルかチェック
         const ext = path.extname(entry.name).toLowerCase();
         const mediaType = getMediaType(ext);
-        
+
         if (mediaType !== 'other') {
           try {
             const stats = fs.statSync(entryPath);
             const originalName = extractOriginalName(entry.name);
             const normalizedRelPath = normalizePath(entryRelPath);
             const directory = path.dirname(`/uploads/${normalizedRelPath}`);
-            
+
             const mediaItem: MediaItem = {
               filename: entry.name,
               originalName,
@@ -100,64 +110,64 @@ function walk(dir: string, relDir: string = ''): MediaItem[] {
               mediaType,
               directory
             };
-            
+
             results.push(mediaItem);
           } catch (error) {
-            console.warn(`ファイル情報の取得に失敗しました: ${entryPath}`, error);
+            console.warn('ファイル情報の取得に失敗しました: ' + sanitizeForLog(entryPath) + ' - ' + (error && (error as any).message ? sanitizeForLog((error as any).message) : sanitizeForLog(error)));
           }
         }
       }
     }
   } catch (error) {
-    console.warn(`ディレクトリの読み取りに失敗しました: ${dir}`, error);
+    console.warn('ディレクトリの読み取りに失敗しました: ' + sanitizeForLog(dir) + ' - ' + (error && (error as any).message ? sanitizeForLog((error as any).message) : sanitizeForLog(error)));
   }
-  
+
   return results;
 }
 
 // メイン処理
 async function main(): Promise<void> {
   const client = new MongoClient(config.MONGODB_URI);
-  
+
   try {
     console.log('MongoDBに接続しています...');
     await client.connect();
-    
+
     const db = client.db(config.MONGODB_DB);
-    
+
     if (!fs.existsSync(uploadsDir)) {
       console.log('アップロードディレクトリが存在しません。作成します...');
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
-    
+
     console.log('メディアファイルを検索しています...');
     const media = walk(uploadsDir);
-    
+
     if (!media.length) {
       console.log('登録するメディアファイルがありません');
       return;
     }
-    
-    console.log(`${media.length}件のメディアファイルが見つかりました`);
-    
+
+    console.log(sanitizeForLog(media.length) + '件のメディアファイルが見つかりました');
+
     // 既存のメディアデータを削除
     console.log('既存のメディアデータを削除しています...');
     const deleteResult = await db.collection('media').deleteMany({});
-    console.log(`${deleteResult.deletedCount}件の既存データを削除しました`);
-    
+    console.log(sanitizeForLog(deleteResult.deletedCount) + '件の既存データを削除しました');
+
     // 新しいメディアデータを挿入
     console.log('新しいメディアデータを挿入しています...');
     const insertResult = await db.collection('media').insertMany(media);
-    console.log(`${insertResult.insertedCount}件のメディアをmediaコレクションに登録しました`);
-    
+    console.log(sanitizeForLog(insertResult.insertedCount) + '件のメディアをmediaコレクションに登録しました');
+
     // 登録されたファイルの詳細を表示
     console.log('\n登録されたファイル:');
     media.forEach((item, index) => {
-      console.log(`${index + 1}. ${item.filename} (${item.mediaType}, ${item.size} bytes)`);
+      console.log(sanitizeForLog(index + 1) + '. ' + sanitizeForLog(item.filename) + ' (' + sanitizeForLog(item.mediaType) + ', ' + sanitizeForLog(item.size) + ' bytes)');
     });
-    
+
   } catch (error) {
-    console.error('初期化エラー:', error);
+    console.error('初期化エラー: ' + (error && (error as any).message ? sanitizeForLog((error as any).message) : sanitizeForLog(error)));
     process.exit(1);
   } finally {
     console.log('MongoDBとの接続を閉じています...');
@@ -167,14 +177,14 @@ async function main(): Promise<void> {
 
 // 未処理の例外をキャッチ
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('未処理のPromise拒否:', promise, 'reason:', reason);
+  console.error('未処理のPromise拒否: promise=' + sanitizeForLog(String(promise)) + ' reason=' + sanitizeForLog(reason));
   process.exit(1);
 });
 
 // スクリプトの実行
 if (require.main === module) {
   main().catch((error) => {
-    console.error('スクリプト実行エラー:', error);
+    console.error('スクリプト実行エラー: ' + (error && (error as any).message ? sanitizeForLog((error as any).message) : sanitizeForLog(error)));
     process.exit(1);
   });
 }

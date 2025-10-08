@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* Tailwind CSS v4: @theme ディレクティブでカスタムテーマを定義 */
-@theme {
+:root {
   /* カラーパレット */
   --color-background: #ffffff;
   --color-foreground: #171717;
@@ -36,7 +36,7 @@
 
 /* ダークモード用のカラーオーバーライド */
 @media (prefers-color-scheme: dark) {
-  @theme {
+  :root {
     --color-background: #020617;
     --color-foreground: #f8fafc;
     --color-primary: #3b82f6;

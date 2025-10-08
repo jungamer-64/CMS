@@ -1,6 +1,6 @@
 /**
  * 管理者ユーザー初期化スクリプト
- * 
+ *
  * 使用方法:
  * pnpm tsx scripts/init-admin-user.ts
  */
@@ -18,6 +18,11 @@ const MONGODB_DB = process.env.MONGODB_DB_NAME || process.env.MONGODB_DB || 'tes
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
+
+function sanitizeForLog(value: unknown) {
+    if (value == null) return '';
+    try { return String(value).replace(/[\r\n]+/g, ' ').slice(0, 300); } catch { return '' }
+}
 
 async function initAdminUser() {
     if (!MONGODB_URI) {
@@ -59,9 +64,9 @@ async function initAdminUser() {
             console.log('✅ 管理者パスワードを更新しました');
             console.log('');
             console.log('📝 ログイン情報:');
-            console.log(`   ユーザー名: ${ADMIN_USERNAME}`);
-            console.log(`   パスワード: ${ADMIN_PASSWORD}`);
-            console.log(`   メール: ${existingAdmin.email}`);
+            console.log('   ユーザー名: ' + sanitizeForLog(ADMIN_USERNAME));
+            console.log('   パスワード: ' + sanitizeForLog(ADMIN_PASSWORD));
+            console.log('   メール: ' + sanitizeForLog(existingAdmin.email));
         } else {
             console.log('👤 管理者ユーザーを作成中...');
 
@@ -87,15 +92,15 @@ async function initAdminUser() {
             console.log('✅ 管理者ユーザーを作成しました');
             console.log('');
             console.log('📝 ログイン情報:');
-            console.log(`   ユーザー名: ${ADMIN_USERNAME}`);
-            console.log(`   パスワード: ${ADMIN_PASSWORD}`);
-            console.log(`   メール: ${ADMIN_EMAIL}`);
+            console.log('   ユーザー名: ' + sanitizeForLog(ADMIN_USERNAME));
+            console.log('   パスワード: ' + sanitizeForLog(ADMIN_PASSWORD));
+            console.log('   メール: ' + sanitizeForLog(ADMIN_EMAIL));
         }
 
         console.log('');
         console.log('🎉 初期化完了！');
     } catch (error) {
-        console.error('❌ エラーが発生しました:', error);
+        console.error('❌ エラーが発生しました: ' + (error && (error as any).message ? sanitizeForLog((error as any).message) : sanitizeForLog(error)));
         process.exit(1);
     } finally {
         await client.close();

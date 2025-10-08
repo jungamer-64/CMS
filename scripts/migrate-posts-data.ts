@@ -6,6 +6,16 @@
 import { connectToDatabase, getDatabase } from '../app/lib/database/connection';
 import { createUserModel } from '../app/lib/database/models/user';
 
+function sanitizeForLog(value: unknown) {
+  if (value == null) return '未設定';
+  try {
+    const s = String(value);
+    return s.replace(/[\r\n]+/g, ' ').slice(0, 300);
+  } catch {
+    return '非表示';
+  }
+}
+
 async function migratePostsData() {
   console.log('🔄 投稿データマイグレーション開始...\n');
 
@@ -18,7 +28,7 @@ async function migratePostsData() {
 
     // 既存投稿取得
     const existingPosts = await postsCollection.find({}).toArray();
-    console.log(`📊 移行対象投稿数: ${existingPosts.length}件\n`);
+    console.log('📊 移行対象投稿数: ' + sanitizeForLog(existingPosts.length) + '件\n');
 
     // ユーザー一覧取得（authorIdマッピング用）
     const users = await userModel.findAll({ limit: 100 });
@@ -33,7 +43,7 @@ async function migratePostsData() {
 
     for (const post of existingPosts) {
       try {
-        console.log(`📝 移行中: "${post.title}" (ID: ${post.id})`);
+        console.log('📝 移行中: "' + sanitizeForLog(post.title) + '" (ID: ' + sanitizeForLog(post.id) + ')');
 
         // 新しいスキーマに必要なフィールドを準備
         const updateData: Record<string, unknown> = {};
@@ -50,7 +60,7 @@ async function migratePostsData() {
         if (post.author && !post.authorName) {
           updateData.authorName = post.author;
           needsUpdate = true;
-          console.log(`   ✓ 作成者名設定: ${post.author}`);
+          console.log('   ✓ 作成者名設定: ' + sanitizeForLog(post.author));
         }
 
         if (!post.authorId && post.author) {
@@ -58,12 +68,12 @@ async function migratePostsData() {
           const authorId = userMap.get(post.author);
           if (authorId) {
             updateData.authorId = authorId;
-            console.log(`   ✓ 作成者ID設定: ${authorId}`);
+            console.log('   ✓ 作成者ID設定: ' + sanitizeForLog(authorId));
           } else {
             // 見つからない場合はデフォルトのadminユーザーに設定
             const adminUser = users.find(u => u.role === 'admin');
             updateData.authorId = adminUser?.id || 'unknown';
-            console.log(`   ⚠️ 作成者ID不明、管理者に設定: ${updateData.authorId}`);
+            console.log('   ⚠️ 作成者ID不明、管理者に設定: ' + sanitizeForLog(updateData.authorId));
           }
           needsUpdate = true;
         }
@@ -128,23 +138,23 @@ async function migratePostsData() {
         }
 
       } catch (error) {
-        console.error(`   ❌ エラー: ${error}\n`);
+        console.error('   ❌ エラー: ' + (error && (error as any).message ? sanitizeForLog((error as any).message) : sanitizeForLog(error)));
       }
     }
 
     console.log('🎉 投稿データマイグレーション完了！');
-    console.log(`✅ 移行完了: ${migratedCount}件`);
-    console.log(`⏭️ スキップ: ${skippedCount}件`);
-    console.log(`📊 総投稿数: ${existingPosts.length}件\n`);
+    console.log('✅ 移行完了: ' + sanitizeForLog(migratedCount) + '件');
+    console.log('⏭️ スキップ: ' + sanitizeForLog(skippedCount) + '件');
+    console.log('📊 総投稿数: ' + sanitizeForLog(existingPosts.length) + '件\n');
 
     // 移行後の確認
     console.log('🔍 移行後データ確認...');
     const migratedPosts = await postsCollection.find({}).toArray();
     const validPosts = migratedPosts.filter(p => p.status && p.authorName && p.tags !== undefined);
-    console.log(`✅ 有効な投稿: ${validPosts.length}/${migratedPosts.length}件`);
+    console.log('✅ 有効な投稿: ' + sanitizeForLog(validPosts.length) + '/' + sanitizeForLog(migratedPosts.length) + '件');
 
   } catch (error) {
-    console.error('❌ マイグレーションエラー:', error);
+    console.error('❌ マイグレーションエラー: ' + (error && (error as any).message ? sanitizeForLog((error as any).message) : sanitizeForLog(error)));
     throw error;
   }
 }
@@ -157,7 +167,7 @@ if (require.main === module) {
       process.exit(0);
     })
     .catch((error) => {
-      console.error('\n❌ マイグレーション失敗:', error);
+      console.error('\n❌ マイグレーション失敗: ' + (error && (error as any).message ? sanitizeForLog((error as any).message) : sanitizeForLog(error)));
       process.exit(1);
     });
 }
