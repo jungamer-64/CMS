@@ -1,6 +1,6 @@
 /**
  * 統一 RESTful APIファクトリー
- * 
+ *
  * REST API準拠の統一されたハンドラー生成システム
  * - 厳格な型安全性
  * - 統一されたエラーハンドリング
@@ -10,19 +10,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { UserEntity } from '../../core/types/entity-types';
 import {
-  createRestDataResponse,
-  createRestListResponse,
-  createRestErrorResponse,
-  parseRestRequestBody,
-  parseRestQueryParams,
   checkAllowedMethods,
-  requireAuthentication,
-  requireAdminAuthorization,
+  createRestDataResponse,
+  createRestErrorResponse,
+  createRestListResponse,
   HttpStatus,
+  parseRestQueryParams,
+  parseRestRequestBody,
+  requireAdminAuthorization,
+  requireAuthentication,
   RestErrorCode,
 } from '../utils/rest-helpers';
-import type { UserEntity } from '../../core/types/entity-types';
 
 // ============================================================================
 // ハンドラー型定義
@@ -37,25 +37,25 @@ export interface CrudService<TEntity, TCreateInput, TUpdateInput> {
     data?: { data: TEntity[]; pagination: { page: number; limit: number; total: number } };
     error?: string;
   }>;
-  
+
   getById(id: string): Promise<{
     success: boolean;
     data?: TEntity;
     error?: string;
   }>;
-  
+
   create(input: TCreateInput): Promise<{
     success: boolean;
     data?: TEntity;
     error?: string;
   }>;
-  
+
   update(id: string, input: TUpdateInput): Promise<{
     success: boolean;
     data?: TEntity;
     error?: string;
   }>;
-  
+
   delete(id: string): Promise<{
     success: boolean;
     error?: string;
@@ -130,7 +130,10 @@ export function createRestGetHandler<T>(
   handler: RestGetHandler<T>,
   options: RestHandlerOptions = {}
 ) {
-  return async (request: NextRequest, context?: { params?: Record<string, string> }) => {
+  return async (request: NextRequest, context: { params: Promise<Record<string, string>> }) => {
+    // Next.js 15ではparamsをPromiseから解決
+    const params = await context.params;
+
     try {
       // メソッドチェック
       if (options.allowedMethods) {
@@ -140,7 +143,7 @@ export function createRestGetHandler<T>(
 
       // 認証チェック
       let user: UserEntity | undefined;
-      
+
       if (options.requireAdmin) {
         const authResult = await requireAdminAuthorization();
         if (authResult instanceof NextResponse) return authResult;
@@ -152,8 +155,8 @@ export function createRestGetHandler<T>(
       }
 
       // ハンドラー実行
-      const result = await handler(request, user, context?.params);
-      
+      const result = await handler(request, user, params);
+
       // 結果がレスポンス型の場合はそのまま返す
       if (result instanceof NextResponse) {
         return result;
@@ -181,7 +184,10 @@ export function createRestPostHandler<TBody, TResponse>(
   validator: (data: unknown) => data is TBody,
   options: RestHandlerOptions = {}
 ) {
-  return async (request: NextRequest, context?: { params?: Record<string, string> }) => {
+  return async (request: NextRequest, context: { params: Promise<Record<string, string>> }) => {
+    // Next.js 15ではparamsをPromiseから解決
+    const params = await context.params;
+
     try {
       // メソッドチェック
       if (options.allowedMethods) {
@@ -191,7 +197,7 @@ export function createRestPostHandler<TBody, TResponse>(
 
       // 認証チェック
       let user: UserEntity | undefined;
-      
+
       if (options.requireAdmin) {
         const authResult = await requireAdminAuthorization();
         if (authResult instanceof NextResponse) return authResult;
@@ -207,8 +213,8 @@ export function createRestPostHandler<TBody, TResponse>(
       if (bodyResult instanceof NextResponse) return bodyResult;
 
       // ハンドラー実行
-      const result = await handler(request, bodyResult, user, context?.params);
-      
+      const result = await handler(request, bodyResult, user, params);
+
       // 結果がレスポンス型の場合はそのまま返す
       if (result instanceof NextResponse) {
         return result;
@@ -236,7 +242,10 @@ export function createRestPutHandler<TBody, TResponse>(
   validator: (data: unknown) => data is TBody,
   options: RestHandlerOptions = {}
 ) {
-  return async (request: NextRequest, context?: { params?: Record<string, string> }) => {
+  return async (request: NextRequest, context: { params: Promise<Record<string, string>> }) => {
+    // Next.js 15ではparamsをPromiseから解決
+    const params = await context.params;
+
     try {
       // メソッドチェック
       if (options.allowedMethods) {
@@ -246,7 +255,7 @@ export function createRestPutHandler<TBody, TResponse>(
 
       // 認証チェック
       let user: UserEntity | undefined;
-      
+
       if (options.requireAdmin) {
         const authResult = await requireAdminAuthorization();
         if (authResult instanceof NextResponse) return authResult;
@@ -262,8 +271,8 @@ export function createRestPutHandler<TBody, TResponse>(
       if (bodyResult instanceof NextResponse) return bodyResult;
 
       // ハンドラー実行
-      const result = await handler(request, bodyResult, user, context?.params);
-      
+      const result = await handler(request, bodyResult, user, params);
+
       // 結果がレスポンス型の場合はそのまま返す
       if (result instanceof NextResponse) {
         return result;
@@ -290,7 +299,10 @@ export function createRestDeleteHandler<T>(
   handler: RestDeleteHandler<T>,
   options: RestHandlerOptions = {}
 ) {
-  return async (request: NextRequest, context?: { params?: Record<string, string> }) => {
+  return async (request: NextRequest, context: { params: Promise<Record<string, string>> }) => {
+    // Next.js 15ではparamsをPromiseから解決
+    const params = await context.params;
+
     try {
       // メソッドチェック
       if (options.allowedMethods) {
@@ -300,7 +312,7 @@ export function createRestDeleteHandler<T>(
 
       // 認証チェック
       let user: UserEntity | undefined;
-      
+
       if (options.requireAdmin) {
         const authResult = await requireAdminAuthorization();
         if (authResult instanceof NextResponse) return authResult;
@@ -312,15 +324,15 @@ export function createRestDeleteHandler<T>(
       }
 
       // ハンドラー実行
-      const result = await handler(request, user, context?.params);
-      
+      const result = await handler(request, user, params);
+
       // 結果がレスポンス型の場合はそのまま返す
       if (result instanceof NextResponse) {
         return result;
       }
 
       // 削除成功レスポンス
-      return new NextResponse(null, { 
+      return new NextResponse(null, {
         status: HttpStatus.NO_CONTENT,
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
@@ -355,7 +367,7 @@ export function createCrudHandlers<TEntity, TCreateInput, TUpdateInput>(
   const GET = createRestGetHandler(
     async (request) => {
       const { pagination, search, sorting, filters } = parseRestQueryParams(new URL(request.url).searchParams);
-      
+
       const result = await service.getAll({
         ...filters,
         search,
@@ -381,7 +393,7 @@ export function createCrudHandlers<TEntity, TCreateInput, TUpdateInput>(
   const POST = createRestPostHandler(
     async (request, body) => {
       const result = await service.create(body);
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to create resource');
       }
@@ -399,7 +411,7 @@ export function createCrudHandlers<TEntity, TCreateInput, TUpdateInput>(
       }
 
       const result = await service.update(params.id, body);
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to update resource');
       }
@@ -417,7 +429,7 @@ export function createCrudHandlers<TEntity, TCreateInput, TUpdateInput>(
       }
 
       const result = await service.delete(params.id);
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to delete resource');
       }
@@ -435,11 +447,5 @@ export function createCrudHandlers<TEntity, TCreateInput, TUpdateInput>(
 // ============================================================================
 
 export {
-  createRestDataResponse,
-  createRestListResponse, 
-  createRestErrorResponse,
-  parseRestRequestBody,
-  parseRestQueryParams,
-  HttpStatus,
-  RestErrorCode,
+  createRestDataResponse, createRestErrorResponse, createRestListResponse, HttpStatus, parseRestQueryParams, parseRestRequestBody, RestErrorCode
 };

@@ -1,16 +1,16 @@
 /**
  * API ファクトリー（高速・厳格型安全）
- * 
+ *
  * - 統一されたAPIハンドラー作成
  * - 型安全なリクエスト処理
  * - パフォーマンス最適化
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { withApiAuth, type AuthContext } from './auth-middleware';
-import { createErrorResponse, parseJsonSafely, validateRequired } from './api-utils';
-import type { ApiResponse, User } from './core/types';
 import { RateLimiter } from '@/app/lib/security/rate-limiter';
+import { NextRequest, NextResponse } from 'next/server';
+import { createErrorResponse, parseJsonSafely, validateRequired } from './api-utils';
+import { withApiAuth, type AuthContext } from './auth-middleware';
+import type { ApiResponse, User } from './core/types';
 
 // ユーティリティ関数をエクスポート
 export { createErrorResponse, createSuccessResponse } from './api-utils';
@@ -81,9 +81,9 @@ async function checkRateLimit(
     windowMs: options.windowMs,
     blockDurationMs: 60000,
   };
-  
+
   const result = await rateLimiter.checkLimit(userId, rateLimitConfig);
-  
+
   if (!result.allowed) {
     return {
       allowed: false,
@@ -93,7 +93,7 @@ async function checkRateLimit(
       ),
     };
   }
-  
+
   return { allowed: true };
 }
 
@@ -134,7 +134,10 @@ export function createOptionalAuthGetHandler<T = unknown>(
   handler: (request: NextRequest, user?: User, params?: Record<string, string>) => Promise<ApiResponse<T>>,
   options?: HandlerOptions
 ) {
-  return async (request: NextRequest, params?: Record<string, string>) => {
+  return async (request: NextRequest, context: { params: Promise<Record<string, string>> }) => {
+    // Next.js 15ではparamsをPromiseから解決
+    const params = await context.params;
+
     try {
       // オプション認証を試行
       let user: User | undefined;
@@ -142,7 +145,7 @@ export function createOptionalAuthGetHandler<T = unknown>(
         // 簡単な認証チェック（withApiAuthから抜粋）
         const authHeader = request.headers.get('authorization');
         const cookieHeader = request.headers.get('cookie');
-        
+
         if (authHeader || cookieHeader) {
           // 認証情報があれば認証を試行（詳細は省略）
           // エラーが発生しても無視してuser = undefinedのまま続行
@@ -174,7 +177,7 @@ export function createOptionalAuthGetHandler<T = unknown>(
 /**
  * リクエストボディをパースして検証する共通関数の戻り値型
  */
-type ParseResult<TBody> = 
+type ParseResult<TBody> =
   | { success: true; data: TBody }
   | { success: false; error: NextResponse };
 
@@ -186,7 +189,7 @@ async function parseAndValidateBody<TBody>(
   requiredFields?: (keyof TBody)[]
 ): Promise<ParseResult<TBody>> {
   const bodyResult = await parseJsonSafely<TBody>(request);
-  
+
   if (!bodyResult.success) {
     return {
       success: false,

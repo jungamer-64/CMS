@@ -1,9 +1,9 @@
-import { NextRequest } from 'next/server';
-import { createGetHandler, createPostHandler, createDeleteHandler } from '@/app/lib/api-factory';
-import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { createDeleteHandler, createGetHandler, createPostHandler } from '@/app/lib/api-factory';
+import { createErrorResponse, createSuccessResponse } from '@/app/lib/api-utils';
 import { User } from '@/app/lib/core/types';
 import { connectToDatabase } from '@/app/lib/database/connection';
 import { createApiKeyModel } from '@/app/lib/database/models/api-key';
+import { NextRequest } from 'next/server';
 
 // ============================================================================
 // APIキー管理API - データベース統合版
@@ -37,8 +37,8 @@ interface CreateApiKeyRequest {
 // APIキーを生成する関数
 function generateApiKey(): string {
   const prefix = 'sk-test-';
-  const randomPart = Math.random().toString(36).substring(2, 15) + 
-                     Math.random().toString(36).substring(2, 15);
+  const randomPart = Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15);
   return prefix + randomPart;
 }
 
@@ -52,7 +52,7 @@ function generateKeyId(): string {
 // ============================================================================
 
 export const GET = createGetHandler<ApiKeyResponse[]>(
-  async (request: NextRequest, user: User) => {
+  async (_request: NextRequest, user: User) => {
     // 管理者のみアクセス可能
     if (user.role !== 'admin') {
       return createErrorResponse('管理者権限が必要です', 403);
@@ -92,7 +92,7 @@ export const GET = createGetHandler<ApiKeyResponse[]>(
 // ============================================================================
 
 export const POST = createPostHandler<CreateApiKeyRequest, ApiKeyResponse>(
-  async (request: NextRequest, body: CreateApiKeyRequest, user: User) => {
+  async (_request: NextRequest, body: CreateApiKeyRequest, user: User) => {
     // 管理者のみアクセス可能
     if (user.role !== 'admin') {
       return createErrorResponse('管理者権限が必要です', 403);
@@ -168,7 +168,7 @@ export const DELETE = createDeleteHandler<{ message: string }>(
 
       // APIキーを削除
       const deleted = await apiKeyModel.delete(keyId);
-      
+
       if (!deleted) {
         return createErrorResponse('APIキーが見つかりません', 404);
       }

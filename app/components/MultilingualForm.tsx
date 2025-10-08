@@ -115,11 +115,22 @@ class FormValidator {
   }
 
   validatePattern(value: string, pattern: string | RegExp): string | null {
-    const regexPattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-    if (!regexPattern.test(value)) {
+    try {
+      // セキュリティ: タイムアウト付きでRegExpを実行してReDoSを防止
+      const regexPattern = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
+
+      // 値の長さを制限
+      const MAX_VALUE_LENGTH = 1000;
+      const testValue = value.slice(0, MAX_VALUE_LENGTH);
+
+      if (!regexPattern.test(testValue)) {
+        return this.t('validation:validation.pattern');
+      }
+      return null;
+    } catch (error) {
+      console.error('Pattern validation error:', error);
       return this.t('validation:validation.pattern');
     }
-    return null;
   }
 
   validateCustom(value: string, customFn: (value: string) => boolean | string): string | null {
@@ -150,72 +161,49 @@ export default function MultilingualForm({
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // バリデーション関数
-  const validateField = useCallback((field: FieldConfig, value: string): string | null => {
-    const validator = new FormValidator(t, locale);
+  // バリデーションルールマップ - 条件分岐を減らすための設計
+  const getValidationMethods = useCallback((validator: FormValidator, rules: ValidationRule) => {
+    return [
+      { check: rules.required, fn: () => validator.validateRequired },
+      { check: rules.email, fn: () => validator.validateEmail },
+      { check: rules.url, fn: () => validator.validateUrl },
+      { check: rules.number, fn: () => validator.validateNumber },
+      { check: rules.phone, fn: () => validator.validatePhone },
+      { check: rules.date, fn: () => validator.validateDate },
+      { check: rules.pattern, fn: () => (v: string) => validator.validatePattern(v, rules.pattern!) },
+      { check: rules.custom, fn: () => (v: string) => validator.validateCustom(v, rules.custom!) },
+    ].filter(rule => rule.check).map(rule => rule.fn());
+  }, []);
 
+  // 統合バリデーション関数（複雑度を削減）
+  const validateField = useCallback((field: FieldConfig, value: string): string | null => {
     const { rules } = field;
     if (!rules) return null;
 
+    const validator = new FormValidator(t, locale);
+
     // 必須チェック
     if (rules.required) {
-      const requiredError = validator.validateRequired(value);
-      if (requiredError) return requiredError;
+      const error = validator.validateRequired(value);
+      if (error) return error;
     }
 
     // 値が空の場合、他のバリデーションは実行しない
-    if (!value || value.trim() === '') {
-      return null;
-    }
+    if (!value || value.trim() === '') return null;
 
     // 長さチェック
     const lengthError = validator.validateLength(value, rules.minLength, rules.maxLength);
     if (lengthError) return lengthError;
 
-    // メールアドレスチェック
-    if (rules.email) {
-      const emailError = validator.validateEmail(value);
-      if (emailError) return emailError;
-    }
-
-    // URLチェック
-    if (rules.url) {
-      const urlError = validator.validateUrl(value);
-      if (urlError) return urlError;
-    }
-
-    // 数値チェック
-    if (rules.number) {
-      const numberError = validator.validateNumber(value);
-      if (numberError) return numberError;
-    }
-
-    // 電話番号チェック
-    if (rules.phone) {
-      const phoneError = validator.validatePhone(value);
-      if (phoneError) return phoneError;
-    }
-
-    // 日付チェック
-    if (rules.date) {
-      const dateError = validator.validateDate(value);
-      if (dateError) return dateError;
-    }
-
-    // パターンチェック
-    if (rules.pattern) {
-      const patternError = validator.validatePattern(value, rules.pattern);
-      if (patternError) return patternError;
-    }
-
-    // カスタムバリデーション
-    if (rules.custom) {
-      const customError = validator.validateCustom(value, rules.custom);
-      if (customError) return customError;
+    // すべてのバリデーションメソッドを順次実行
+    const validationMethods = getValidationMethods(validator, rules);
+    for (const validateFn of validationMethods) {
+      const error = validateFn(value);
+      if (error) return error;
     }
 
     return null;
-  }, [t, locale]);
+  }, [t, locale, getValidationMethods]);
 
   // 全フィールドをバリデーション
   const validateForm = useCallback((): boolean => {

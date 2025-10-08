@@ -64,7 +64,20 @@ export abstract class BaseRepository<
 
   protected buildSearchRegex(search?: string): RegExp | undefined {
     if (!search || search.trim().length === 0) return undefined;
-    return new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+
+    // セキュリティ: 検索文字列の長さを制限してReDoSを防止
+    const MAX_SEARCH_LENGTH = 100;
+    const sanitizedSearch = search.trim().slice(0, MAX_SEARCH_LENGTH);
+
+    // すべての特殊文字をエスケープ
+    const escapedSearch = sanitizedSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    try {
+      return new RegExp(escapedSearch, 'i');
+    } catch (error) {
+      console.error('Invalid regex pattern:', error);
+      return undefined;
+    }
   }
 
   /**

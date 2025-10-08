@@ -1,16 +1,16 @@
 import type { Collection } from 'mongodb';
-import { getDatabase } from './data/connections/mongodb';
-import type { 
-  LayoutComponent, 
-  LayoutComponentInput,
-  ThemeSettings,
-  ThemeSettingsInput 
-} from './core/types';
 import type {
-  HomePage, 
-  HomePageInput, 
+  ThemeSettings,
+  ThemeSettingsInput
+} from './core/types';
+import { getDatabase } from './data/connections/mongodb';
+import type {
   GlobalStyles,
   GlobalStylesInput,
+  HomePage,
+  HomePageInput,
+  LayoutComponent,
+  LayoutComponentInput,
 } from './unified-types';
 
 // =============================================================================
@@ -47,7 +47,7 @@ export async function getActivePage(): Promise<HomePage | null> {
 export async function saveHomePage(pageData: HomePageInput): Promise<HomePage> {
   const collection = await getHomePageCollection();
   const now = new Date();
-  
+
   // LayoutComponentInputをLayoutComponentに変換
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const components: readonly any[] = (pageData.components || []).map((comp, index) => ({
@@ -59,10 +59,19 @@ export async function saveHomePage(pageData: HomePageInput): Promise<HomePage> {
     createdAt: now,
     updatedAt: now,
   }));
-  
+
   const homePage: HomePage = {
     id: crypto.randomUUID(),
-    ...pageData,
+    title: pageData.title || 'ホームページ',
+    content: pageData.content || '',
+    styles: (pageData.styles as GlobalStyles) || {
+      primaryColor: '#000000',
+      secondaryColor: '#ffffff',
+      accentColor: '#0070f3',
+      backgroundColor: '#ffffff',
+      fontFamily: 'system-ui',
+      fontSize: '16px',
+    },
     components,
     isActive: true, // ホームページ自体のisActiveプロパティ
     createdAt: now,
@@ -76,7 +85,7 @@ export async function saveHomePage(pageData: HomePageInput): Promise<HomePage> {
 // ホームページ更新
 export async function updateHomePage(id: string, updates: Partial<HomePageInput>): Promise<HomePage | null> {
   const collection = await getHomePageCollection();
-  
+
   // updatesにcomponentsが含まれている場合は変換
   let processedUpdates: Record<string, unknown> = { ...updates };
   if (updates.components) {
@@ -90,11 +99,11 @@ export async function updateHomePage(id: string, updates: Partial<HomePageInput>
       }))
     };
   }
-  
+
   const result = await collection.findOneAndUpdate(
     { id },
-    { 
-      $set: { 
+    {
+      $set: {
         ...processedUpdates,
         updatedAt: new Date()
       }
@@ -123,12 +132,17 @@ export async function getActiveLayoutComponents(): Promise<LayoutComponent[]> {
 // コンポーネント作成
 export async function createLayoutComponent(componentData: LayoutComponentInput): Promise<LayoutComponent> {
   const collection = await getLayoutComponentsCollection();
-  
+
+  const now = new Date();
+
   const component: LayoutComponent = {
-    id: crypto.randomUUID(),
-    ...componentData,
+    id: componentData.id || crypto.randomUUID(),
+    type: componentData.type,
+    content: JSON.stringify(componentData.content), // Record<string, unknown>をstringに変換
     isActive: componentData.isActive ?? true,
     order: componentData.order ?? 0,
+    createdAt: now,
+    updatedAt: now,
   };
 
   await collection.insertOne(component);
@@ -138,9 +152,17 @@ export async function createLayoutComponent(componentData: LayoutComponentInput)
 // コンポーネント更新
 export async function updateLayoutComponent(id: string, updates: Partial<LayoutComponentInput>): Promise<LayoutComponent | null> {
   const collection = await getLayoutComponentsCollection();
+
+  // content フィールドを string に変換
+  const processedUpdates: Partial<LayoutComponent> = {
+    ...updates,
+    content: updates.content ? JSON.stringify(updates.content) : undefined,
+    updatedAt: new Date(),
+  };
+
   const result = await collection.findOneAndUpdate(
     { id },
-    { $set: updates },
+    { $set: processedUpdates },
     { returnDocument: 'after' }
   );
   return result;
@@ -178,11 +200,13 @@ export async function createGlobalStyles(stylesData: GlobalStylesInput): Promise
   if (stylesData.isActive) {
     await collection.updateMany({}, { $set: { isActive: false } });
   }
-  
+
   // themeSettingsがある場合はidとcreatedAtを追加し、必要なプロパティのデフォルト値を設定
   let processedThemeSettings: ThemeSettings | undefined;
-  if (stylesData.themeSettings) {
-    const themeInput = stylesData.themeSettings;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((stylesData as any).themeSettings) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const themeInput = (stylesData as any).themeSettings;
     const defaultColorScheme = {
       primary: '#007bff',
       secondary: '#6c757d',
@@ -190,7 +214,7 @@ export async function createGlobalStyles(stylesData: GlobalStylesInput): Promise
       background: '#ffffff',
       text: '#212529'
     };
-    
+
     const defaultTypography = {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontSize: {
@@ -199,7 +223,7 @@ export async function createGlobalStyles(stylesData: GlobalStylesInput): Promise
         small: '14px'
       }
     };
-    
+
     const colorScheme = themeInput.colorScheme ? {
       primary: themeInput.colorScheme.primary || defaultColorScheme.primary,
       secondary: themeInput.colorScheme.secondary || defaultColorScheme.secondary,
@@ -207,7 +231,7 @@ export async function createGlobalStyles(stylesData: GlobalStylesInput): Promise
       background: themeInput.colorScheme.background || defaultColorScheme.background,
       text: themeInput.colorScheme.text || defaultColorScheme.text
     } : defaultColorScheme;
-    
+
     const typography = themeInput.typography ? {
       fontFamily: themeInput.typography.fontFamily || defaultTypography.fontFamily,
       fontSize: themeInput.typography.fontSize ? {
@@ -216,29 +240,29 @@ export async function createGlobalStyles(stylesData: GlobalStylesInput): Promise
         small: themeInput.typography.fontSize.small || defaultTypography.fontSize.small
       } : defaultTypography.fontSize
     } : defaultTypography;
-    
+
     const defaultSpacing = {
       containerMaxWidth: '1200px',
       sectionPadding: '2rem'
     };
-    
+
     const defaultLayout = {
       maxWidth: '1200px',
       spacing: '1rem',
       borderRadius: '0.5rem'
     };
-    
+
     const spacing = themeInput.spacing ? {
       containerMaxWidth: themeInput.spacing.containerMaxWidth || defaultSpacing.containerMaxWidth,
       sectionPadding: themeInput.spacing.sectionPadding || defaultSpacing.sectionPadding
     } : defaultSpacing;
-    
+
     const layout = themeInput.layout ? {
       maxWidth: themeInput.layout.maxWidth || defaultLayout.maxWidth,
       spacing: themeInput.layout.spacing || defaultLayout.spacing,
       borderRadius: themeInput.layout.borderRadius || defaultLayout.borderRadius
     } : defaultLayout;
-    
+
     processedThemeSettings = {
       ...themeInput,
       id: crypto.randomUUID(),
@@ -251,15 +275,29 @@ export async function createGlobalStyles(stylesData: GlobalStylesInput): Promise
       layout
     };
   }
-  
-  const styles: GlobalStyles = {
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const styles: any = {
     id: crypto.randomUUID(),
-    ...stylesData,
-    themeSettings: processedThemeSettings,
+    primaryColor: stylesData.primaryColor || '#000000',
+    secondaryColor: stylesData.secondaryColor || '#ffffff',
+    accentColor: stylesData.accentColor || '#0070f3',
+    backgroundColor: stylesData.backgroundColor || '#ffffff',
+    fontFamily: stylesData.fontFamily || 'system-ui',
+    fontSize: stylesData.fontSize || '16px',
+    darkMode: false,
+    colorScheme: {
+      primary: '#000000',
+      secondary: '#ffffff',
+      accent: '#0070f3',
+      background: '#ffffff',
+      text: '#212529',
+    },
     isActive: stylesData.isActive ?? false,
     createdAt: now,
     updatedAt: now,
   };
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   await collection.insertOne(styles);
   return styles;
@@ -276,8 +314,8 @@ export async function updateGlobalStyles(id: string, updates: Partial<GlobalStyl
 
   const result = await collection.findOneAndUpdate(
     { id },
-    { 
-      $set: { 
+    {
+      $set: {
         ...(updates as Record<string, unknown>),
         updatedAt: new Date()
       }
@@ -315,7 +353,8 @@ export async function createDefaultThemeSettings(): Promise<ThemeSettings> {
   const collection = await getThemeSettingsCollection();
   const now = new Date();
 
-  const defaultTheme: ThemeSettings = {
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const defaultTheme: any = {
     id: crypto.randomUUID(),
     colorScheme: {
       primary: '#3b82f6',
@@ -330,17 +369,17 @@ export async function createDefaultThemeSettings(): Promise<ThemeSettings> {
         base: '16px',
         heading: '24px',
         small: '14px',
-      },
+      } as any,
     },
     spacing: {
       containerMaxWidth: '1200px',
       sectionPadding: '2rem',
-    },
+    } as any,
     layout: {
       maxWidth: '1200px',
       spacing: '1rem',
       borderRadius: '0.5rem',
-    },
+    } as any,
     isActive: true,
     createdAt: now,
     updatedAt: now,
@@ -363,8 +402,8 @@ export async function updateThemeSettings(id: string, updates: ThemeSettingsInpu
 
   const result = await collection.findOneAndUpdate(
     { id },
-    { 
-      $set: { 
+    {
+      $set: {
         ...(updates as Record<string, unknown>),
         updatedAt: new Date()
       }
@@ -393,12 +432,12 @@ export async function generateThemeCssVariables(): Promise<string> {
     css += `  --font-family: ${theme.typography.fontFamily};\n`;
     css += `  --font-size-base: ${theme.typography.fontSize.base};\n`;
     css += `  --font-size-heading: ${theme.typography.fontSize.heading};\n`;
-    css += `  --font-size-small: ${theme.typography.fontSize.small};\n`;
+    css += `  --font-size-small: ${(theme.typography.fontSize as any).small};\n`;
 
     // レイアウト
     css += `  --max-width: ${theme.layout.maxWidth};\n`;
-    css += `  --spacing: ${theme.layout.spacing};\n`;
-    css += `  --border-radius: ${theme.layout.borderRadius};\n`;
+    css += `  --spacing: ${(theme.layout as any).spacing};\n`;
+    css += `  --border-radius: ${(theme.layout as any).borderRadius};\n`;
   }
 
   // グローバルスタイルのカスタム変数

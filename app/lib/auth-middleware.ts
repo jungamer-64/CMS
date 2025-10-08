@@ -1,16 +1,16 @@
 /**
  * 高速・厳格型安全API認証ミドルウェア
- * 
+ *
  * - 型安全なリクエスト処理
  * - パフォーマンス最適化
  * - 統一されたエラーハンドリング
  */
 
-import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { createApiError } from './core/utils/error-creators';
-import { ApiErrorCode } from './core/types';
+import { NextRequest, NextResponse } from 'next/server';
 import type { User } from './core/types';
+import { ApiErrorCode } from './core/types';
+import { createApiError } from './core/utils/error-creators';
 
 // 型をエクスポート
 export type { User } from './core/types';
@@ -29,9 +29,9 @@ const RATE_LIMIT_CONFIG = {
  * IPアドレスを取得
  */
 function getClientIP(request: NextRequest): string {
-  return request.headers.get('x-forwarded-for')?.split(',')[0] || 
-         request.headers.get('x-real-ip') || 
-         'unknown';
+  return request.headers.get('x-forwarded-for')?.split(',')[0] ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
 }
 
 /**
@@ -40,7 +40,7 @@ function getClientIP(request: NextRequest): string {
 async function checkLoginAttempts(ip: string): Promise<{ allowed: boolean; remainingAttempts?: number }> {
   const { RateLimiter } = await import('./security/rate-limiter');
   const rateLimiter = RateLimiter.getInstance();
-  
+
   const result = await rateLimiter.checkLimit(ip, RATE_LIMIT_CONFIG);
   return {
     allowed: result.allowed,
@@ -54,7 +54,7 @@ async function checkLoginAttempts(ip: string): Promise<{ allowed: boolean; remai
 async function recordFailedLogin(ip: string): Promise<void> {
   const { RateLimiter } = await import('./security/rate-limiter');
   const rateLimiter = RateLimiter.getInstance();
-  
+
   await rateLimiter.recordFailure(ip, RATE_LIMIT_CONFIG);
 }
 
@@ -64,7 +64,7 @@ async function recordFailedLogin(ip: string): Promise<void> {
 async function clearFailedLogins(ip: string): Promise<void> {
   const { RateLimiter } = await import('./security/rate-limiter');
   const rateLimiter = RateLimiter.getInstance();
-  
+
   await rateLimiter.clearFailures(ip);
 }
 
@@ -135,10 +135,10 @@ interface AuthResult {
  */
 export function withApiAuth(
   handler: ApiAuthHandler | ApiAuthHandlerWithParams
-): (request: NextRequest, context?: { params?: Record<string, string> }) => Promise<NextResponse> {
-  return async (request: NextRequest, context?: { params?: Record<string, string> }) => {
+): (request: NextRequest, context: { params: Promise<Record<string, string>> }) => Promise<NextResponse> {
+  return async (request: NextRequest, context: { params: Promise<Record<string, string>> }) => {
     const clientIP = getClientIP(request);
-    
+
     try {
       // レート制限チェック
       const rateLimitCheck = await checkLoginAttempts(clientIP);
@@ -172,7 +172,7 @@ export function withApiAuth(
 
       // 認証処理
       const authResult = await authenticateRequest(request);
-      
+
       if (!authResult.success) {
         await recordFailedLogin(clientIP);
         await logSecurityEvent({
@@ -209,8 +209,11 @@ export function withApiAuth(
       };
 
       // セキュリティヘッダーを追加
-      const response = context?.params
-        ? await (handler as ApiAuthHandlerWithParams)(request, authContext, context.params)
+      // Next.js 15ではparamsがPromiseになるため、awaitで解決
+      const resolvedParams = await context.params;
+
+      const response = resolvedParams && Object.keys(resolvedParams).length > 0
+        ? await (handler as ApiAuthHandlerWithParams)(request, authContext, resolvedParams)
         : await (handler as ApiAuthHandler)(request, authContext);
 
       // セキュリティヘッダーを設定
@@ -239,19 +242,19 @@ function isValidRequest(request: NextRequest): boolean {
   const url = new URL(request.url);
   const origin = request.headers.get('origin');
   const referer = request.headers.get('referer');
-  
+
   // 同一オリジンからのリクエストを許可
   if (origin) {
     const originUrl = new URL(origin);
     return originUrl.host === url.host;
   }
-  
+
   // Refererがある場合はチェック
   if (referer) {
     const refererUrl = new URL(referer);
     return refererUrl.host === url.host;
   }
-  
+
   // Origin、Refererが両方ない場合は安全サイドで許可
   return true;
 }
@@ -261,13 +264,13 @@ function isValidRequest(request: NextRequest): boolean {
  */
 async function authenticateRequest(request: NextRequest): Promise<AuthResult> {
   console.log('🔐 認証リクエスト処理開始 - URL:', request.url);
-  
+
   // 1. APIキー認証を先に試行
   const apiKey = request.headers.get('authorization')?.replace('Bearer ', '') ||
-                request.headers.get('x-api-key');
-  
+    request.headers.get('x-api-key');
+
   console.log('🔑 APIキー確認:', apiKey ? '存在' : '不在');
-  
+
   if (apiKey) {
     const apiUser = await getUserFromApiKey(apiKey);
     if (apiUser) {
@@ -293,14 +296,14 @@ async function authenticateRequest(request: NextRequest): Promise<AuthResult> {
     cookieStore.get('session-token')?.value ||
     cookieStore.get('auth-token')?.value ||
     cookieStore.get('token')?.value;
-  
+
   console.log('🍪 Cookieストア:', {
     'session-token': cookieStore.get('session-token')?.value ? '存在' : '不在',
     'auth-token': cookieStore.get('auth-token')?.value ? '存在' : '不在',
     'token': cookieStore.get('token')?.value ? '存在' : '不在',
     selectedToken: sessionToken ? 'あり' : 'なし'
   });
-  
+
   if (sessionToken) {
     console.log('🔍 セッショントークンで認証試行中...');
     const sessionUser = await getUserFromSession(sessionToken);
@@ -333,7 +336,7 @@ async function getUserFromApiKey(apiKey: string): Promise<User | null> {
   try {
     const { UserRepository } = await import('./data/repositories/user-repository');
     const userRepo = new UserRepository();
-    
+
     // APIキーでユーザーを検索
     const result = await userRepo.findById(apiKey); // 仮実装：APIキーをIDとして使用
     if (result.success && result.data) {
@@ -366,16 +369,16 @@ async function getUserFromSession(sessionToken: string): Promise<User | null> {
   try {
     const { UserRepository } = await import('./data/repositories/user-repository');
     const userRepo = new UserRepository();
-    
+
     // セッショントークンでユーザーを検索（仮実装：JWTトークンのデコード）
     // 実際の実装では、トークンをデコードしてユーザーIDを取得する
     const { verifyToken } = await import('./core/auth/jwt-utils');
     const payload = verifyToken(sessionToken);
-    
+
     if (!payload?.userId) {
       return null;
     }
-    
+
     const result = await userRepo.findById(payload.userId);
     if (result.success && result.data) {
       // UserEntityからUserに変換
@@ -426,9 +429,9 @@ export function hasPermission(
   if (!context.permissions) {
     return false;
   }
-  
-  return context.permissions.includes(requiredPermission) || 
-         context.permissions.includes('*');
+
+  return context.permissions.includes(requiredPermission) ||
+    context.permissions.includes('*');
 }
 
 /**
