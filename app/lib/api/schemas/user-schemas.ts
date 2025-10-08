@@ -4,7 +4,7 @@
  */
 
 import type { ValidationSchema } from '../middleware/validation';
-import { idSchema, userRoleSchema } from './common-schemas';
+import { idSchema } from './common-schemas';
 
 // ユーザー作成スキーマ
 export const createUserSchema: ValidationSchema = {

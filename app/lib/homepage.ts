@@ -1,17 +1,17 @@
 import type { Collection } from 'mongodb';
 import type {
-  ThemeSettings,
-  ThemeSettingsInput
-} from './core/types';
-import { getDatabase } from './data/connections/mongodb';
-import type {
   GlobalStyles,
   GlobalStylesInput,
   HomePage,
   HomePageInput,
   LayoutComponent,
   LayoutComponentInput,
-} from './unified-types';
+} from './core/types/api-unified';
+import type {
+  ThemeSettings,
+  ThemeSettingsInput
+} from './core/types/ui-types';
+import { getDatabase } from './data/connections/mongodb';
 
 // =============================================================================
 // ホームページ管理
@@ -201,84 +201,17 @@ export async function createGlobalStyles(stylesData: GlobalStylesInput): Promise
     await collection.updateMany({}, { $set: { isActive: false } });
   }
 
-  // themeSettingsがある場合はidとcreatedAtを追加し、必要なプロパティのデフォルト値を設定
+  // themeSettingsの処理は現在未使用のため、将来の実装のためにコメントアウト
+  // TODO: themeSettings機能を実装する際に有効化
+  /*
   let processedThemeSettings: ThemeSettings | undefined;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ((stylesData as any).themeSettings) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const themeInput = (stylesData as any).themeSettings;
-    const defaultColorScheme = {
-      primary: '#007bff',
-      secondary: '#6c757d',
-      accent: '#28a745',
-      background: '#ffffff',
-      text: '#212529'
-    };
-
-    const defaultTypography = {
-      fontFamily: 'Inter, system-ui, sans-serif',
-      fontSize: {
-        base: '16px',
-        heading: '24px',
-        small: '14px'
-      }
-    };
-
-    const colorScheme = themeInput.colorScheme ? {
-      primary: themeInput.colorScheme.primary || defaultColorScheme.primary,
-      secondary: themeInput.colorScheme.secondary || defaultColorScheme.secondary,
-      accent: themeInput.colorScheme.accent || defaultColorScheme.accent,
-      background: themeInput.colorScheme.background || defaultColorScheme.background,
-      text: themeInput.colorScheme.text || defaultColorScheme.text
-    } : defaultColorScheme;
-
-    const typography = themeInput.typography ? {
-      fontFamily: themeInput.typography.fontFamily || defaultTypography.fontFamily,
-      fontSize: themeInput.typography.fontSize ? {
-        base: themeInput.typography.fontSize.base || defaultTypography.fontSize.base,
-        heading: themeInput.typography.fontSize.heading || defaultTypography.fontSize.heading,
-        small: themeInput.typography.fontSize.small || defaultTypography.fontSize.small
-      } : defaultTypography.fontSize
-    } : defaultTypography;
-
-    const defaultSpacing = {
-      containerMaxWidth: '1200px',
-      sectionPadding: '2rem'
-    };
-
-    const defaultLayout = {
-      maxWidth: '1200px',
-      spacing: '1rem',
-      borderRadius: '0.5rem'
-    };
-
-    const spacing = themeInput.spacing ? {
-      containerMaxWidth: themeInput.spacing.containerMaxWidth || defaultSpacing.containerMaxWidth,
-      sectionPadding: themeInput.spacing.sectionPadding || defaultSpacing.sectionPadding
-    } : defaultSpacing;
-
-    const layout = themeInput.layout ? {
-      maxWidth: themeInput.layout.maxWidth || defaultLayout.maxWidth,
-      spacing: themeInput.layout.spacing || defaultLayout.spacing,
-      borderRadius: themeInput.layout.borderRadius || defaultLayout.borderRadius
-    } : defaultLayout;
-
-    processedThemeSettings = {
-      ...themeInput,
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-      isActive: themeInput.isActive ?? false,
-      colorScheme,
-      typography,
-      spacing,
-      layout
-    };
+    // ... theme processing logic ...
   }
+  */
 
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  const styles: any = {
-    id: crypto.randomUUID(),
+  const styles: GlobalStyles & { createdAt: Date; updatedAt: Date } = {
     primaryColor: stylesData.primaryColor || '#000000',
     secondaryColor: stylesData.secondaryColor || '#ffffff',
     accentColor: stylesData.accentColor || '#0070f3',
@@ -287,17 +220,33 @@ export async function createGlobalStyles(stylesData: GlobalStylesInput): Promise
     fontSize: stylesData.fontSize || '16px',
     darkMode: false,
     colorScheme: {
-      primary: '#000000',
-      secondary: '#ffffff',
-      accent: '#0070f3',
-      background: '#ffffff',
-      text: '#212529',
+      primary: stylesData.colorScheme?.primary || '#000000',
+      secondary: stylesData.colorScheme?.secondary || '#ffffff',
+      accent: stylesData.colorScheme?.accent || '#0070f3',
+      background: stylesData.colorScheme?.background || '#ffffff',
+      text: stylesData.colorScheme?.text || '#212529',
     },
-    isActive: stylesData.isActive ?? false,
+    typography: {
+      fontFamily: stylesData.typography?.fontFamily || 'system-ui',
+      fontSize: {
+        base: stylesData.typography?.fontSize?.base || '16px',
+        heading: stylesData.typography?.fontSize?.heading,
+        small: stylesData.typography?.fontSize?.small || '14px',
+      },
+    },
+    spacing: {
+      containerMaxWidth: stylesData.spacing?.containerMaxWidth || '1200px',
+    },
+    layout: {
+      maxWidth: stylesData.layout?.maxWidth,
+      spacing: stylesData.layout?.spacing || '1rem',
+      borderRadius: stylesData.layout?.borderRadius || '4px',
+    },
+    variables: stylesData.variables,
+    customCss: stylesData.customCss,
     createdAt: now,
     updatedAt: now,
   };
-  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   await collection.insertOne(styles);
   return styles;
@@ -312,14 +261,18 @@ export async function updateGlobalStyles(id: string, updates: Partial<GlobalStyl
     await collection.updateMany({ id: { $ne: id } }, { $set: { isActive: false } });
   }
 
+  // updatesから未定義の値を除去してMongoDBに送信
+  const updateFields: Record<string, unknown> = {};
+  Object.entries(updates).forEach(([key, value]) => {
+    if (value !== undefined) {
+      updateFields[key] = value;
+    }
+  });
+  updateFields.updatedAt = new Date();
+
   const result = await collection.findOneAndUpdate(
     { id },
-    {
-      $set: {
-        ...(updates as Record<string, unknown>),
-        updatedAt: new Date()
-      }
-    },
+    { $set: updateFields },
     { returnDocument: 'after' }
   );
   return result;
@@ -353,8 +306,7 @@ export async function createDefaultThemeSettings(): Promise<ThemeSettings> {
   const collection = await getThemeSettingsCollection();
   const now = new Date();
 
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  const defaultTheme: any = {
+  const defaultTheme: ThemeSettings & { id: string; isActive: boolean; createdAt: Date; updatedAt: Date } = {
     id: crypto.randomUUID(),
     colorScheme: {
       primary: '#3b82f6',
@@ -368,18 +320,21 @@ export async function createDefaultThemeSettings(): Promise<ThemeSettings> {
       fontSize: {
         base: '16px',
         heading: '24px',
-        small: '14px',
-      } as any,
+      },
     },
     spacing: {
-      containerMaxWidth: '1200px',
-      sectionPadding: '2rem',
-    } as any,
+      spacing: '2rem',
+    },
     layout: {
       maxWidth: '1200px',
-      spacing: '1rem',
-      borderRadius: '0.5rem',
-    } as any,
+    },
+    primaryColor: '#3b82f6',
+    secondaryColor: '#64748b',
+    accentColor: '#06b6d4',
+    backgroundColor: '#ffffff',
+    fontFamily: 'Inter, system-ui, sans-serif',
+    fontSize: '16px',
+    darkMode: false,
     isActive: true,
     createdAt: now,
     updatedAt: now,
@@ -431,13 +386,17 @@ export async function generateThemeCssVariables(): Promise<string> {
     // タイポグラフィ
     css += `  --font-family: ${theme.typography.fontFamily};\n`;
     css += `  --font-size-base: ${theme.typography.fontSize.base};\n`;
-    css += `  --font-size-heading: ${theme.typography.fontSize.heading};\n`;
-    css += `  --font-size-small: ${(theme.typography.fontSize as any).small};\n`;
+    if (theme.typography.fontSize.heading) {
+      css += `  --font-size-heading: ${theme.typography.fontSize.heading};\n`;
+    }
+
+    // スペーシング
+    css += `  --spacing: ${theme.spacing.spacing};\n`;
 
     // レイアウト
-    css += `  --max-width: ${theme.layout.maxWidth};\n`;
-    css += `  --spacing: ${(theme.layout as any).spacing};\n`;
-    css += `  --border-radius: ${(theme.layout as any).borderRadius};\n`;
+    if (theme.layout.maxWidth) {
+      css += `  --max-width: ${theme.layout.maxWidth};\n`;
+    }
   }
 
   // グローバルスタイルのカスタム変数

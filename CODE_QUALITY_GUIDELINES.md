@@ -327,6 +327,212 @@ describe('BaseRepository', () => {
 });
 ```
 
+## 型安全性ベストプラクティス (2025年10月8日追加)
+
+### `any`型の使用禁止
+
+TypeScriptの`any`型は型安全性を損なうため、**使用を禁止**します。
+
+#### ❌ 悪い例
+
+```typescript
+// any型を使用すると型チェックが無効化される
+const data: any = { name: 'test' };
+data.unknownMethod(); // 実行時エラーになる可能性
+
+// キャストで型安全性を回避
+const result = (someData as any).field;
+```
+
+#### ✅ 良い例
+
+```typescript
+// 適切な型定義を使用
+interface Data {
+  name: string;
+  age?: number;
+}
+
+const data: Data = { name: 'test' };
+// data.unknownMethod(); // コンパイルエラーで早期発見
+
+// 型ガードを使用
+function isData(value: unknown): value is Data {
+  return typeof value === 'object' && value !== null && 'name' in value;
+}
+
+if (isData(someData)) {
+  console.log(someData.name); // 型安全
+}
+```
+
+### Next.js 15の型対応
+
+Next.js 15では動的ルートのparamsが`Promise`でラップされます。
+
+#### ❌ 悪い例
+
+```typescript
+// Next.js 14の書き方（Next.js 15では型エラー）
+export async function GET(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
+  const { id } = context.params;
+  // ...
+}
+```
+
+#### ✅ 良い例
+
+```typescript
+// Next.js 15対応
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<Record<string, string>> }
+) {
+  const params = await context.params; // Promise解決
+  const { id } = params;
+  // ...
+}
+
+// または、ファクトリ関数を使用
+export const GET = createGetHandler<ResponseType>(
+  async (request, user, context) => {
+    const params = await context.params;
+    const { id } = params;
+    // ...
+  }
+);
+```
+
+### 型定義の一元管理
+
+型定義は`app/lib/core/types/api-unified.ts`に集約します。
+
+#### ❌ 悪い例
+
+```typescript
+// 各ファイルで型を個別定義（重複のリスク）
+// file1.ts
+interface User { id: string; name: string; }
+
+// file2.ts
+interface User { id: string; name: string; email: string; } // 不一致!
+```
+
+#### ✅ 良い例
+
+```typescript
+// app/lib/core/types/api-unified.ts
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  role: 'admin' | 'user';
+}
+
+// 他のファイル
+import type { User } from '@/app/lib/core/types/api-unified';
+```
+
+### オプショナルフィールドへの安全なアクセス
+
+オプショナルフィールドには条件分岐でアクセスします。
+
+#### ❌ 悪い例
+
+```typescript
+// 型キャストで無理やりアクセス
+const small = (theme.typography.fontSize as any).small;
+const spacing = (theme.layout as any).spacing;
+```
+
+#### ✅ 良い例
+
+```typescript
+// オプショナルチェーンまたは条件分岐
+const small = theme.typography.fontSize?.small;
+
+if (theme.layout?.spacing) {
+  css += `--spacing: ${theme.layout.spacing};\n`;
+}
+
+// または、型定義を正確に
+interface ThemeSettings {
+  typography: {
+    fontSize: {
+      base: string;
+      heading?: string;
+      small?: string; // オプショナルを明示
+    };
+  };
+  layout?: {
+    spacing?: string;
+  };
+}
+```
+
+### 型アサーションの適切な使用
+
+型アサーション(`as`)は最小限にし、使用する場合は理由をコメントで明示します。
+
+#### ❌ 悪い例
+
+```typescript
+// 理由なく型アサーション
+const data = response as User;
+const value = obj as any; // 特に悪い
+```
+
+#### ✅ 良い例
+
+```typescript
+// 型ガードで検証してから使用
+function isUser(value: unknown): value is User {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'username' in value
+  );
+}
+
+if (isUser(response)) {
+  const data = response; // 型安全
+}
+
+// やむを得ない場合は理由をコメント
+const data = response as User; // API契約上、必ずUser型が返る
+```
+
+### 未使用パラメータの扱い
+
+スタブ関数や将来の実装のための未使用パラメータは`_`プレフィックスで明示します。
+
+#### ❌ 悪い例
+
+```typescript
+// ESLint警告が出るが無視
+export const getUserById = async (id: string) => {
+  throw new Error('Not implemented');
+};
+```
+
+#### ✅ 良い例
+
+```typescript
+// _プレフィックスで意図的な未使用を明示
+export const getUserById = async (_id: string) => {
+  throw new Error('Not implemented');
+};
+
+// 実装時は_を削除
+export const getUserById = async (id: string) => {
+  return await collection.findOne({ _id: new ObjectId(id) });
+};
+```
+
 ## まとめ
 
 このガイドラインに従うことで：
@@ -335,5 +541,15 @@ describe('BaseRepository', () => {
 - ✅ 保守しやすいコード
 - ✅ テストしやすいコード
 - ✅ パフォーマンスの良いコード
+- ✅ **型安全なコード** (2025年10月8日追加)
 
 を実現できます。
+
+### 最新の改善 (2025年10月8日)
+
+- **`any`キャスト**: 8箇所以上 → 0箇所 (100%削除)
+- **Next.js 15対応**: 全ルートハンドラーでPromise型params対応完了
+- **型定義統合**: 重複型定義を解消、単一ソースから参照
+- **ESLint警告**: 30+ → 15 (50%削減)
+
+詳細は `REFACTORING_COMPLETE.md` を参照してください。

@@ -1,6 +1,6 @@
 /**
  * UI・エディター関連型定義
- * 
+ *
  * ブロックエディター、コンポーネント等のUI機能で使用される型を定義します。
  */
 
@@ -88,28 +88,10 @@ export interface AuthContextType {
 // ============================================================================
 
 /**
- * レイアウトコンポーネントの型定義
+ * @deprecated Use LayoutComponent and LayoutComponentInput from api-unified.ts instead.
+ * These types have been consolidated to avoid duplication.
+ * Import from: '@/app/lib/core/types/api-unified'
  */
-export interface LayoutComponent {
-  readonly id: string;
-  readonly type: string;
-  readonly content: string;
-  readonly settings?: {
-    readonly [key: string]: unknown;
-  };
-}
-
-/**
- * レイアウトコンポーネント入力型
- */
-export interface LayoutComponentInput {
-  readonly id?: string;
-  readonly type: string;
-  readonly content: string;
-  readonly settings?: {
-    readonly [key: string]: unknown;
-  };
-}
 
 // ============================================================================
 // テーマ設定型

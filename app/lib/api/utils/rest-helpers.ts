@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import jwt from 'jsonwebtoken';
 import type { UserEntity } from '@/app/lib/core/types/entity-types';
-import { userRepository } from '@/app/lib/data/repositories/user-repository';
 import { isApiSuccess } from '@/app/lib/core/utils/type-guards';
+import { userRepository } from '@/app/lib/data/repositories/user-repository';
+import jwt from 'jsonwebtoken';
+import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
 
 // ============================================================================
 // RESTful API 標準
@@ -88,9 +88,9 @@ export interface RestErrorResponse {
 }
 
 /** 統合レスポンス型 */
-export type RestApiResponse<T = unknown> = 
-  | RestDataResponse<T> 
-  | RestListResponse<T> 
+export type RestApiResponse<T = unknown> =
+  | RestDataResponse<T>
+  | RestListResponse<T>
   | RestErrorResponse;
 
 // ============================================================================
@@ -111,14 +111,14 @@ export function createRestDataResponse<T>(
     meta: message ? { message } : undefined,
     timestamp: new Date().toISOString(),
   } as const;
-  
-  return NextResponse.json(response, { 
+
+  return NextResponse.json(response, {
     status,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
+      'Content-Security-Policy': "frame-ancestors 'none'",
     },
   });
 }
@@ -137,7 +137,7 @@ export function createRestListResponse<T>(
   filters?: Record<string, unknown>
 ): NextResponse {
   const totalPages = Math.ceil(pagination.total / pagination.limit);
-  
+
   const response: RestListResponse<T> = {
     success: true,
     data: items,
@@ -153,14 +153,14 @@ export function createRestListResponse<T>(
     },
     timestamp: new Date().toISOString(),
   } as const;
-  
-  return NextResponse.json(response, { 
+
+  return NextResponse.json(response, {
     status: HttpStatus.OK,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
+      'Content-Security-Policy': "frame-ancestors 'none'",
     },
   });
 }
@@ -185,14 +185,14 @@ export function createRestErrorResponse(
     },
     timestamp: new Date().toISOString(),
   } as const;
-  
-  return NextResponse.json(response, { 
+
+  return NextResponse.json(response, {
     status,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
+      'Content-Security-Policy': "frame-ancestors 'none'",
     },
   });
 }
@@ -213,10 +213,10 @@ export async function authenticateUser(): Promise<UserEntity | null> {
 
     // JWT検証（同期的に高速実行）
     const decoded = jwt.verify(token, JWT_SECRET) as { readonly userId: string };
-    
+
     // ユーザー取得
     const userResult = await userRepository.findById(decoded.userId);
-    
+
     return isApiSuccess(userResult) ? userResult.data : null;
   } catch {
     return null;
@@ -228,7 +228,7 @@ export async function authenticateUser(): Promise<UserEntity | null> {
  */
 export async function requireAuthentication(): Promise<UserEntity | NextResponse> {
   const user = await authenticateUser();
-  
+
   if (!user) {
     return createRestErrorResponse(
       RestErrorCode.AUTHENTICATION_REQUIRED,
@@ -236,7 +236,7 @@ export async function requireAuthentication(): Promise<UserEntity | NextResponse
       HttpStatus.UNAUTHORIZED
     );
   }
-  
+
   return user;
 }
 
@@ -245,7 +245,7 @@ export async function requireAuthentication(): Promise<UserEntity | NextResponse
  */
 export async function requireAdminAuthorization(): Promise<UserEntity | NextResponse> {
   const user = await authenticateUser();
-  
+
   if (!user) {
     return createRestErrorResponse(
       RestErrorCode.AUTHENTICATION_REQUIRED,
@@ -253,7 +253,7 @@ export async function requireAdminAuthorization(): Promise<UserEntity | NextResp
       HttpStatus.UNAUTHORIZED
     );
   }
-  
+
   if (user.role !== 'admin') {
     return createRestErrorResponse(
       RestErrorCode.AUTHORIZATION_FAILED,
@@ -261,7 +261,7 @@ export async function requireAdminAuthorization(): Promise<UserEntity | NextResp
       HttpStatus.FORBIDDEN
     );
   }
-  
+
   return user;
 }
 
@@ -276,15 +276,15 @@ export function parseRestQueryParams(searchParams: URLSearchParams) {
   // ページネーション
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '10', 10)));
-  
+
   // 検索・フィルタリング
   const search = searchParams.get('search')?.trim() || undefined;
   const sortBy = searchParams.get('sort_by')?.trim() || undefined;
   const sortOrder = searchParams.get('sort_order') === 'asc' ? 'asc' : 'desc';
-  
+
   // フィールド選択
   const fields = searchParams.get('fields')?.split(',').map(f => f.trim()).filter(Boolean);
-  
+
   return {
     pagination: { page, limit },
     search,
@@ -316,7 +316,7 @@ export async function parseRestRequestBody<T>(
     }
 
     const body = await request.json();
-    
+
     if (!validator(body)) {
       return createRestErrorResponse(
         RestErrorCode.VALIDATION_FAILED,
@@ -324,7 +324,7 @@ export async function parseRestRequestBody<T>(
         HttpStatus.UNPROCESSABLE_ENTITY
       );
     }
-    
+
     return body;
   } catch (error) {
     if (error instanceof SyntaxError) {
@@ -334,7 +334,7 @@ export async function parseRestRequestBody<T>(
         HttpStatus.BAD_REQUEST
       );
     }
-    
+
     return createRestErrorResponse(
       RestErrorCode.INTERNAL_ERROR,
       'Failed to process request body.',

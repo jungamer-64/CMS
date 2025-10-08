@@ -1,12 +1,12 @@
 /**
  * データベースインデックス設定
  * LIB_COMMONIZATION_PLAN.md フェーズ5対応
- * 
+ *
  * 既存のsetup-indexes.tsから移行・拡張
  */
 
 import type { CreateIndexesOptions } from 'mongodb';
-import { getDatabase, COLLECTIONS } from './mongodb';
+import { COLLECTIONS, getDatabase } from './mongodb';
 
 // インデックス定義型
 interface IndexDefinition {
@@ -49,7 +49,7 @@ const INDEX_DEFINITIONS: IndexDefinition[] = [
       }
     ]
   },
-  
+
   // 投稿コレクション
   {
     collection: COLLECTIONS.POSTS,
@@ -80,7 +80,7 @@ const INDEX_DEFINITIONS: IndexDefinition[] = [
       },
       {
         key: { title: 'text', content: 'text' },
-        options: { 
+        options: {
           name: 'title_content_text',
           weights: { title: 10, content: 1 }
         }
@@ -91,7 +91,7 @@ const INDEX_DEFINITIONS: IndexDefinition[] = [
       }
     ]
   },
-  
+
   // コメントコレクション
   {
     collection: COLLECTIONS.COMMENTS,
@@ -122,7 +122,7 @@ const INDEX_DEFINITIONS: IndexDefinition[] = [
       }
     ]
   },
-  
+
   // APIキーコレクション
   {
     collection: COLLECTIONS.API_KEYS,
@@ -145,14 +145,14 @@ const INDEX_DEFINITIONS: IndexDefinition[] = [
       },
       {
         key: { expiresAt: 1 },
-        options: { 
+        options: {
           name: 'expires_at_index',
           expireAfterSeconds: 0 // TTLインデックス
         }
       }
     ]
   },
-  
+
   // パスワードリセットトークンコレクション
   {
     collection: COLLECTIONS.PASSWORD_RESET_TOKENS,
@@ -167,7 +167,7 @@ const INDEX_DEFINITIONS: IndexDefinition[] = [
       },
       {
         key: { expiresAt: 1 },
-        options: { 
+        options: {
           name: 'expires_at_ttl',
           expireAfterSeconds: 0 // TTLインデックス
         }
@@ -181,7 +181,7 @@ async function createIndexForCollection(definition: IndexDefinition): Promise<vo
   try {
     const db = await getDatabase();
     const collection = db.collection(definition.collection);
-    
+
     for (const index of definition.indexes) {
       try {
         await collection.createIndex(index.key, index.options);
@@ -191,13 +191,13 @@ async function createIndexForCollection(definition: IndexDefinition): Promise<vo
         if (error instanceof Error && error.message.includes('already exists')) {
           console.log(`ℹ️  Index ${index.options?.name || 'unnamed'} already exists for ${definition.collection}`);
         } else {
-          console.error(`❌ Failed to create index ${index.options?.name || 'unnamed'} for ${definition.collection}:`, error);
+          console.error('❌ Failed to create index %s for %s:', index.options?.name || 'unnamed', definition.collection, error);
           throw error;
         }
       }
     }
   } catch (error) {
-    console.error(`❌ Failed to setup indexes for ${definition.collection}:`, error);
+    console.error('❌ Failed to setup indexes for %s:', definition.collection, error);
     throw error;
   }
 }
@@ -205,7 +205,7 @@ async function createIndexForCollection(definition: IndexDefinition): Promise<vo
 // 全インデックスの作成
 export async function setupAllIndexes(): Promise<void> {
   console.log('🔧 Setting up database indexes...');
-  
+
   try {
     await Promise.all(
       INDEX_DEFINITIONS.map(definition => createIndexForCollection(definition))
@@ -220,11 +220,11 @@ export async function setupAllIndexes(): Promise<void> {
 // 特定コレクションのインデックス作成
 export async function setupIndexesForCollection(collectionName: string): Promise<void> {
   const definition = INDEX_DEFINITIONS.find(def => def.collection === collectionName);
-  
+
   if (!definition) {
     throw new Error(`No index definition found for collection: ${collectionName}`);
   }
-  
+
   await createIndexForCollection(definition);
 }
 
@@ -232,7 +232,7 @@ export async function setupIndexesForCollection(collectionName: string): Promise
 export async function getIndexInfo(collectionName?: string) {
   try {
     const db = await getDatabase();
-    
+
     if (collectionName) {
       const collection = db.collection(collectionName);
       const indexes = await collection.indexes();
@@ -243,16 +243,16 @@ export async function getIndexInfo(collectionName?: string) {
     } else {
       const collections = Object.values(COLLECTIONS);
       const indexInfo: Record<string, unknown[]> = {};
-      
+
       for (const collName of collections) {
         try {
           const collection = db.collection(collName);
           indexInfo[collName] = await collection.indexes();
-        } catch (error) {
+        } catch {
           indexInfo[collName] = [];
         }
       }
-      
+
       return {
         success: true,
         data: indexInfo
@@ -271,23 +271,23 @@ export async function dropAllIndexes(): Promise<void> {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('Cannot drop indexes in production environment');
   }
-  
+
   console.log('🗑️  Dropping all custom indexes...');
-  
+
   try {
     const db = await getDatabase();
     const collections = Object.values(COLLECTIONS);
-    
+
     for (const collectionName of collections) {
       try {
         const collection = db.collection(collectionName);
         await collection.dropIndexes();
         console.log(`✅ Dropped indexes for ${collectionName}`);
-      } catch (error) {
+      } catch {
         console.log(`ℹ️  No indexes to drop for ${collectionName}`);
       }
     }
-    
+
     console.log('✅ All custom indexes have been dropped');
   } catch (error) {
     console.error('❌ Failed to drop indexes:', error);

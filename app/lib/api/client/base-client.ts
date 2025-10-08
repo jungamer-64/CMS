@@ -1,13 +1,13 @@
 /**
  * 統一されたAPIクライアント - base-client.ts
  * LIB_COMMONIZATION_PLAN.md フェーズ2対応
- * 
+ *
  * 既存のapi-client.tsの機能を統合し、core/errorsと連携
  */
 
-import type { ApiResponse } from '../../core/types';
 import { HttpClientError } from '../../core/errors';
-import type { RequestConfig, InterceptorHandlers } from './config';
+import type { ApiResponse } from '../../core/types';
+import type { RequestConfig } from './config';
 import { DEFAULT_CONFIG } from './config';
 import { InterceptorManager } from './interceptors';
 
@@ -49,10 +49,10 @@ export class UnifiedApiClient {
   private buildURL(url: string, baseURL?: string): string {
     const base = baseURL || this.baseURL;
     if (!base) return url;
-    
+
     const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
     const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
-    
+
     return `${normalizedBase}${normalizedUrl}`;
   }
 
@@ -61,15 +61,15 @@ export class UnifiedApiClient {
     if (body === undefined || body === null) {
       return undefined;
     }
-    
+
     if (body instanceof FormData) {
       return body;
     }
-    
+
     if (typeof body === 'string') {
       return body;
     }
-    
+
     return JSON.stringify(body);
   }
 
@@ -80,15 +80,15 @@ export class UnifiedApiClient {
     }
 
     const contentType = response.headers.get('content-type') || '';
-    
+
     if (contentType.includes('application/json')) {
       return await response.json();
     }
-    
+
     if (contentType.includes('text/')) {
       return await response.text() as unknown as T;
     }
-    
+
     return await response.blob() as unknown as T;
   }
 
@@ -99,47 +99,47 @@ export class UnifiedApiClient {
     retryDelay: number = 1000
   ): Promise<T> {
     let lastError: Error;
-    
+
     for (let i = 0; i <= retries; i++) {
       try {
         return await fn();
       } catch (error) {
         lastError = error as Error;
-        
+
         if (i < retries) {
           await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
       }
     }
-    
+
     throw lastError!;
   }
 
   // メインリクエストメソッド
   async request<T = unknown>(url: string, config: RequestConfig = {}): Promise<T> {
     const mergedConfig = this.mergeConfig(config);
-    
+
     // リクエストインターセプターを適用
     const finalConfig = await this.requestInterceptors.forEach(mergedConfig);
-    
+
     const { timeout, retries, retryDelay, baseURL, parseResponse, body, ...fetchConfig } = finalConfig;
-    
+
     const requestFn = async (): Promise<T> => {
       const controller = new AbortController();
       const timeoutId = timeout ? setTimeout(() => controller.abort(), timeout) : null;
-      
+
       try {
         const processedBody = this.processBody(body);
-        
+
         const response = await fetch(this.buildURL(url, baseURL), {
           ...fetchConfig,
           body: processedBody,
           signal: controller.signal,
         });
-        
+
         // レスポンスインターセプターを適用
         const finalResponse = await this.responseInterceptors.forEach(response);
-        
+
         if (!finalResponse.ok) {
           const errorData = await this.parseResponse(finalResponse, parseResponse);
           throw new HttpClientError(
@@ -149,16 +149,16 @@ export class UnifiedApiClient {
             errorData
           );
         }
-        
+
         return await this.parseResponse<T>(finalResponse, parseResponse);
-        
+
       } finally {
         if (timeoutId) {
           clearTimeout(timeoutId);
         }
       }
     };
-    
+
     return this.withRetry(requestFn, retries, retryDelay);
   }
 
@@ -189,7 +189,7 @@ export const apiClient = new UnifiedApiClient();
 
 // ApiResponse型に対応したヘルパー関数
 export async function apiRequest<T>(
-  url: string, 
+  url: string,
   config?: RequestConfig
 ): Promise<ApiResponse<T>> {
   try {
@@ -205,7 +205,7 @@ export async function apiRequest<T>(
         error: error.message,
       };
     }
-    
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

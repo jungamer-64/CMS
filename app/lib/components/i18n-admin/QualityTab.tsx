@@ -5,9 +5,6 @@
 
 'use client';
 
-import React from 'react';
-import type { I18nTabProps } from './types';
-import type { Locale } from '../../contexts/advanced-i18n-context';
 
 interface QualityTabProps {
   readonly onValidate: (key: string) => void;

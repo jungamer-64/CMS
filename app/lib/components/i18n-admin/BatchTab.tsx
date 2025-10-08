@@ -6,7 +6,6 @@
 'use client';
 
 import React from 'react';
-import type { I18nTabProps } from './types';
 
 interface BatchTabProps {
   readonly bulkResults: Record<string, string>;

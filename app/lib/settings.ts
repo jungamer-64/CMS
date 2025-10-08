@@ -22,6 +22,6 @@ export const getSettings = async (): Promise<SettingsResponse> => {
   };
 };
 
-export const updateSettings = async (settings: Partial<Settings>): Promise<Settings> => {
+export const updateSettings = async (_settings: Partial<Settings>): Promise<Settings> => {
   throw new Error('Not implemented');
 };

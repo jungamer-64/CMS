@@ -150,9 +150,8 @@ export function createOptionalAuthGetHandler<T = unknown>(
           // 認証情報があれば認証を試行（詳細は省略）
           // エラーが発生しても無視してuser = undefinedのまま続行
         }
-      } catch (authError) {
+      } catch {
         // 認証エラーは無視（オプション認証のため）
-        console.log('オプション認証失敗（無視）:', authError);
       }
 
       // Rate limit check (anonymous or authenticated)

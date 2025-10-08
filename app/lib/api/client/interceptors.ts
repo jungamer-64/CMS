@@ -3,7 +3,7 @@
  * LIB_COMMONIZATION_PLAN.md フェーズ2対応
  */
 
-import type { RequestConfig, InterceptorHandlers } from './config';
+import type { InterceptorHandlers, RequestConfig } from './config';
 
 export class InterceptorManager<T> {
   private handlers: InterceptorHandlers<T>[] = [];
@@ -22,10 +22,12 @@ export class InterceptorManager<T> {
   // 全てのインターセプターを適用
   async forEach<V extends T>(
     value: V,
-    isRequest: boolean = true
+    _isRequest?: boolean
   ): Promise<V> {
+    // 引数は現在使われていないが将来の拡張のために残す
+    void _isRequest;
     let result = value;
-    
+
     for (const handler of this.handlers) {
       try {
         if (handler.onFulfilled) {
@@ -41,7 +43,7 @@ export class InterceptorManager<T> {
         throw error;
       }
     }
-    
+
     return result;
   }
 }
@@ -65,15 +67,19 @@ export function createAuthInterceptor(getToken: () => string | null): Intercepto
   };
 }
 
-// ログ出力インターセプター
+// ログ出力インターセプター (開発環境のみ)
 export function createLoggingInterceptor(): InterceptorHandlers<RequestConfig> {
   return {
     onFulfilled: async (config: RequestConfig) => {
-      console.log(`[API Request] ${config.method || 'GET'}`, config);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[API Request]', config.method || 'GET', config);
+      }
       return config;
     },
     onRejected: (error: unknown) => {
-      console.error('[API Request Error]', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[API Request Error]', error);
+      }
       throw error;
     },
   };

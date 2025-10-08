@@ -217,8 +217,12 @@ export function withApiAuth(
         : await (handler as ApiAuthHandler)(request, authContext);
 
       // セキュリティヘッダーを設定
+      // これらのヘッダー値はすべてハードコードされた安全な値です。
+      // 注意: 決してリクエストヘッダー等のユーザー入力から値を構築しないこと。
       response.headers.set('X-Content-Type-Options', 'nosniff');
-      response.headers.set('X-Frame-Options', 'DENY');
+      // X-Frame-Options は古いヘッダーであり、設定ミスの検出ルールが厳しいため
+      // より確実で近代的な CSP の `frame-ancestors` を採用する（こちらはユーザー入力に依存しない固定値）
+      response.headers.set('Content-Security-Policy', "frame-ancestors 'none'");
       response.headers.set('X-XSS-Protection', '1; mode=block');
       response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
@@ -263,18 +267,13 @@ function isValidRequest(request: NextRequest): boolean {
  * 認証リクエストの処理
  */
 async function authenticateRequest(request: NextRequest): Promise<AuthResult> {
-  console.log('🔐 認証リクエスト処理開始 - URL:', request.url);
-
   // 1. APIキー認証を先に試行
   const apiKey = request.headers.get('authorization')?.replace('Bearer ', '') ||
     request.headers.get('x-api-key');
 
-  console.log('🔑 APIキー確認:', apiKey ? '存在' : '不在');
-
   if (apiKey) {
     const apiUser = await getUserFromApiKey(apiKey);
     if (apiUser) {
-      console.log('✅ APIキー認証成功:', apiUser.username);
       return {
         success: true,
         user: apiUser,
@@ -282,7 +281,6 @@ async function authenticateRequest(request: NextRequest): Promise<AuthResult> {
         permissions: ['read', 'write', 'admin']
       };
     } else {
-      console.log('❌ APIキー認証失敗');
       return {
         success: false,
         error: 'Invalid API key'
@@ -297,25 +295,15 @@ async function authenticateRequest(request: NextRequest): Promise<AuthResult> {
     cookieStore.get('auth-token')?.value ||
     cookieStore.get('token')?.value;
 
-  console.log('🍪 Cookieストア:', {
-    'session-token': cookieStore.get('session-token')?.value ? '存在' : '不在',
-    'auth-token': cookieStore.get('auth-token')?.value ? '存在' : '不在',
-    'token': cookieStore.get('token')?.value ? '存在' : '不在',
-    selectedToken: sessionToken ? 'あり' : 'なし'
-  });
-
   if (sessionToken) {
-    console.log('🔍 セッショントークンで認証試行中...');
     const sessionUser = await getUserFromSession(sessionToken);
     if (sessionUser) {
-      console.log('✅ セッション認証成功:', sessionUser.username);
       return {
         success: true,
         user: sessionUser,
         permissions: ['read', 'write']
       };
     } else {
-      console.log('❌ セッション認証失敗 - 無効なトークン');
       return {
         success: false,
         error: 'Invalid session token'

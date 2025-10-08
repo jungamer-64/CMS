@@ -166,7 +166,9 @@ export function createRestGetHandler<T>(
       return createRestDataResponse(result, 'Request processed successfully');
 
     } catch (error) {
-      console.error('GET handler error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('GET handler error:', error);
+      }
       return createRestErrorResponse(
         RestErrorCode.INTERNAL_ERROR,
         'Internal server error occurred',
@@ -224,7 +226,9 @@ export function createRestPostHandler<TBody, TResponse>(
       return createRestDataResponse(result, 'Resource created successfully', HttpStatus.CREATED);
 
     } catch (error) {
-      console.error('POST handler error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('POST handler error:', error);
+      }
       return createRestErrorResponse(
         RestErrorCode.INTERNAL_ERROR,
         'Internal server error occurred',
@@ -282,7 +286,9 @@ export function createRestPutHandler<TBody, TResponse>(
       return createRestDataResponse(result, 'Resource updated successfully');
 
     } catch (error) {
-      console.error('PUT handler error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('PUT handler error:', error);
+      }
       return createRestErrorResponse(
         RestErrorCode.INTERNAL_ERROR,
         'Internal server error occurred',
@@ -341,7 +347,9 @@ export function createRestDeleteHandler<T>(
       });
 
     } catch (error) {
-      console.error('DELETE handler error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('DELETE handler error:', error);
+      }
       return createRestErrorResponse(
         RestErrorCode.INTERNAL_ERROR,
         'Internal server error occurred',

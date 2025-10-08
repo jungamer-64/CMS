@@ -1,6 +1,6 @@
 /**
  * セキュリティロギングシステム
- * 
+ *
  * セキュリティイベントの記録と監視
  */
 
@@ -21,7 +21,10 @@ export class SecurityLogger {
   private readonly logDir: string;
 
   private constructor() {
-    this.logDir = path.join(process.cwd(), 'logs', 'security');
+    // 明示的に解決されたログディレクトリを使用してパス操作を制限
+    const base = path.resolve(process.cwd());
+    const safeLogDir = path.resolve(base, 'logs', 'security');
+    this.logDir = safeLogDir;
   }
 
   public static getInstance(): SecurityLogger {
@@ -78,7 +81,14 @@ export class SecurityLogger {
 
       // 日付別のログファイル
       const today = new Date().toISOString().split('T')[0];
-      const logFile = path.join(this.logDir, `security-${today}.log`);
+      // 解決済みのファイルパスを作成して検証
+      const logFileName = `security-${today}.log`;
+      const logFile = path.resolve(this.logDir, logFileName);
+
+      // 誤ったパスが入らないように、必ずログディレクトリの配下であることを確認
+      if (!logFile.startsWith(this.logDir)) {
+        throw new Error('Resolved log file path is outside of the allowed log directory');
+      }
 
       const logLine = JSON.stringify(event) + '\n';
       await fs.appendFile(logFile, logLine, 'utf8');
@@ -121,6 +131,9 @@ export class SecurityLogger {
     topIPs: Array<{ ip: string; count: number }>;
   }> {
     // 実装は必要に応じて追加
+    // 受け取りはするが未使用（将来の実装で使う）
+    void _days;
+
     return {
       totalEvents: 0,
       eventsByType: {},

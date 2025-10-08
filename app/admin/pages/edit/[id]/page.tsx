@@ -3,7 +3,7 @@
 import { Block, BlockEditor } from '@/app/lib/ui/components/editors/SimpleBlockEditor';
 import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 // 一時的な型定義
 type PageStatus = 'draft' | 'published' | 'archived' | 'private';
 
@@ -18,6 +18,10 @@ interface StaticPageInput {
   metaDescription: string;
   metaKeywords: string;
 }
+
+type PageLoadResult =
+  | { success: true; page: StaticPageInput }
+  | { success: false; message: string };
 
 // 一時的な関数定義
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -45,51 +49,87 @@ export default function EditPagePage() {
     metaKeywords: ''
   });
 
-  useEffect(() => {
-    const loadPage = async () => {
-      if (!params.id || Array.isArray(params.id)) return;
+  const redirectToPagesIndex = useCallback((message: string) => {
+    alert(message);
+    router.push('/admin/pages');
+  }, [router]);
 
-      try {
-        const page = await getPageById(params.id);
-        if (page) {
-          setPageData({
-            title: page.title,
-            slug: page.slug,
-            content: page.content,
-            excerpt: page.excerpt || '',
-            status: page.status,
-            template: page.template,
-            metaTitle: page.metaTitle || '',
-            metaDescription: page.metaDescription || '',
-            metaKeywords: page.metaKeywords || ''
-          });
-
-          // コンテンツからブロックデータを復元を試行（JSON形式の場合）
-          try {
-            const parsedBlocks = JSON.parse(page.content);
-            if (Array.isArray(parsedBlocks)) {
-              setBlocks(parsedBlocks);
-              setEditorMode('visual');
-            }
-          } catch {
-            // JSON形式でない場合はテキストモードとして扱う
-            setEditorMode('text');
-          }
-        } else {
-          alert('ページが見つかりません');
-          router.push('/admin/pages');
-        }
-      } catch (error) {
-        console.error('ページ取得エラー:', error);
-        alert('ページの取得に失敗しました');
-        router.push('/admin/pages');
-      } finally {
-        setIsLoading(false);
+  const restoreEditorFromContent = useCallback((content: string) => {
+    try {
+      const parsedBlocks = JSON.parse(content);
+      if (Array.isArray(parsedBlocks)) {
+        setBlocks(parsedBlocks as Block[]);
+        setEditorMode('visual');
+        return;
       }
+    } catch {
+      // JSON parse error -> fallback handled below
+    }
+
+    setBlocks([]);
+    setEditorMode('text');
+  }, []);
+
+  const hydratePageState = useCallback((page: StaticPageInput) => {
+    setPageData({
+      title: page.title,
+      slug: page.slug,
+      content: page.content,
+      excerpt: page.excerpt || '',
+      status: page.status,
+      template: page.template,
+      metaTitle: page.metaTitle || '',
+      metaDescription: page.metaDescription || '',
+      metaKeywords: page.metaKeywords || ''
+    });
+
+    restoreEditorFromContent(page.content);
+  }, [restoreEditorFromContent]);
+
+  const fetchPage = useCallback(async (pageId: string): Promise<PageLoadResult> => {
+    try {
+      const page = await getPageById(pageId);
+      if (!page) {
+        return { success: false, message: 'ページが見つかりません' };
+      }
+      return { success: true, page };
+    } catch (error) {
+      console.error('ページ取得エラー:', error);
+      return { success: false, message: 'ページの取得に失敗しました' };
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const load = async () => {
+      const pageId = typeof params.id === 'string' ? params.id : null;
+      if (!pageId) {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      const result = await fetchPage(pageId);
+      if (!isMounted) return;
+
+      if (!result.success) {
+        redirectToPagesIndex(result.message);
+        setIsLoading(false);
+        return;
+      }
+
+      hydratePageState(result.page);
+      setIsLoading(false);
     };
 
-    loadPage();
-  }, [params.id, router]);
+    void load();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [params.id, fetchPage, hydratePageState, redirectToPagesIndex]);
 
   const handleInputChange = (field: keyof StaticPageInput, value: string) => {
     setPageData(prev => ({
@@ -286,8 +326,8 @@ export default function EditPagePage() {
                 type="button"
                 onClick={() => setEditorMode('visual')}
                 className={`px-4 py-2 text-sm rounded-md transition-colors ${editorMode === 'visual'
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 disabled={isSaving}
               >
@@ -297,8 +337,8 @@ export default function EditPagePage() {
                 type="button"
                 onClick={() => setEditorMode('text')}
                 className={`px-4 py-2 text-sm rounded-md transition-colors ${editorMode === 'text'
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 disabled={isSaving}
               >

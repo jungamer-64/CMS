@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { CMSI18nProvider, useCMSI18n } from '@/app/lib/contexts/cms-i18n-context';
 import { useAuth } from '@/app/lib/ui/contexts/auth-context';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 // Floating Menu Component - 右下にフローティングメニュー
 function FloatingMenu() {
@@ -34,10 +34,10 @@ function FloatingMenu() {
         onClick={() => setIsOpen(!isOpen)}
         className="w-14 h-14 bg-slate-600 hover:bg-slate-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center mb-4"
       >
-        <svg 
-          className={`w-6 h-6 transition-transform duration-300 ${isOpen ? 'rotate-45' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
+        <svg
+          className={`w-6 h-6 transition-transform duration-300 ${isOpen ? 'rotate-45' : ''}`}
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -144,7 +144,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
         setIsAuthenticated(true);
       } catch (error) {
-        console.error('Authentication check failed:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Authentication check failed:', error);
+        }
         router.push('/auth/login');
       } finally {
         setIsLoading(false);

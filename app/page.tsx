@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAdvancedI18n } from './lib/contexts/advanced-i18n-context';
 
 interface Post {
@@ -69,7 +69,7 @@ const FeaturesSection = ({ t }: { t: (key: string) => string }) => (
           {t('common.site.whyChooseDescription')}
         </p>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <FeatureCard
           icon={t('common.features.performance.icon')}
@@ -94,31 +94,33 @@ const FeaturesSection = ({ t }: { t: (key: string) => string }) => (
 export default function HomePage() {
   const [latestPosts, setLatestPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const { t, formatDate } = useAdvancedI18n();
+  const { t } = useAdvancedI18n();
 
   useEffect(() => {
-      const fetchLatestPosts = async () => {
-        try {
-          const response = await fetch('/api/posts/public?limit=3');
-          
-          if (response.ok) {
-            const result = await response.json();
-            
-            if (result.success && result.data) {
-              setLatestPosts(result.data);
-            } else {
-              setLatestPosts([]);
-            }
+    const fetchLatestPosts = async () => {
+      try {
+        const response = await fetch('/api/posts/public?limit=3');
+
+        if (response.ok) {
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            setLatestPosts(result.data);
           } else {
             setLatestPosts([]);
           }
-        } catch (error) {
-          console.error('Failed to fetch latest posts:', error);
+        } else {
           setLatestPosts([]);
-        } finally {
-          setLoading(false);
         }
-      };    fetchLatestPosts();
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to fetch latest posts:', error);
+        }
+        setLatestPosts([]);
+      } finally {
+        setLoading(false);
+      }
+    }; fetchLatestPosts();
   }, []);
 
   const renderArticlesContent = () => {
@@ -130,23 +132,23 @@ export default function HomePage() {
           month: 'long',
           day: 'numeric'
         });
-        
+
         // コンテンツから概要を生成（最初の120文字）
         const excerpt = post.content
           .replace(/<[^>]*>/g, '') // HTMLタグを除去
           .slice(0, 120) + (post.content.length > 120 ? '...' : '');
-        
+
         // 読了時間を推定（日本語の場合、分あたり400-600文字として計算）
         const readTimeMinutes = Math.max(1, Math.ceil(post.content.length / 500));
-        
+
         return (
-          <article 
+          <article
             key={post.id}
             className="group relative bg-white dark:bg-slate-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border border-slate-100 dark:border-slate-700 overflow-hidden transform hover:-translate-y-2"
           >
             {/* グラデーション背景 */}
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            
+
             <div className="relative p-8">
               <div className="flex items-center justify-between mb-6">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 text-indigo-700 dark:text-indigo-300">
@@ -162,15 +164,15 @@ export default function HomePage() {
                   <span>{t('common.site.readTime', { minutes: readTimeMinutes })}</span>
                 </div>
               </div>
-              
+
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300 line-clamp-2 leading-tight">
                 {post.title}
               </h3>
-              
+
               <p className="text-slate-600 dark:text-slate-300 mb-6 line-clamp-3 leading-relaxed">
                 {excerpt}
               </p>
-              
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
@@ -183,7 +185,7 @@ export default function HomePage() {
                     <p className="text-xs text-slate-500 dark:text-slate-400">{formattedDate}</p>
                   </div>
                 </div>
-                <Link 
+                <Link
                   href={`/articles/${post.slug}`}
                   className="inline-flex items-center px-4 py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-white hover:bg-indigo-600 dark:hover:bg-indigo-500 rounded-xl transition-all duration-300 group-hover:shadow-lg"
                 >
@@ -198,7 +200,7 @@ export default function HomePage() {
         );
       });
     }
-    
+
     // 記事がない場合
     return (
       <div className="col-span-full text-center py-16">
@@ -225,10 +227,10 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900">
       {/* Hero Section */}
       <HeroSection t={t} />
-      
+
       {/* Features Section */}
       <FeaturesSection t={t} />
-      
+
       {/* Latest Articles Section */}
       <section className="py-24 bg-white dark:bg-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -240,7 +242,7 @@ export default function HomePage() {
               {t('common.site.latestArticlesDescription')}
             </p>
           </div>
-          
+
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[1, 2, 3].map((i) => (
@@ -270,7 +272,7 @@ export default function HomePage() {
               {renderArticlesContent()}
             </div>
           )}
-          
+
           {!loading && latestPosts.length > 0 && (
             <div className="text-center mt-16">
               <Link

@@ -215,22 +215,14 @@ export function useTranslationHistory() {
 
 // 翻訳検索フック
 export function useTranslationSearch() {
-  const { availableLocales, hasTranslation, getTranslationWithFallback } = useAdvancedI18n();
-
   const searchTranslations = useCallback((
-    query: string,
-    options: {
+    _query: string,
+    _options: {
       searchIn?: 'keys' | 'values' | 'both';
       locales?: Locale[];
       fuzzy?: boolean;
     } = {}
   ) => {
-    const {
-      searchIn = 'both',
-      locales = availableLocales,
-      fuzzy = false
-    } = options;
-
     const results: Array<{
       key: string;
       value: string;
@@ -238,16 +230,11 @@ export function useTranslationSearch() {
       score: number;
     }> = [];
 
-    // 簡単な検索実装（実際のプロジェクトではより高度な検索ライブラリを使用）
-    const searchPattern = fuzzy
-      ? new RegExp(query.split('').join('.*'), 'i')
-      : new RegExp(query, 'i');
-
-    // この実装は簡略化されています
-    // 実際の実装では翻訳キャッシュを検索する必要があります
+    // TODO: 簡単な検索実装（実際のプロジェクトではより高度な検索ライブラリを使用）
+    // 実装は簡略化されています - 翻訳キャッシュを検索する必要があります
 
     return results.sort((a, b) => b.score - a.score);
-  }, [availableLocales]);
+  }, []);
 
   return { searchTranslations };
 }
@@ -331,7 +318,7 @@ export function useAutoSaveTranslation(key: string, interval = 5000) {
 
 // 翻訳品質分析フック
 export function useTranslationQualityAnalysis() {
-  const { validateTranslation, availableLocales, getTranslationStats } = useAdvancedI18n();
+  const { validateTranslation, getTranslationStats } = useAdvancedI18n();
 
   const analyzeQuality = useCallback((keys: string[], locale: Locale) => {
     const analysis = {
@@ -372,7 +359,7 @@ export function useTranslationQualityAnalysis() {
     analysis.averageLength = totalLength / keys.length;
 
     // 重複の検出
-    translationMap.forEach((keys, translation) => {
+    translationMap.forEach((keys) => {
       if (keys.length > 1) {
         for (let i = 1; i < keys.length; i++) {
           analysis.duplicates.push({
