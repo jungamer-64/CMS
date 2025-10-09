@@ -50,8 +50,8 @@ export class PostModel {
       await this.collection.createIndex({ publishedAt: -1 });
       await this.collection.createIndex({ createdAt: -1 });
       await this.collection.createIndex({ isDeleted: 1 });
-    } catch (error) {
-      console.warn('ポストインデックス作成警告:', error);
+    } catch (err: unknown) {
+      console.warn('ポストインデックス作成警告:', err instanceof Error ? err : String(err));
     }
   }
 

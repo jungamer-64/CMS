@@ -63,8 +63,8 @@ function ResetPasswordForm() {
       } else {
         setError(data.error || 'パスワードリセットに失敗しました');
       }
-    } catch (error) {
-      console.error('パスワードリセットエラー:', error);
+    } catch (err: unknown) {
+      console.error('パスワードリセットエラー:', err instanceof Error ? err : String(err));
       setError('パスワードリセットに失敗しました');
     } finally {
       setIsSubmitting(false);

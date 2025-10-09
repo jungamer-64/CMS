@@ -162,8 +162,8 @@ export default function PagesManager() {
           setPages([]);
         }
       }
-    } catch (error) {
-      console.error('固定ページ取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('固定ページ取得エラー:', err instanceof Error ? err : String(err));
       setPages([]);
     } finally {
       setIsLoading(false);
@@ -218,8 +218,8 @@ export default function PagesManager() {
           page.id === id ? { ...page, status: newStatus } : page
         ));
       }
-    } catch (error) {
-      console.error('ステータス更新エラー:', error);
+    } catch (err: unknown) {
+      console.error('ステータス更新エラー:', err instanceof Error ? err : String(err));
     }
   };
 
@@ -234,8 +234,8 @@ export default function PagesManager() {
       if (response.ok) {
         setPages(prev => prev.filter(page => page.id !== id));
       }
-    } catch (error) {
-      console.error('削除エラー:', error);
+    } catch (err: unknown) {
+      console.error('削除エラー:', err instanceof Error ? err : String(err));
     }
   };
 

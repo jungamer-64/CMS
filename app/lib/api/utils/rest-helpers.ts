@@ -326,8 +326,8 @@ export async function parseRestRequestBody<T>(
     }
 
     return body;
-  } catch (error) {
-    if (error instanceof SyntaxError) {
+  } catch (err: unknown) {
+    if (err instanceof SyntaxError) {
       return createRestErrorResponse(
         RestErrorCode.VALIDATION_FAILED,
         'Invalid JSON format in request body.',

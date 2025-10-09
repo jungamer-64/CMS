@@ -89,12 +89,12 @@ export function rateLimit(config: RateLimitConfig) {
         }
         
         return result;
-      } catch (error) {
+      } catch (err: unknown) {
         // 失敗したリクエストをスキップする場合
         if (skipFailedRequests) {
           entry.count--;
         }
-        throw error;
+        throw err;
       }
     };
 

@@ -1,14 +1,15 @@
-import { NextRequest } from 'next/server';
+import {
+  createErrorResponse,
+  createGetHandler,
+  createPostHandler,
+  createPutHandler,
+  createSuccessResponse
+} from '@/app/lib/api-factory';
+import { getEnumParam, getOptionalString, parsePaginationParams } from '@/app/lib/api-utils';
+import { User } from '@/app/lib/auth-middleware';
 import { connectToDatabase } from '@/app/lib/database/connection';
 import { createUserModel } from '@/app/lib/database/models/user';
-import { 
-  createGetHandler, 
-  createPostHandler, 
-  createPutHandler,
-  createSuccessResponse, 
-  createErrorResponse 
-} from '@/app/lib/api-factory';
-import { User } from '@/app/lib/auth-middleware';
+import { NextRequest } from 'next/server';
 
 // ============================================================================
 // 型定義
@@ -51,10 +52,10 @@ export const GET = createGetHandler<UserResponse[]>(
   async (request: NextRequest, user: User) => {
     try {
       const url = new URL(request.url);
-      const page = Number(url.searchParams.get('page')) || 1;
-      const limit = Math.min(Number(url.searchParams.get('limit')) || 20, 100);
-      const search = url.searchParams.get('search') || undefined;
-      const role = url.searchParams.get('role') as 'admin' | 'user' | undefined;
+      const { page, limit } = parsePaginationParams(url.searchParams);
+      const search = getOptionalString(url.searchParams, 'search');
+      const allowedRoles: Array<'admin' | 'user'> = ['admin', 'user'];
+      const role = getEnumParam(url.searchParams, 'role', allowedRoles);
 
       // データベース接続
       await connectToDatabase();
@@ -99,8 +100,8 @@ export const GET = createGetHandler<UserResponse[]>(
       }));
 
       return createSuccessResponse(response);
-    } catch (error) {
-      console.error('ユーザー取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('ユーザー取得エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('ユーザーの取得に失敗しました');
     }
   }
@@ -160,8 +161,8 @@ export const POST = createPostHandler<CreateUserRequest, UserResponse>(
       };
 
       return createSuccessResponse(response);
-    } catch (error) {
-      console.error('ユーザー作成エラー:', error);
+    } catch (err: unknown) {
+      console.error('ユーザー作成エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('ユーザーの作成に失敗しました');
     }
   }
@@ -240,8 +241,8 @@ export const PUT = createPutHandler<UpdateUserRequest & { id: string }, UserResp
       };
 
       return createSuccessResponse(response);
-    } catch (error) {
-      console.error('ユーザー更新エラー:', error);
+    } catch (err: unknown) {
+      console.error('ユーザー更新エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('ユーザーの更新に失敗しました');
     }
   }

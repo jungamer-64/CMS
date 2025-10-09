@@ -349,10 +349,10 @@ const CommentsManagement: React.FC = () => {
       console.log('✅ データ正常受信:', { dataLength: Array.isArray(data.data) ? data.data.length : 'not array' });
       console.log('管理画面コメントデータ:', data);
       setComments(Array.isArray(data.data) ? data.data : []);
-    } catch (error) {
-      console.error('💥 loadComments catch エラー:', error);
+    } catch (err: unknown) {
+      console.error('💥 loadComments catch エラー:', err instanceof Error ? err : String(err));
       setComments([]);
-      setError(error instanceof Error ? error.message : 'コメントの読み込みに失敗しました');
+      setError(err instanceof Error ? err.message : 'コメントの読み込みに失敗しました');
     } finally {
       setLoadingState(prev => ({ ...prev, isLoading: false }));
     }
@@ -379,8 +379,8 @@ const CommentsManagement: React.FC = () => {
       } else {
         setError(data && 'error' in data ? data.error : 'コメントの承認に失敗しました');
       }
-    } catch (error) {
-      console.error('コメント承認エラー:', error);
+    } catch (err: unknown) {
+      console.error('コメント承認エラー:', err instanceof Error ? err : String(err));
       setError('コメントの承認に失敗しました');
     } finally {
       setLoadingState(prev => ({ ...prev, isApproving: null }));
@@ -402,8 +402,8 @@ const CommentsManagement: React.FC = () => {
       } else {
         setError('コメントの削除に失敗しました');
       }
-    } catch (error) {
-      console.error('コメント削除エラー:', error);
+    } catch (err: unknown) {
+      console.error('コメント削除エラー:', err instanceof Error ? err : String(err));
       setError('コメントの削除に失敗しました');
     } finally {
       setLoadingState(prev => ({ ...prev, isDeleting: null }));

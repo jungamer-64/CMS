@@ -57,8 +57,8 @@ export function createPostHandler<TBody = unknown, TResponse = unknown>(
       } else {
         return createErrorResponse(result.error, 400, result.code, result.details);
       }
-    } catch (error) {
-      return handleApiError(error);
+    } catch (err: unknown) {
+      return handleApiError(err);
     }
   };
 }
@@ -78,8 +78,8 @@ export function createGetHandler<TResponse = unknown>(
       } else {
         return createErrorResponse(result.error, 400, result.code, result.details);
       }
-    } catch (error) {
-      return handleApiError(error);
+    } catch (err: unknown) {
+      return handleApiError(err);
     }
   };
 }
@@ -104,8 +104,8 @@ export function createPutHandler<TBody = unknown, TResponse = unknown>(
       } else {
         return createErrorResponse(result.error, 400, result.code, result.details);
       }
-    } catch (error) {
-      return handleApiError(error);
+    } catch (err: unknown) {
+      return handleApiError(err);
     }
   };
 }
@@ -125,8 +125,8 @@ export function createDeleteHandler<TResponse = unknown>(
       } else {
         return createErrorResponse(result.error, 400, result.code, result.details);
       }
-    } catch (error) {
-      return handleApiError(error);
+    } catch (err: unknown) {
+      return handleApiError(err);
     }
   };
 }

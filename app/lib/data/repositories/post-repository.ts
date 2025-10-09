@@ -122,10 +122,10 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
           pagination,
         },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '投稿一覧の取得に失敗しました',
+        error: err instanceof Error ? err.message : '投稿一覧の取得に失敗しました',
       };
     }
   }
@@ -149,10 +149,10 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
         success: true,
         data: this.transformToEntity(post),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '投稿の取得に失敗しました',
+        error: err instanceof Error ? err.message : '投稿の取得に失敗しました',
       };
     }
   }
@@ -180,10 +180,10 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
         success: true,
         data: this.transformToEntity(createdPost),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '投稿の作成に失敗しました',
+        error: err instanceof Error ? err.message : '投稿の作成に失敗しました',
       };
     }
   }
@@ -214,10 +214,10 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
         success: true,
         data: this.transformToEntity(result),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '投稿の更新に失敗しました',
+        error: err instanceof Error ? err.message : '投稿の更新に失敗しました',
       };
     }
   }
@@ -248,10 +248,10 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
         success: true,
         data: true,
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '投稿の削除に失敗しました',
+        error: err instanceof Error ? err.message : '投稿の削除に失敗しました',
       };
     }
   }
@@ -277,10 +277,10 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
         success: true,
         data: this.transformToEntity(post),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '投稿検索に失敗しました',
+        error: err instanceof Error ? err.message : '投稿検索に失敗しました',
       };
     }
   }
@@ -312,10 +312,10 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
         success: true,
         data: this.transformToEntity(result),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '投稿の更新に失敗しました',
+        error: err instanceof Error ? err.message : '投稿の更新に失敗しました',
       };
     }
   }
@@ -346,15 +346,15 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
         success: true,
         data: result.modifiedCount > 0,
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '投稿の削除に失敗しました',
+        error: err instanceof Error ? err.message : '投稿の削除に失敗しました',
       };
     }
   }
 
-  // 投稿を復元（IDベース）
+  // 投稿を復元(IDベース)
   async restore(id: string): Promise<ApiResponse<boolean>> {
     try {
       const collection = await this.getCollection();
@@ -378,10 +378,10 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
         success: true,
         data: result.modifiedCount > 0,
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '投稿の復元に失敗しました',
+        error: err instanceof Error ? err.message : '投稿の復元に失敗しました',
       };
     }
   }
@@ -406,10 +406,10 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
         success: true,
         data: true,
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : '投稿の完全削除に失敗しました',
+        error: err instanceof Error ? err.message : '投稿の完全削除に失敗しました',
       };
     }
   }

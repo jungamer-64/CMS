@@ -35,8 +35,8 @@ export class SettingsModel {
   async ensureIndexes(): Promise<void> {
     try {
       await this.collection.createIndex({ id: 1 }, { unique: true });
-    } catch (error) {
-      console.warn('設定インデックス作成警告:', error);
+    } catch (err: unknown) {
+      console.warn('設定インデックス作成警告:', err instanceof Error ? err : String(err));
     }
   }
 

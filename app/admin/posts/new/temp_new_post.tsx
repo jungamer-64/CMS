@@ -46,8 +46,8 @@ export default function NewPostPage() {
         const errorData = await response.json();
         alert(errorData.error || '投稿の作成に失敗しました');
       }
-    } catch (error) {
-      console.error('投稿作成エラー:', error);
+    } catch (err: unknown) {
+      console.error('投稿作成エラー:', err instanceof Error ? err : String(err));
       alert('投稿の作成に失敗しました');
     } finally {
       setIsSaving(false);

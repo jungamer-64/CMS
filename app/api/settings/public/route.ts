@@ -40,8 +40,8 @@ export async function GET() {
       success: true,
       data: { settings: publicSettings }
     });
-  } catch (error) {
-    console.error('パブリック設定取得エラー:', error);
+  } catch (err: unknown) {
+    console.error('パブリック設定取得エラー:', err instanceof Error ? err : String(err));
     return NextResponse.json(
       { success: false, error: '設定の取得中にエラーが発生しました' },
       { status: 500 }

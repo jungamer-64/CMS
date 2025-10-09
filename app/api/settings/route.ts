@@ -65,8 +65,8 @@ export const GET = createGetHandler<{ settings: SettingsData }>(
       }
       
       return createSuccessResponse({ settings: settingsToReturn });
-    } catch (error) {
-      console.error('設定取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('設定取得エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('設定の取得に失敗しました');
     }
   }
@@ -107,8 +107,8 @@ export const PUT = createPutHandler<Partial<SettingsData>, { settings: SettingsD
       };
       
       return createSuccessResponse({ settings: responseData });
-    } catch (error) {
-      console.error('設定更新エラー:', error);
+    } catch (err: unknown) {
+      console.error('設定更新エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('設定の更新に失敗しました');
     }
   }

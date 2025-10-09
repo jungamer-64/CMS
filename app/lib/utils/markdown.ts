@@ -33,8 +33,8 @@ export function markdownToHtml(markdown: string): string {
     console.log('markdownToHtml - markedの出力:', rawHtml);
     
     return rawHtml;
-  } catch (error) {
-    console.error('マークダウン変換エラー:', error);
+  } catch (err: unknown) {
+    console.error('マークダウン変換エラー:', err instanceof Error ? err : String(err));
     return markdown;
   }
 }

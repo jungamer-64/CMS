@@ -117,10 +117,10 @@ export async function POST(request: NextRequest) {
 
     return createApiSuccess(userResponse, 'ログインに成功しました');
 
-  } catch (error) {
-    console.error('ログインエラー:', error);
+  } catch (err: unknown) {
+    console.error('ログインエラー:', err instanceof Error ? err : String(err));
     return createApiError(
-      error instanceof Error ? error.message : 'ログインに失敗しました',
+      err instanceof Error ? err.message : 'ログインに失敗しました',
       500
     );
   }

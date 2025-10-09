@@ -104,8 +104,8 @@ export async function parseRequestBody<T = unknown>(
     const text = await request.text();
     if (!text.trim()) return null;
     return JSON.parse(text) as T;
-  } catch (error) {
-    console.error('Failed to parse request body:', error);
+  } catch (err: unknown) {
+    console.error('Failed to parse request body:', err instanceof Error ? err : String(err));
     return null;
   }
 }

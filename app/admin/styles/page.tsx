@@ -162,8 +162,8 @@ export default function StylesManager() {
         const themeData = await themeResponse.json();
         setThemeSettings(prev => ({ ...prev, ...themeData }));
       }
-    } catch (error) {
-      console.error('データ取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('データ取得エラー:', err instanceof Error ? err : String(err));
     } finally {
       setIsLoading(false);
     }
@@ -184,8 +184,8 @@ export default function StylesManager() {
       if (response.ok) {
         alert('テーマ設定を保存しました');
       }
-    } catch (error) {
-      console.error('テーマ保存エラー:', error);
+    } catch (err: unknown) {
+      console.error('テーマ保存エラー:', err instanceof Error ? err : String(err));
       alert('保存に失敗しました');
     } finally {
       setIsSaving(false);
@@ -207,8 +207,8 @@ export default function StylesManager() {
       if (response.ok) {
         alert('スタイル設定を保存しました');
       }
-    } catch (error) {
-      console.error('スタイル保存エラー:', error);
+    } catch (err: unknown) {
+      console.error('スタイル保存エラー:', err instanceof Error ? err : String(err));
       alert('保存に失敗しました');
     } finally {
       setIsSaving(false);

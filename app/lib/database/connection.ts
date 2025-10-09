@@ -53,9 +53,9 @@ class DatabaseManager {
       console.log(`✅ MongoDB接続成功: ${dbName}`);
       return this.connection.db;
       
-    } catch (error) {
-      console.error('❌ MongoDB接続エラー:', error);
-      throw new Error(`データベース接続に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } catch (err: unknown) {
+      console.error('❌ MongoDB接続エラー:', err instanceof Error ? err : String(err));
+      throw new Error(`データベース接続に失敗しました: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   }
 

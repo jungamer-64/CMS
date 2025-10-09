@@ -62,8 +62,8 @@ export async function POST() {
       createdUsers
     });
     
-  } catch (error) {
-    console.error('初期ユーザー作成エラー:', error);
+  } catch (err: unknown) {
+    console.error('初期ユーザー作成エラー:', err instanceof Error ? err : String(err));
     return NextResponse.json(
       { error: '初期ユーザーの作成に失敗しました' },
       { status: 500 }

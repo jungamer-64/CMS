@@ -137,10 +137,10 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
           pagination,
         },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'コメント一覧の取得に失敗しました',
+        error: err instanceof Error ? err.message : 'コメント一覧の取得に失敗しました',
       };
     }
   }
@@ -164,10 +164,10 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
         success: true,
         data: this.transformToEntity(comment),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'コメントの取得に失敗しました',
+        error: err instanceof Error ? err.message : 'コメントの取得に失敗しました',
       };
     }
   }
@@ -195,10 +195,10 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
         success: true,
         data: this.transformToEntity(createdComment),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'コメントの作成に失敗しました',
+        error: err instanceof Error ? err.message : 'コメントの作成に失敗しました',
       };
     }
   }
@@ -243,10 +243,10 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
         success: true,
         data: this.transformToEntity(result),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'コメントの更新に失敗しました',
+        error: err instanceof Error ? err.message : 'コメントの更新に失敗しました',
       };
     }
   }
@@ -272,10 +272,10 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
         success: true,
         data: true,
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'コメントの削除に失敗しました',
+        error: err instanceof Error ? err.message : 'コメントの削除に失敗しました',
       };
     }
   }
@@ -299,10 +299,10 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
         success: true,
         data: comments.map(this.transformToEntity.bind(this)),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'コメントの取得に失敗しました',
+        error: err instanceof Error ? err.message : 'コメントの取得に失敗しました',
       };
     }
   }
@@ -337,10 +337,10 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
         success: true,
         data: result,
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'コメントの取得に失敗しました',
+        error: err instanceof Error ? err.message : 'コメントの取得に失敗しました',
       };
     }
   }
@@ -391,10 +391,10 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
         success: true,
         data: this.transformToEntity(result),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'コメントの承認に失敗しました',
+        error: err instanceof Error ? err.message : 'コメントの承認に失敗しました',
       };
     }
   }
@@ -410,8 +410,8 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
       const collection = await this.collection;
       const comments = await collection.find({}).toArray();
       return { success: true, data: comments };
-    } catch (error) {
-      console.error('コメント取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('コメント取得エラー:', err instanceof Error ? err : String(err));
       return { success: false, error: 'コメント取得に失敗しました' };
     }
   }

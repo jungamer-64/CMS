@@ -33,14 +33,14 @@ export class InterceptorManager<T> {
         if (handler.onFulfilled) {
           result = await handler.onFulfilled(result as T) as V;
         }
-      } catch (error) {
+      } catch (err: unknown) {
         if (handler.onRejected) {
-          const handledError = handler.onRejected(error);
+          const handledError = handler.onRejected(err);
           if (handledError !== undefined) {
             throw handledError;
           }
         }
-        throw error;
+        throw err;
       }
     }
 

@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(createErrorResponse('パスワード�E更新に失敗しました', 500), { status: 500 });
     }
     
-  } catch (error) {
-    console.error('❁Eユーザー修正エラー:', error);
+  } catch (err: unknown) {
+    console.error('❁Eユーザー修正エラー:', err instanceof Error ? err : String(err));
     return NextResponse.json(createErrorResponse('冁E��エラーが発生しました', 500), { status: 500 });
   }
 }

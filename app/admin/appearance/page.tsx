@@ -285,8 +285,8 @@ export default function HomePageEditor() {
         const components = componentsData.success ? componentsData.data : componentsData;
         setComponents(Array.isArray(components) ? components : []);
       }
-    } catch (error) {
-      console.error('データ取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('データ取得エラー:', err instanceof Error ? err : String(err));
     } finally {
       setIsLoading(false);
     }
@@ -310,8 +310,8 @@ export default function HomePageEditor() {
           );
         });
       }
-    } catch (error) {
-      console.error('コンポーネント更新エラー:', error);
+    } catch (err: unknown) {
+      console.error('コンポーネント更新エラー:', err instanceof Error ? err : String(err));
     }
   };
 
@@ -329,8 +329,8 @@ export default function HomePageEditor() {
           return currentComponents.filter(comp => comp.id !== id);
         });
       }
-    } catch (error) {
-      console.error('コンポーネント削除エラー:', error);
+    } catch (err: unknown) {
+      console.error('コンポーネント削除エラー:', err instanceof Error ? err : String(err));
     }
   };
 
@@ -352,8 +352,8 @@ export default function HomePageEditor() {
           return [...currentComponents, componentData].sort((a, b) => a.order - b.order);
         });
       }
-    } catch (error) {
-      console.error('コンポーネント追加エラー:', error);
+    } catch (err: unknown) {
+      console.error('コンポーネント追加エラー:', err instanceof Error ? err : String(err));
     }
   };
 
@@ -375,8 +375,8 @@ export default function HomePageEditor() {
       if (response.ok) {
         alert('ホームページ設定を保存しました');
       }
-    } catch (error) {
-      console.error('保存エラー:', error);
+    } catch (err: unknown) {
+      console.error('保存エラー:', err instanceof Error ? err : String(err));
       alert('保存に失敗しました');
     } finally {
       setIsSaving(false);

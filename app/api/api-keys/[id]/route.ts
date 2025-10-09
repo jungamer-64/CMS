@@ -32,8 +32,8 @@ export const DELETE = withApiAuth(async (request: NextRequest, authContext: Auth
       );
     }
     return NextResponse.json(createSuccessResponse({ message: 'APIキーが正常に削除されました' }));
-  } catch (error) {
-    console.error('APIキー削除エラー:', error);
+  } catch (err: unknown) {
+    console.error('APIキー削除エラー:', err instanceof Error ? err : String(err));
     return NextResponse.json(
       createErrorResponse('APIキーの削除に失敗しました'),
       { status: 500 }

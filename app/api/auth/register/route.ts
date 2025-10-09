@@ -136,10 +136,10 @@ export async function POST(request: NextRequest) {
 
     return createApiSuccess(userResponse, 'ユーザー登録に成功しました');
 
-  } catch (error) {
-    console.error('ユーザー登録エラー:', error);
+  } catch (err: unknown) {
+    console.error('ユーザー登録エラー:', err instanceof Error ? err : String(err));
     return createApiError(
-      error instanceof Error ? error.message : 'ユーザー登録に失敗しました',
+      err instanceof Error ? err.message : 'ユーザー登録に失敗しました',
       500
     );
   }

@@ -26,8 +26,8 @@ async function getCurrentUser() {
     }
     
     return userResponse.data;
-  } catch (error) {
-    console.error('Authentication error:', error);
+  } catch (err: unknown) {
+    console.error('Authentication error:', err instanceof Error ? err : String(err));
     return null;
   }
 }
@@ -140,10 +140,10 @@ export async function PATCH(
       },
       { status: 200 }
     );
-  } catch (error) {
-    console.error('ユーザー更新エラー:', error);
+  } catch (err: unknown) {
+    console.error('ユーザー更新エラー:', err instanceof Error ? err : String(err));
     
-    if (error instanceof Error && error.message.includes('already exists')) {
+    if (err instanceof Error && err.message.includes('already exists')) {
       return NextResponse.json(
         {
           success: false,
@@ -251,8 +251,8 @@ export async function GET(
       },
       { status: 200 }
     );
-  } catch (error) {
-    console.error('ユーザー取得エラー:', error);
+  } catch (err: unknown) {
+    console.error('ユーザー取得エラー:', err instanceof Error ? err : String(err));
     
     return NextResponse.json(
       {
@@ -387,8 +387,8 @@ export async function DELETE(
       },
       { status: 200 }
     );
-  } catch (error) {
-    console.error('ユーザー削除エラー:', error);
+  } catch (err: unknown) {
+    console.error('ユーザー削除エラー:', err instanceof Error ? err : String(err));
     
     return NextResponse.json(
       {

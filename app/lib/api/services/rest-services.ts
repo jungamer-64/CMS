@@ -219,8 +219,8 @@ export class PostService extends RestResourceService<PostEntity, PostInput, Part
       });
 
       return this.transformRepositoryListResult(result);
-    } catch (error) {
-      console.error('PostService.getAll error:', error);
+    } catch (err: unknown) {
+      console.error('PostService.getAll error:', err instanceof Error ? err : String(err));
       return this.createListError('Failed to retrieve posts');
     }
   }
@@ -230,8 +230,8 @@ export class PostService extends RestResourceService<PostEntity, PostInput, Part
       const { postRepository } = await import('../../data/repositories/post-repository');
       const result = await postRepository.findById(id);
       return this.transformRepositoryResult(result);
-    } catch (error) {
-      console.error('PostService.getById error:', error);
+    } catch (err: unknown) {
+      console.error('PostService.getById error:', err instanceof Error ? err : String(err));
       return this.createError('Failed to retrieve post');
     }
   }
@@ -241,8 +241,8 @@ export class PostService extends RestResourceService<PostEntity, PostInput, Part
       const { postRepository } = await import('../../data/repositories/post-repository');
       const result = await postRepository.create(input);
       return this.transformRepositoryResult(result);
-    } catch (error) {
-      console.error('PostService.create error:', error);
+    } catch (err: unknown) {
+      console.error('PostService.create error:', err instanceof Error ? err : String(err));
       return this.createError('Failed to create post');
     }
   }
@@ -252,8 +252,8 @@ export class PostService extends RestResourceService<PostEntity, PostInput, Part
       const { postRepository } = await import('../../data/repositories/post-repository');
       const result = await postRepository.update(id, input);
       return this.transformRepositoryResult(result);
-    } catch (error) {
-      console.error('PostService.update error:', error);
+    } catch (err: unknown) {
+      console.error('PostService.update error:', err instanceof Error ? err : String(err));
       return this.createError('Failed to update post');
     }
   }
@@ -267,8 +267,8 @@ export class PostService extends RestResourceService<PostEntity, PostInput, Part
         return this.createSuccess(true);
       }
       return this.createError(result.error || 'Failed to delete post');
-    } catch (error) {
-      console.error('PostService.delete error:', error);
+    } catch (err: unknown) {
+      console.error('PostService.delete error:', err instanceof Error ? err : String(err));
       return this.createError('Failed to delete post');
     }
   }
@@ -308,8 +308,8 @@ export class UserService extends RestResourceService<UserEntity, UserInput, Part
       });
 
       return this.transformRepositoryListResult(result);
-    } catch (error) {
-      console.error('UserService.getAll error:', error);
+    } catch (err: unknown) {
+      console.error('UserService.getAll error:', err instanceof Error ? err : String(err));
       return this.createListError('Failed to retrieve users');
     }
   }
@@ -320,8 +320,8 @@ export class UserService extends RestResourceService<UserEntity, UserInput, Part
       const userRepo = new UserRepository();
       const result = await userRepo.findById(id);
       return this.transformRepositoryResult(result);
-    } catch (error) {
-      console.error('UserService.getById error:', error);
+    } catch (err: unknown) {
+      console.error('UserService.getById error:', err instanceof Error ? err : String(err));
       return this.createError('Failed to retrieve user');
     }
   }
@@ -332,8 +332,8 @@ export class UserService extends RestResourceService<UserEntity, UserInput, Part
       const userRepo = new UserRepository();
       const result = await userRepo.create(input);
       return this.transformRepositoryResult(result);
-    } catch (error) {
-      console.error('UserService.create error:', error);
+    } catch (err: unknown) {
+      console.error('UserService.create error:', err instanceof Error ? err : String(err));
       return this.createError('Failed to create user');
     }
   }
@@ -344,8 +344,8 @@ export class UserService extends RestResourceService<UserEntity, UserInput, Part
       const userRepo = new UserRepository();
       const result = await userRepo.update(id, input);
       return this.transformRepositoryResult(result);
-    } catch (error) {
-      console.error('UserService.update error:', error);
+    } catch (err: unknown) {
+      console.error('UserService.update error:', err instanceof Error ? err : String(err));
       return this.createError('Failed to update user');
     }
   }
@@ -360,8 +360,8 @@ export class UserService extends RestResourceService<UserEntity, UserInput, Part
         return this.createSuccess(true);
       }
       return this.createError(result.error || 'Failed to delete user');
-    } catch (error) {
-      console.error('UserService.delete error:', error);
+    } catch (err: unknown) {
+      console.error('UserService.delete error:', err instanceof Error ? err : String(err));
       return this.createError('Failed to delete user');
     }
   }

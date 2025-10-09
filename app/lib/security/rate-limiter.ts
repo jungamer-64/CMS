@@ -78,8 +78,8 @@ export class RateLimiter {
       // Redis実装は将来の拡張用
       // 現在はメモリベースにフォールバック
       return this.checkLimitMemory(key, config);
-    } catch (error) {
-      console.error('Redis rate limit check failed, falling back to memory:', error);
+    } catch (err: unknown) {
+      console.error('Redis rate limit check failed, falling back to memory:', err instanceof Error ? err : String(err));
       return this.checkLimitMemory(key, config);
     }
   }
@@ -140,8 +140,8 @@ export class RateLimiter {
     try {
       // Redis実装は将来の拡張用
       this.recordFailureMemory(key, config);
-    } catch (error) {
-      console.error('Redis record failure failed, falling back to memory:', error);
+    } catch (err: unknown) {
+      console.error('Redis record failure failed, falling back to memory:', err instanceof Error ? err : String(err));
       this.recordFailureMemory(key, config);
     }
   }
@@ -170,8 +170,8 @@ export class RateLimiter {
     try {
       // Redis実装は将来の拡張用
       this.memoryStore.delete(key);
-    } catch (error) {
-      console.error('Redis clear failures failed, falling back to memory:', error);
+    } catch (err: unknown) {
+      console.error('Redis clear failures failed, falling back to memory:', err instanceof Error ? err : String(err));
       this.memoryStore.delete(key);
     }
   }

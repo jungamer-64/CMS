@@ -289,9 +289,9 @@ export default function PostsPage() {
     try {
       // DELETE エンドポイントが未実装のため一時的に無効化
       alert('削除機能は現在実装中です。実装が完了するまでお待ちください。');
-    } catch (error) {
+    } catch (err: unknown) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('投稿削除エラー:', error);
+        console.error('投稿削除エラー:', err instanceof Error ? err : String(err));
       }
       alert('投稿削除に失敗しました');
     }
@@ -301,9 +301,9 @@ export default function PostsPage() {
     try {
       // PATCH エンドポイントが未実装のため一時的に無効化
       alert('復元機能は現在実装中です。実装が完了するまでお待ちください。');
-    } catch (error) {
+    } catch (err: unknown) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('投稿復元エラー:', error);
+        console.error('投稿復元エラー:', err instanceof Error ? err : String(err));
       }
       alert('投稿復元に失敗しました');
     }

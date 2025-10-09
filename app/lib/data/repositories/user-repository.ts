@@ -118,10 +118,10 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
           pagination,
         },
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'ユーザー一覧の取得に失敗しました',
+        error: err instanceof Error ? err.message : 'ユーザー一覧の取得に失敗しました',
       };
     }
   }
@@ -158,10 +158,10 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
         success: true,
         data: this.transformToEntity(user),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'ユーザーの取得に失敗しました',
+        error: err instanceof Error ? err.message : 'ユーザーの取得に失敗しました',
       };
     }
   }
@@ -210,10 +210,10 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
         success: true,
         data: this.transformToEntity(createdUser),
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'ユーザーの作成に失敗しました',
+        error: err instanceof Error ? err.message : 'ユーザーの作成に失敗しました',
       };
     }
   }

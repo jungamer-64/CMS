@@ -25,9 +25,9 @@ export const getPostBySlug = async (slug: string): Promise<{ success: boolean; d
     } else {
       return { success: false, data: null };
     }
-  } catch (error) {
+  } catch (err: unknown) {
     if (process.env.NODE_ENV === 'development') {
-      console.error('Error fetching post by slug:', error);
+      console.error('Error fetching post by slug:', err instanceof Error ? err : String(err));
     }
     return { success: false, data: null };
   }
@@ -56,9 +56,9 @@ export const getAllPostsSimple = async (): Promise<{ success: boolean; data: Pos
     } else {
       return { success: false, data: [] };
     }
-  } catch (error) {
+  } catch (err: unknown) {
     if (process.env.NODE_ENV === 'development') {
-      console.error('Error fetching all posts:', error);
+      console.error('Error fetching all posts:', err instanceof Error ? err : String(err));
     }
     return { success: false, data: [] };
   }

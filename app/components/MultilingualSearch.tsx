@@ -157,8 +157,8 @@ export default function MultilingualSearch({
       const results = await performSearch(searchQuery, selectedLanguages);
       setSearchResults(results);
       onSearch?.(searchQuery, results);
-    } catch (error) {
-      console.error('Search error:', error);
+    } catch (err: unknown) {
+      console.error('Search error:', err instanceof Error ? err : String(err));
       setSearchResults([]);
     } finally {
       setIsSearching(false);

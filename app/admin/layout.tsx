@@ -143,9 +143,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         }
 
         setIsAuthenticated(true);
-      } catch (error) {
+      } catch (err: unknown) {
         if (process.env.NODE_ENV === 'development') {
-          console.error('Authentication check failed:', error);
+          console.error('Authentication check failed:', err instanceof Error ? err : String(err));
         }
         router.push('/auth/login');
       } finally {

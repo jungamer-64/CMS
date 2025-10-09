@@ -64,8 +64,8 @@ export const GET = createGetHandler<HomepageSettings>(
     
     try {
       return createSuccessResponse(mockHomepageSettings);
-    } catch (error) {
-      console.error('ホームページ設定取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('ホームページ設定取得エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('ホームページ設定の取得に失敗しました');
     }
   }
@@ -88,8 +88,8 @@ export const PUT = createPutHandler<Partial<HomepageSettings>, HomepageSettings>
       };
       
       return createSuccessResponse(mockHomepageSettings);
-    } catch (error) {
-      console.error('ホームページ設定更新エラー:', error);
+    } catch (err: unknown) {
+      console.error('ホームページ設定更新エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('ホームページ設定の更新に失敗しました');
     }
   }

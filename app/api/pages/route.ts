@@ -57,8 +57,8 @@ export const GET = createGetHandler<StaticPage[]>(
     
     try {
       return createSuccessResponse(mockPages);
-    } catch (error) {
-      console.error('固定ページ一覧取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('固定ページ一覧取得エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('固定ページの取得に失敗しました');
     }
   }
@@ -96,8 +96,8 @@ export const PUT = createPutHandler<PageUpdateRequest, StaticPage>(
       mockPages[pageIndex] = updatedPage;
       
       return createSuccessResponse(updatedPage);
-    } catch (error) {
-      console.error('固定ページ更新エラー:', error);
+    } catch (err: unknown) {
+      console.error('固定ページ更新エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('固定ページの更新に失敗しました');
     }
   }
@@ -129,8 +129,8 @@ export const DELETE = createDeleteHandler(
       mockPages.splice(pageIndex, 1);
       
       return createSuccessResponse({ message: 'ページが正常に削除されました' });
-    } catch (error) {
-      console.error('固定ページ削除エラー:', error);
+    } catch (err: unknown) {
+      console.error('固定ページ削除エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('固定ページの削除に失敗しました');
     }
   }

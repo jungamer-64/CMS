@@ -22,12 +22,12 @@ export async function GET(
     }
 
     return NextResponse.json(response);
-  } catch (error) {
-    console.error('ページ取得エラー:', error);
+  } catch (err: unknown) {
+    console.error('ページ取得エラー:', err instanceof Error ? err : String(err));
     return NextResponse.json(
       { 
         success: false, 
-        error: error instanceof Error ? error.message : 'サーバーエラー' 
+        error: err instanceof Error ? err.message : 'サーバーエラー' 
       },
       { status: 500 }
     );

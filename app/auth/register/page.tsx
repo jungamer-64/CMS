@@ -38,8 +38,8 @@ export default function RegisterPage() {
       } else {
         setError(res.error || t('errors.registrationFailed'));
       }
-    } catch (error) {
-      console.error('Registration error:', error);
+    } catch (err: unknown) {
+      console.error('Registration error:', err instanceof Error ? err : String(err));
       setError(t('errors.registrationFailed'));
     } finally {
       setIsSubmitting(false);

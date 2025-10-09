@@ -109,8 +109,8 @@ export default function NewPagePage() {
         const errorData = await response.json();
         alert(errorData.error || 'ページの作成に失敗しました');
       }
-    } catch (error) {
-      console.error('ページ作成エラー:', error);
+    } catch (err: unknown) {
+      console.error('ページ作成エラー:', err instanceof Error ? err : String(err));
       alert('ページの作成に失敗しました');
     } finally {
       setIsSaving(false);

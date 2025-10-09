@@ -117,8 +117,8 @@ export function createGetHandler<T = unknown>(
 
       const result = await handler(request, context.user, params);
       return NextResponse.json(result);
-    } catch (error) {
-      console.error('GET handler error:', error);
+    } catch (err: unknown) {
+      console.error('GET handler error:', err instanceof Error ? err : String(err));
       return NextResponse.json(
         createErrorResponse('Internal server error'),
         { status: 500 }
@@ -163,8 +163,8 @@ export function createOptionalAuthGetHandler<T = unknown>(
 
       const result = await handler(request, user, params);
       return NextResponse.json(result);
-    } catch (error) {
-      console.error('Optional auth GET handler error:', error);
+    } catch (err: unknown) {
+      console.error('Optional auth GET handler error:', err instanceof Error ? err : String(err));
       return NextResponse.json(
         createErrorResponse('Internal server error'),
         { status: 500 }
@@ -232,8 +232,8 @@ export function createPostHandler<TBody = unknown, TResponse = unknown>(
 
       const result = await handler(request, bodyValidation.data, context.user, params);
       return NextResponse.json(result);
-    } catch (error) {
-      console.error('POST handler error:', error);
+    } catch (err: unknown) {
+      console.error('POST handler error:', err instanceof Error ? err : String(err));
       return NextResponse.json(
         createErrorResponse('Internal server error'),
         { status: 500 }
@@ -266,8 +266,8 @@ export function createPutHandler<TBody = unknown, TResponse = unknown>(
 
       const result = await handler(request, bodyValidation.data, context.user, params);
       return NextResponse.json(result);
-    } catch (error) {
-      console.error('PUT handler error:', error);
+    } catch (err: unknown) {
+      console.error('PUT handler error:', err instanceof Error ? err : String(err));
       return NextResponse.json(
         createErrorResponse('Internal server error'),
         { status: 500 }
@@ -293,8 +293,8 @@ export function createDeleteHandler<T = unknown>(
 
       const result = await handler(request, context.user, params);
       return NextResponse.json(result);
-    } catch (error) {
-      console.error('DELETE handler error:', error);
+    } catch (err: unknown) {
+      console.error('DELETE handler error:', err instanceof Error ? err : String(err));
       return NextResponse.json(
         createErrorResponse('Internal server error'),
         { status: 500 }

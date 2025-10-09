@@ -42,8 +42,8 @@ export class UserModel {
       await this.collection.createIndex({ role: 1 });
       await this.collection.createIndex({ isActive: 1 });
       await this.collection.createIndex({ createdAt: -1 });
-    } catch (error) {
-      console.warn('ユーザーインデックス作成警告:', error);
+    } catch (err: unknown) {
+      console.warn('ユーザーインデックス作成警告:', err instanceof Error ? err : String(err));
     }
   }
 

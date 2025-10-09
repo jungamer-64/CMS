@@ -136,8 +136,8 @@ export const checkDatabaseConnection = async (): Promise<boolean> => {
     const connectedClient = await clientPromise;
     await connectedClient.db(config.dbName).admin().ping();
     return true;
-  } catch (error) {
-    console.error('Database connection failed:', error);
+  } catch (err: unknown) {
+    console.error('Database connection failed:', err instanceof Error ? err : String(err));
     return false;
   }
 };
@@ -159,10 +159,10 @@ export const getDatabaseStats = async (): Promise<DatabaseStatsResponse> => {
         indexSize: stats.indexSize,
       },
     };
-  } catch (error) {
+  } catch (err: unknown) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Database stats retrieval failed',
+      error: err instanceof Error ? err.message : 'Database stats retrieval failed',
     };
   }
 };

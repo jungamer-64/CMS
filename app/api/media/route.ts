@@ -1,9 +1,9 @@
-import { NextRequest } from 'next/server';
-import { createGetHandler, createPostHandler, createDeleteHandler } from '@/app/lib/api-factory';
+import { createDeleteHandler, createGetHandler, createPostHandler } from '@/app/lib/api-factory';
+import { createErrorResponse, createSuccessResponse, getCommaSeparatedList } from '@/app/lib/api-utils';
 import { requireAdmin } from '@/app/lib/auth-middleware';
-import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
 import { User } from '@/app/lib/core/types';
 import { promises as fs } from 'fs';
+import { NextRequest } from 'next/server';
 import path from 'path';
 
 // ============================================================================
@@ -28,24 +28,24 @@ export const GET = createGetHandler<MediaItem[]>(
     if (!requireAdmin(authContext)) {
       return createErrorResponse('管理者権限が必要です');
     }
-    
+
     try {
       const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-      
+
       // uploadsディレクトリが存在しない場合は空配列を返す
       try {
         await fs.access(uploadsDir);
       } catch {
         return createSuccessResponse([]);
       }
-      
+
       const files = await fs.readdir(uploadsDir);
       const mediaItems: MediaItem[] = [];
-      
+
       for (const file of files) {
         const filePath = path.join(uploadsDir, file);
         const stats = await fs.stat(filePath);
-        
+
         if (stats.isFile()) {
           const mediaType = getMediaType(file);
           mediaItems.push({
@@ -64,7 +64,7 @@ export const GET = createGetHandler<MediaItem[]>(
             for (const subFile of subFiles) {
               const subFilePath = path.join(filePath, subFile);
               const subStats = await fs.stat(subFilePath);
-              
+
               if (subStats.isFile()) {
                 const mediaType = getMediaType(subFile);
                 mediaItems.push({
@@ -83,10 +83,10 @@ export const GET = createGetHandler<MediaItem[]>(
           }
         }
       }
-      
+
       return createSuccessResponse(mediaItems);
-    } catch (error) {
-      console.error('メディア一覧取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('メディア一覧取得エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('メディアの取得に失敗しました');
     }
   }
@@ -100,15 +100,15 @@ export const POST = createPostHandler<FormData, { success: boolean; url?: string
     if (!requireAdmin(authContext)) {
       return createErrorResponse('管理者権限が必要です');
     }
-    
+
     try {
       // FormDataの処理は実装が複雑なため、基本的なレスポンスのみ返す
       return createSuccessResponse({
         success: false,
         message: 'メディアアップロード機能は実装中です'
       });
-    } catch (error) {
-      console.error('メディアアップロードエラー:', error);
+    } catch (err: unknown) {
+      console.error('メディアアップロードエラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('メディアのアップロードに失敗しました');
     }
   }
@@ -122,28 +122,28 @@ export const DELETE = createDeleteHandler(
     if (!requireAdmin(authContext)) {
       return createErrorResponse('管理者権限が必要です');
     }
-    
+
     try {
       const url = new URL(request.url);
-      const files = url.searchParams.get('files')?.split(',') || [];
-      
+      const files = getCommaSeparatedList(url.searchParams, 'files') || [];
+
       if (files.length === 0) {
         return createErrorResponse('削除するファイルが指定されていません');
       }
-      
+
       // ファイル削除処理（簡易実装）
       for (const file of files) {
         const filePath = path.join(process.cwd(), 'public', 'uploads', file);
         try {
           await fs.unlink(filePath);
-        } catch (error) {
-          console.warn(`ファイル削除に失敗: ${file}`, error);
+        } catch (err: unknown) {
+          console.warn(`ファイル削除に失敗: ${file}`, err);
         }
       }
-      
+
       return createSuccessResponse({ message: `${files.length}個のファイルを削除しました` });
-    } catch (error) {
-      console.error('メディア削除エラー:', error);
+    } catch (err: unknown) {
+      console.error('メディア削除エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('メディアの削除に失敗しました');
     }
   }
@@ -154,7 +154,7 @@ function getMediaType(filename: string): 'image' | 'video' | 'other' {
   const ext = path.extname(filename).toLowerCase();
   const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.m4v', '.mkv', '.ogv', '.3gp', '.3g2'];
   const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico'];
-  
+
   if (videoExtensions.includes(ext)) return 'video';
   if (imageExtensions.includes(ext)) return 'image';
   return 'other';

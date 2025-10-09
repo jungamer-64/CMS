@@ -43,8 +43,8 @@ export const GET = createGetHandler<ThemeData>(
       }
 
       return createSuccessResponse({ darkMode: userData.darkMode || false });
-    } catch (error) {
-      console.error('ユーザーテーマ取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('ユーザーテーマ取得エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('テーマ設定の取得に失敗しました');
     }
   }
@@ -81,8 +81,8 @@ export const PUT = createPutHandler<ThemeUpdateRequest, ThemeData>(
       }
       
       return createSuccessResponse({ darkMode: body.darkMode });
-    } catch (error) {
-      console.error('ユーザーテーマ更新エラー:', error);
+    } catch (err: unknown) {
+      console.error('ユーザーテーマ更新エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('テーマ設定の更新に失敗しました');
     }
   }

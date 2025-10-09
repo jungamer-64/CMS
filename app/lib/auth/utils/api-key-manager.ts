@@ -38,8 +38,8 @@ export class ApiKeyManager {
     try {
       // 開発用: メモリから取得
       return ApiKeyManager.apiKeys.filter(key => key.userId === userId);
-    } catch (error) {
-      console.error('Failed to get user API keys:', error);
+    } catch (err: unknown) {
+      console.error('Failed to get user API keys:', err instanceof Error ? err : String(err));
       throw new ApiKeyError('APIキーの取得に失敗しました', userId);
     }
   }
@@ -106,8 +106,8 @@ export class ApiKeyManager {
       ApiKeyManager.apiKeys.push(apiKey);
 
       return apiKey;
-    } catch (error) {
-      console.error('Failed to create API key:', error);
+    } catch (err: unknown) {
+      console.error('Failed to create API key:', err instanceof Error ? err : String(err));
       throw new ApiKeyError('APIキーの作成に失敗しました');
     }
   }
@@ -123,8 +123,8 @@ export class ApiKeyManager {
         key => !(key.id === keyId && key.userId === userId)
       );
       return ApiKeyManager.apiKeys.length < initialLength;
-    } catch (error) {
-      console.error('Failed to delete API key:', error);
+    } catch (err: unknown) {
+      console.error('Failed to delete API key:', err instanceof Error ? err : String(err));
       throw new ApiKeyError('APIキーの削除に失敗しました', keyId);
     }
   }
@@ -146,8 +146,8 @@ export class ApiKeyManager {
       apiKey.isActive = false;
       apiKey.updatedAt = new Date();
       return true;
-    } catch (error) {
-      console.error('Failed to deactivate API key:', error);
+    } catch (err: unknown) {
+      console.error('Failed to deactivate API key:', err instanceof Error ? err : String(err));
       throw new ApiKeyError('APIキーの無効化に失敗しました', keyId);
     }
   }
@@ -170,8 +170,8 @@ export class ApiKeyManager {
       await ApiKeyManager.updateLastUsed(apiKey.id);
 
       return apiKey;
-    } catch (error) {
-      console.error('Failed to validate API key:', error);
+    } catch (err: unknown) {
+      console.error('Failed to validate API key:', err instanceof Error ? err : String(err));
       return null;
     }
   }
@@ -202,8 +202,8 @@ export class ApiKeyManager {
         apiKey.lastUsed = new Date();
         apiKey.updatedAt = new Date();
       }
-    } catch (error) {
-      console.error('Failed to update API key last used:', error);
+    } catch (err: unknown) {
+      console.error('Failed to update API key last used:', err instanceof Error ? err : String(err));
     }
   }
 
@@ -224,8 +224,8 @@ export class ApiKeyManager {
         active,
         inactive: apiKeys.length - active,
       };
-    } catch (error) {
-      console.error('Failed to get API key stats:', error);
+    } catch (err: unknown) {
+      console.error('Failed to get API key stats:', err instanceof Error ? err : String(err));
       return { total: 0, active: 0, inactive: 0 };
     }
   }

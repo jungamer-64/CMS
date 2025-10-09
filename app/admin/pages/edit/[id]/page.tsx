@@ -93,8 +93,8 @@ export default function EditPagePage() {
         return { success: false, message: 'ページが見つかりません' };
       }
       return { success: true, page };
-    } catch (error) {
-      console.error('ページ取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('ページ取得エラー:', err instanceof Error ? err : String(err));
       return { success: false, message: 'ページの取得に失敗しました' };
     }
   }, []);
@@ -178,8 +178,8 @@ export default function EditPagePage() {
         const errorData = await response.json();
         alert(errorData.error || 'ページの更新に失敗しました');
       }
-    } catch (error) {
-      console.error('ページ更新エラー:', error);
+    } catch (err: unknown) {
+      console.error('ページ更新エラー:', err instanceof Error ? err : String(err));
       alert('ページの更新に失敗しました');
     } finally {
       setIsSaving(false);

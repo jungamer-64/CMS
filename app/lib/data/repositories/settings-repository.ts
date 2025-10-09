@@ -44,10 +44,10 @@ export class SettingsRepository {
         success: true,
         data: settings
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       };
     }
   }
@@ -85,10 +85,10 @@ export class SettingsRepository {
         success: true,
         data: result
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       };
     }
   }

@@ -1,3 +1,4 @@
+import { getOptionalString, parsePaginationParams, parseSortParams } from '@/app/lib/api-utils';
 import { createRestGetHandler, createRestPostHandler } from '@/app/lib/api/factory/rest-factory';
 import { CommentCreateRequest, isCommentCreateRequest } from '@/app/lib/api/schemas/validation-schemas';
 import { CommentEntity, UserEntity } from '@/app/lib/core/types/entity-types';
@@ -17,11 +18,10 @@ export const GET = createRestGetHandler<CommentEntity[]>(
     const url = new URL(request.url);
 
     // クエリパラメータ解析
-    const page = Number(url.searchParams.get('page')) || 1;
-    const limit = Math.min(Number(url.searchParams.get('limit')) || 50, 200);
-    const search = url.searchParams.get('search') || undefined;
-    const sortBy = url.searchParams.get('sortBy') || 'createdAt';
-    const sortOrder = (url.searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc';
+    const { page, limit } = parsePaginationParams(url.searchParams);
+    const { sortField, sortOrder } = parseSortParams(url.searchParams, 'createdAt', 'desc');
+    const search = getOptionalString(url.searchParams, 'search');
+    const sortBy = sortField;
 
     // コメント一覧取得
     const result = await commentRepository.findAll({

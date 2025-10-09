@@ -388,11 +388,11 @@ const AdminHome: React.FC = () => {
       if (posts.length === 0 && users.length === 0) {
         console.info('ダッシュボード: データが見つかりませんでした。初期状態か、データベースが空の可能性があります。');
       }
-    } catch (error) {
-      console.error('Dashboard data fetch error:', error);
+    } catch (err: unknown) {
+      console.error('Dashboard data fetch error:', err instanceof Error ? err : String(err));
       // エラーメッセージをユーザーフレンドリーに
-      if (error instanceof Error) {
-        if (error.message.includes('Failed to fetch')) {
+      if (err instanceof Error) {
+        if (err.message.includes('Failed to fetch')) {
           setError('サーバーとの通信に問題があります。少し時間をおいてから再度お試しください。');
         } else {
           setError('データの読み込み中に問題が発生しました。ページを再読み込みしてください。');

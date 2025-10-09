@@ -60,8 +60,8 @@ export default function NewPostPage() {
         console.error('API エラー:', errorMessage);
         alert(`エラー: ${errorMessage}`);
       }
-    } catch (error) {
-      console.error('投稿作成エラー:', error);
+    } catch (err: unknown) {
+      console.error('投稿作成エラー:', err instanceof Error ? err : String(err));
       alert('ネットワークエラーが発生しました');
     } finally {
       setIsSaving(false);

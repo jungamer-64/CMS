@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
       allFields: Object.keys(user)
     }));
     
-  } catch (error) {
-    console.error('❌ ユーザー情報確認エラー:', error);
+  } catch (err: unknown) {
+    console.error('❌ ユーザー情報確認エラー:', err instanceof Error ? err : String(err));
     return NextResponse.json(createErrorResponse('内部エラーが発生しました', 500), { status: 500 });
   }
 }

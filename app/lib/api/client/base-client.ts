@@ -103,8 +103,8 @@ export class UnifiedApiClient {
     for (let i = 0; i <= retries; i++) {
       try {
         return await fn();
-      } catch (error) {
-        lastError = error as Error;
+      } catch (err: unknown) {
+        lastError = err as Error;
 
         if (i < retries) {
           await new Promise(resolve => setTimeout(resolve, retryDelay));
@@ -198,17 +198,17 @@ export async function apiRequest<T>(
       success: true,
       data,
     };
-  } catch (error) {
-    if (error instanceof HttpClientError) {
+  } catch (err: unknown) {
+    if (err instanceof HttpClientError) {
       return {
         success: false,
-        error: error.message,
+        error: err.message,
       };
     }
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: err instanceof Error ? err.message : 'Unknown error',
     };
   }
 }

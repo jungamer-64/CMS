@@ -34,10 +34,10 @@ export class PageRepository {
         success: true,
         data: page
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       };
     }
   }
@@ -154,10 +154,10 @@ export class PageRepository {
         success: true,
         data: page
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       };
     }
   }
@@ -190,10 +190,10 @@ export class PageRepository {
         success: true,
         data: pages
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       };
     }
   }
@@ -219,10 +219,10 @@ export class PageRepository {
         success: true,
         data: newPage as Page
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       };
     }
   }
@@ -256,10 +256,10 @@ export class PageRepository {
         success: true,
         data: result as Page
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       };
     }
   }
@@ -283,10 +283,10 @@ export class PageRepository {
         success: true,
         data: true
       };
-    } catch (error) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       };
     }
   }

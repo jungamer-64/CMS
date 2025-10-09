@@ -22,8 +22,8 @@ export async function GET() {
       webhooks,
       count: webhooks.length
     }, 'Webhooks retrieved successfully'));
-  } catch (error) {
-    console.error('Error fetching webhooks:', error);
+  } catch (err: unknown) {
+    console.error('Error fetching webhooks:', err instanceof Error ? err : String(err));
     return NextResponse.json(createErrorResponse('Failed to fetch webhooks', 500));
   }
 }
@@ -74,9 +74,9 @@ export const POST = withApiAuth(async (request: NextRequest, context: AuthContex
       'Webhook created successfully'
     ));
 
-  } catch (error) {
-    console.error('Webhook creation error:', error);
-    if (error instanceof SyntaxError) {
+  } catch (err: unknown) {
+    console.error('Webhook creation error:', err instanceof Error ? err : String(err));
+    if (err instanceof SyntaxError) {
       return NextResponse.json(createErrorResponse('Invalid JSON data', 400));
     }
     return NextResponse.json(createErrorResponse('An error occurred while creating the webhook', 500));

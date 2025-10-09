@@ -186,19 +186,19 @@ async function createIndexForCollection(definition: IndexDefinition): Promise<vo
       try {
         await collection.createIndex(index.key, index.options);
         console.log(`✅ Created index ${index.options?.name || 'unnamed'} for ${definition.collection}`);
-      } catch (error) {
+      } catch (err: unknown) {
         // インデックスが既に存在する場合のエラーを無視
-        if (error instanceof Error && error.message.includes('already exists')) {
+        if (err instanceof Error && err.message.includes('already exists')) {
           console.log(`ℹ️  Index ${index.options?.name || 'unnamed'} already exists for ${definition.collection}`);
         } else {
-          console.error('❌ Failed to create index %s for %s:', index.options?.name || 'unnamed', definition.collection, error);
-          throw error;
+          console.error('❌ Failed to create index %s for %s:', index.options?.name || 'unnamed', definition.collection, err instanceof Error ? err : String(err));
+          throw err;
         }
       }
     }
-  } catch (error) {
-    console.error('❌ Failed to setup indexes for %s:', definition.collection, error);
-    throw error;
+  } catch (err: unknown) {
+    console.error('❌ Failed to setup indexes for %s:', definition.collection, err instanceof Error ? err : String(err));
+    throw err;
   }
 }
 
@@ -211,9 +211,9 @@ export async function setupAllIndexes(): Promise<void> {
       INDEX_DEFINITIONS.map(definition => createIndexForCollection(definition))
     );
     console.log('✅ All database indexes have been set up successfully');
-  } catch (error) {
-    console.error('❌ Failed to setup database indexes:', error);
-    throw error;
+  } catch (err: unknown) {
+    console.error('❌ Failed to setup database indexes:', err instanceof Error ? err : String(err));
+    throw err;
   }
 }
 
@@ -258,10 +258,10 @@ export async function getIndexInfo(collectionName?: string) {
         data: indexInfo
       };
     }
-  } catch (error) {
+  } catch (err: unknown) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get index information'
+      error: err instanceof Error ? err.message : 'Failed to get index information'
     };
   }
 }
@@ -289,8 +289,8 @@ export async function dropAllIndexes(): Promise<void> {
     }
 
     console.log('✅ All custom indexes have been dropped');
-  } catch (error) {
-    console.error('❌ Failed to drop indexes:', error);
-    throw error;
+  } catch (err: unknown) {
+    console.error('❌ Failed to drop indexes:', err instanceof Error ? err : String(err));
+    throw err;
   }
 }

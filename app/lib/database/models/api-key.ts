@@ -40,8 +40,8 @@ export class ApiKeyModel {
       await this.collection.createIndex({ key: 1 }, { unique: true });
       await this.collection.createIndex({ createdBy: 1 });
       await this.collection.createIndex({ isActive: 1 });
-    } catch (error) {
-      console.warn('APIキーインデックス作成警告:', error);
+    } catch (err: unknown) {
+      console.warn('APIキーインデックス作成警告:', err instanceof Error ? err : String(err));
     }
   }
 

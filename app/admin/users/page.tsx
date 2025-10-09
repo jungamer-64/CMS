@@ -416,11 +416,11 @@ async function fetchRestfulUsers(): Promise<{
       success: true,
       users,
     };
-  } catch (error) {
-    console.error('RESTful Users API Error:', error);
+  } catch (err: unknown) {
+    console.error('RESTful Users API Error:', err instanceof Error ? err : String(err));
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'ネットワークエラーが発生しました',
+      error: err instanceof Error ? err.message : 'ネットワークエラーが発生しました',
     };
   }
 }

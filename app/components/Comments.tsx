@@ -60,9 +60,9 @@ export default function Comments({ postSlug }: CommentsProps) {
         setSettingsError('設定の読み込みに一部失敗しました');
       }
       setSettingsLoaded(true);
-    } catch (error) {
-      console.error('設定確認エラー:', error);
-      const errorMsg = error instanceof Error ? error.message : '不明なエラー';
+    } catch (err: unknown) {
+      console.error('設定確認エラー:', err instanceof Error ? err : String(err));
+      const errorMsg = err instanceof Error ? err.message : '不明なエラー';
       setSettingsError(errorMsg);
       setAllowComments(true); // フォールバック
       setSettingsLoaded(true); // エラー時も設定完了を通知
@@ -89,9 +89,9 @@ export default function Comments({ postSlug }: CommentsProps) {
       } else {
         throw new Error(data.error || 'コメントの読み込みに失敗しました');
       }
-    } catch (error) {
-      console.error('コメント読み込みエラー:', error);
-      throw error; // エラーを再スローして上位でキャッチできるように
+    } catch (err: unknown) {
+      console.error('コメント読み込みエラー:', err instanceof Error ? err : String(err));
+      throw err; // エラーを再スローして上位でキャッチできるように
     } finally {
       setLoading(false);
     }
@@ -105,8 +105,8 @@ export default function Comments({ postSlug }: CommentsProps) {
           checkSettings(),
           loadComments()
         ]);
-      } catch (error) {
-        console.error('コメント初期化エラー:', error);
+      } catch (err: unknown) {
+        console.error('コメント初期化エラー:', err instanceof Error ? err : String(err));
         // エラーの場合はデフォルトでコメントを許可
         setAllowComments(true);
         setSettingsLoaded(true);

@@ -60,11 +60,11 @@ export function createAuthMiddleware(
       const result = await handler(req as AuthenticatedRequest);
       return result;
       
-    } catch (error) {
-      if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+    } catch (err: unknown) {
+      if (err instanceof AuthenticationError || err instanceof AuthorizationError) {
         return NextResponse.json(
-          { success: false, error: error.message },
-          { status: error instanceof AuthenticationError ? 401 : 403 }
+          { success: false, error: err.message },
+          { status: err instanceof AuthenticationError ? 401 : 403 }
         );
       }
       
@@ -103,8 +103,8 @@ async function verifyToken(token: string): Promise<{
       username: decoded.username,
       role: (decoded.role as 'user' | 'admin') || 'user'
     };
-  } catch (error) {
-    console.error('Token verification failed:', error);
+  } catch (err: unknown) {
+    console.error('Token verification failed:', err instanceof Error ? err : String(err));
     throw new AuthenticationError('Invalid token');
   }
 }

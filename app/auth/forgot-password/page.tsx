@@ -33,8 +33,8 @@ export default function ForgotPasswordPage() {
       } else {
         setError(res.error || 'パスワードリセット要求に失敗しました');
       }
-    } catch (error) {
-      console.error('パスワードリセット要求エラー:', error);
+    } catch (err: unknown) {
+      console.error('パスワードリセット要求エラー:', err instanceof Error ? err : String(err));
       setError('パスワードリセット要求に失敗しました');
     } finally {
       setIsSubmitting(false);

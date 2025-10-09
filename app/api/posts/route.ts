@@ -1,15 +1,17 @@
-import { NextRequest } from 'next/server';
+import {
+  createDeleteHandler,
+  createErrorResponse,
+  createOptionalAuthGetHandler,
+  createPostHandler,
+  createPutHandler,
+  createSuccessResponse
+} from '@/app/lib/api-factory';
 import { connectToDatabase } from '@/app/lib/database/connection';
 import { createPostModel, PostStatus } from '@/app/lib/database/models/post';
-import { 
-  createOptionalAuthGetHandler, 
-  createPostHandler, 
-  createPutHandler,
-  createDeleteHandler,
-  createSuccessResponse, 
-  createErrorResponse 
-} from '@/app/lib/api-factory';
+import { NextRequest } from 'next/server';
+// parse helpers used by helper module
 import { User } from '@/app/lib/auth-middleware';
+import { buildFindAllOptions, mapPostsToFrontend, type FrontendPostListResponse } from '@/app/lib/helpers/posts-helpers';
 
 // ============================================================================
 // 型定義
@@ -56,31 +58,6 @@ interface PostResponse {
   updatedAt: string;
 }
 
-// フロントエンド用のPost型（api-unified.tsのPost型に準拠）
-interface FrontendPost {
-  id: string;
-  title: string;
-  content: string;
-  slug: string;
-  author: string;
-  authorId: string;
-  excerpt?: string;
-  published: boolean;
-  featured: boolean;
-  tags: string[];
-  media: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface FrontendPostListResponse {
-  posts: FrontendPost[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
 // ============================================================================
 // GET /api/posts - 投稿一覧取得（データベース版・認証オプション）
 // ============================================================================
@@ -89,63 +66,18 @@ export const GET = createOptionalAuthGetHandler<FrontendPostListResponse>(
   async (request: NextRequest, user?: User) => {
     try {
       const url = new URL(request.url);
-      
-      // クエリパラメータ解析
-      const page = Number(url.searchParams.get('page')) || 1;
-      const limit = Math.min(Number(url.searchParams.get('limit')) || 20, 100);
-      const search = url.searchParams.get('search') || undefined;
-      const status = url.searchParams.get('status') as PostStatus | undefined;
-      const authorId = url.searchParams.get('authorId') || undefined;
-      const tags = url.searchParams.get('tags')?.split(',').filter(Boolean) || undefined;
-      const categories = url.searchParams.get('categories')?.split(',').filter(Boolean) || undefined;
-      const sortBy = url.searchParams.get('sortBy') || 'createdAt';
-      const sortOrder = (url.searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc';
-      const includeDeleted = url.searchParams.get('includeDeleted') === 'true';
+
+      const options = buildFindAllOptions(url.searchParams, user);
 
       // データベース接続
       await connectToDatabase();
       const postModel = await createPostModel();
 
       // 権限チェック（一般ユーザーまたは未認証は公開済み投稿のみ）
-      const isAdmin = user?.role === 'admin';
-      let finalStatus = status;
-      let finalIncludeDeleted = includeDeleted;
-
-      if (!isAdmin) {
-        finalStatus = 'published'; // 一般ユーザーは公開済みのみ
-        finalIncludeDeleted = false;
-      }
-
       // 投稿一覧取得
-      const result = await postModel.findAll({
-        status: finalStatus,
-        authorId,
-        search,
-        tags,
-        categories,
-        includeDeleted: finalIncludeDeleted,
-        sortBy,
-        sortOrder,
-        page,
-        limit
-      });
+      const result = await postModel.findAll(options);
 
-      // フロントエンド用のPost型に合わせてレスポンス形式を変換
-      const posts = result.posts.map(post => ({
-        id: post.id,
-        title: post.title,
-        content: post.content,
-        slug: post.slug,
-        author: post.authorName, // フロントエンドのPost型に合わせてauthorNameをauthorにマッピング
-        authorId: post.authorId,
-        excerpt: post.excerpt || '',
-        published: post.status === 'published',
-        featured: false, // デフォルト値
-        tags: post.tags || [],
-        media: [], // デフォルト値
-        createdAt: post.createdAt,
-        updatedAt: post.updatedAt
-      }));
+      const posts = mapPostsToFrontend(result.posts);
 
       const response = {
         posts,
@@ -156,8 +88,8 @@ export const GET = createOptionalAuthGetHandler<FrontendPostListResponse>(
       };
 
       return createSuccessResponse(response);
-    } catch (error) {
-      console.error('投稿取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('投稿取得エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('投稿の取得に失敗しました');
     }
   }
@@ -226,8 +158,8 @@ export const POST = createPostHandler<CreatePostRequest, PostResponse>(
       };
 
       return createSuccessResponse(response);
-    } catch (error) {
-      console.error('投稿作成エラー:', error);
+    } catch (err: unknown) {
+      console.error('投稿作成エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('投稿の作成に失敗しました');
     }
   }
@@ -312,8 +244,8 @@ export const PUT = createPutHandler<UpdatePostRequest & { id: string }, PostResp
       };
 
       return createSuccessResponse(response);
-    } catch (error) {
-      console.error('投稿更新エラー:', error);
+    } catch (err: unknown) {
+      console.error('投稿更新エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('投稿の更新に失敗しました');
     }
   }
@@ -355,8 +287,8 @@ export const DELETE = createDeleteHandler<{ success: boolean }>(
       }
 
       return createSuccessResponse({ success: true });
-    } catch (error) {
-      console.error('投稿削除エラー:', error);
+    } catch (err: unknown) {
+      console.error('投稿削除エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('投稿の削除に失敗しました');
     }
   }

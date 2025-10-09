@@ -1,0 +1,25 @@
+{
+    "extends": [
+        "next/core-web-vitals",
+        "next/typescript"
+    ],
+    "rules": {
+        "no-restricted-syntax": "off",
+        "no-restricted-globals": "off",
+        "no-async-promise-executor": "off",
+        "react/react-in-jsx-scope": "off",
+        "@typescript-eslint/strict-boolean-expressions": "off"
+    },
+    "env": {
+        "browser": true,
+        "node": true,
+        "es2021": true
+    },
+    "parserOptions": {
+        "ecmaVersion": 2021,
+        "sourceType": "module",
+        "ecmaFeatures": {
+            "jsx": true
+        }
+    }
+}

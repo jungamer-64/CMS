@@ -80,8 +80,8 @@ export const GET = createGetHandler<ApiKeyResponse[]>(
       }));
 
       return createSuccessResponse(response);
-    } catch (error) {
-      console.error('APIキー取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('APIキー取得エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('APIキーの取得に失敗しました');
     }
   }
@@ -136,8 +136,8 @@ export const POST = createPostHandler<CreateApiKeyRequest, ApiKeyResponse>(
       };
 
       return createSuccessResponse(response);
-    } catch (error) {
-      console.error('APIキー作成エラー:', error);
+    } catch (err: unknown) {
+      console.error('APIキー作成エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('APIキーの作成に失敗しました');
     }
   }
@@ -174,8 +174,8 @@ export const DELETE = createDeleteHandler<{ message: string }>(
       }
 
       return createSuccessResponse({ message: 'APIキーを削除しました' });
-    } catch (error) {
-      console.error('APIキー削除エラー:', error);
+    } catch (err: unknown) {
+      console.error('APIキー削除エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('APIキーの削除に失敗しました');
     }
   }

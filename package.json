@@ -27,7 +27,8 @@
     "pm2:delete": "pm2 delete ecosystem.config.js",
     "pm2:status": "pm2 status",
     "pm2:logs": "pm2 logs",
-    "pm2:monit": "pm2 monit"
+    "pm2:monit": "pm2 monit",
+    "test": "vitest"
   },
   "dependencies": {
     "@hello-pangea/dnd": "18.0.1",
@@ -64,6 +65,7 @@
     "eslint": "9.37.0",
     "eslint-config-next": "15.4.7",
     "tsx": "4.20.6",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^1.2.2"
   }
 }

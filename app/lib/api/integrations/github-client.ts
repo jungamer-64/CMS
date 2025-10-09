@@ -217,10 +217,10 @@ export class GitHubClient {
       }
       
       return { success: true, message: 'Webhook processed' };
-    } catch (error) {
+    } catch (err: unknown) {
       return { 
         success: false, 
-        message: error instanceof Error ? error.message : 'Unknown error' 
+        message: err instanceof Error ? err.message : 'Unknown error' 
       };
     }
   }

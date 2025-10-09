@@ -30,8 +30,8 @@ export async function GET() {
     };
 
     return NextResponse.json(createSuccessResponse(response, '認証チE��トが成功しました'));
-  } catch (error) {
-    console.error('チE��チEPI GET エラー:', error);
+  } catch (err: unknown) {
+    console.error('チE��チEPI GET エラー:', err instanceof Error ? err : String(err));
     return NextResponse.json(createErrorResponse('チE��チEPIでエラーが発生しました', 500));
   }
 }
@@ -62,8 +62,8 @@ export const POST = withApiAuth(async (request: NextRequest, authContext: AuthCo
     };
 
     return NextResponse.json(createSuccessResponse(response, '認証チE��トが成功しました'));
-  } catch (error) {
-    console.error('チE��チEPI POST エラー:', error);
+  } catch (err: unknown) {
+    console.error('チE��チEPI POST エラー:', err instanceof Error ? err : String(err));
     return NextResponse.json(createErrorResponse('チE��チEPIでエラーが発生しました', 500));
   }
 });

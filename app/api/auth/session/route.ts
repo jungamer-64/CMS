@@ -84,10 +84,10 @@ export async function GET() {
     console.log('セッション情報取得成功:', userInfo);
     return createApiSuccess({ user: userInfo }, 'セッション情報を取得しました');
 
-  } catch (error) {
-    console.error('セッション確認エラー:', error);
+  } catch (err: unknown) {
+    console.error('セッション確認エラー:', err instanceof Error ? err : String(err));
     return createApiError(
-      error instanceof Error ? error.message : 'セッション確認に失敗しました',
+      err instanceof Error ? err.message : 'セッション確認に失敗しました',
       500
     );
   }
@@ -107,8 +107,8 @@ export async function DELETE() {
       { message: 'ログアウトしました' }, 
       'ログアウトしました'
     );
-  } catch (error) {
-    console.error('ログアウトエラー:', error);
+  } catch (err: unknown) {
+    console.error('ログアウトエラー:', err instanceof Error ? err : String(err));
     return createApiError(
       'ログアウト処理に失敗しました',
       500

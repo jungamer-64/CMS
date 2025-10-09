@@ -81,9 +81,9 @@ async function logSecurityEvent(event: {
   try {
     const { logSecurityEvent: logEvent } = await import('./security/security-logger');
     await logEvent(event);
-  } catch (error) {
+  } catch (err: unknown) {
     // ログの失敗は認証処理に影響しないようにする
-    console.error('Failed to log security event:', error);
+    console.error('Failed to log security event:', err instanceof Error ? err : String(err));
   }
 }
 
@@ -228,8 +228,8 @@ export function withApiAuth(
 
       return response;
 
-    } catch (error) {
-      console.error('API認証エラー:', error);
+    } catch (err: unknown) {
+      console.error('API認証エラー:', err instanceof Error ? err : String(err));
       await recordFailedLogin(clientIP);
       return NextResponse.json(
         createApiError(500, ApiErrorCode.INTERNAL_ERROR, 'Internal server error'),
@@ -344,8 +344,8 @@ async function getUserFromApiKey(apiKey: string): Promise<User | null> {
       };
     }
     return null;
-  } catch (error) {
-    console.error('APIキー認証エラー:', error);
+  } catch (err: unknown) {
+    console.error('APIキー認証エラー:', err instanceof Error ? err : String(err));
     return null;
   }
 }
@@ -385,8 +385,8 @@ async function getUserFromSession(sessionToken: string): Promise<User | null> {
       };
     }
     return null;
-  } catch (error) {
-    console.error('セッション認証エラー:', error);
+  } catch (err: unknown) {
+    console.error('セッション認証エラー:', err instanceof Error ? err : String(err));
     return null;
   }
 }

@@ -57,8 +57,8 @@ export async function GET(
     console.log('API Response data:', responseData);
     
     return NextResponse.json(responseData);
-  } catch (error) {
-    console.error('投稿取得エラー:', error);
+  } catch (err: unknown) {
+    console.error('投稿取得エラー:', err instanceof Error ? err : String(err));
     return NextResponse.json(
       createRestErrorResponse(RestErrorCode.INTERNAL_ERROR, '投稿の取得に失敗しました'),
       { status: HttpStatus.INTERNAL_SERVER_ERROR }

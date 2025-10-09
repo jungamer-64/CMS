@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { getOptionalString, parsePaginationParams } from '@/app/lib/api-utils';
 import DatabaseManager, { getDatabase } from '@/app/lib/database/connection';
 import { PostModel } from '@/app/lib/database/models/post';
+import { NextRequest, NextResponse } from 'next/server';
 
 // 動的レンダリングを強制
 export const dynamic = 'force-dynamic';
@@ -13,9 +14,8 @@ export async function GET(request: NextRequest) {
     const db = getDatabase();
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 20);
-    const search = searchParams.get('search') || undefined;
+    const { page, limit } = parsePaginationParams(searchParams);
+    const search = getOptionalString(searchParams, 'search');
 
     // PostModelインスタンスを作成
     const postModel = new PostModel(db);
@@ -43,10 +43,10 @@ export async function GET(request: NextRequest) {
       data: publicPosts
     });
 
-  } catch (error) {
-    console.error('パブリック投稿取得エラー:', error);
+  } catch (err: unknown) {
+    console.error('パブリック投稿取得エラー:', err instanceof Error ? err : String(err));
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : '投稿取得に失敗しました' },
+      { success: false, error: err instanceof Error ? err.message : '投稿取得に失敗しました' },
       { status: 500 }
     );
   }

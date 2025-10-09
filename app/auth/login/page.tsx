@@ -24,9 +24,9 @@ export default function LoginPage() {
       await login({ username, password });
       // ログイン成功後、ユーザー情報が更新されるのを待ってリダイレクト
       router.push('/admin'); // 一旦管理者ダッシュボードに固定
-    } catch (error) {
-      console.error('Login error:', error);
-      setError(error instanceof Error ? error.message : t('auth.loginFailed'));
+    } catch (err: unknown) {
+      console.error('Login error:', err instanceof Error ? err : String(err));
+      setError(err instanceof Error ? err.message : t('auth.loginFailed'));
     } finally {
       setIsSubmitting(false);
     }

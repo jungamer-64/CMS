@@ -49,8 +49,8 @@ export class CommentModel {
       
       // 複合インデックス
       await this.collection.createIndex({ postId: 1, status: 1, isDeleted: 1 });
-    } catch (error) {
-      console.warn('コメントインデックス作成警告:', error);
+    } catch (err: unknown) {
+      console.warn('コメントインデックス作成警告:', err instanceof Error ? err : String(err));
     }
   }
 

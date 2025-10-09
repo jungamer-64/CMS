@@ -64,8 +64,8 @@ async function verifyToken(token: string): Promise<User | null> {
     }
     
     return null;
-  } catch (error) {
-    console.error('Token verification failed:', error);
+  } catch (err: unknown) {
+    console.error('Token verification failed:', err instanceof Error ? err : String(err));
     return null;
   }
 }
@@ -104,8 +104,8 @@ export function withApiAuth(handler: AuthenticatedApiHandler) {
       // 認証済みハンドラーを実行
       return await handler(request, context);
       
-    } catch (error) {
-      console.error('Authentication middleware error:', error);
+    } catch (err: unknown) {
+      console.error('Authentication middleware error:', err instanceof Error ? err : String(err));
       return createErrorResponse('認証処理中にエラーが発生しました', 500);
     }
   };
@@ -147,8 +147,8 @@ export function withOptionalAuth(handler: AuthenticatedApiHandler) {
 
       return await handler(request, context);
       
-    } catch (error) {
-      console.error('Optional authentication middleware error:', error);
+    } catch (err: unknown) {
+      console.error('Optional authentication middleware error:', err instanceof Error ? err : String(err));
       return createErrorResponse('認証処理中にエラーが発生しました', 500);
     }
   };

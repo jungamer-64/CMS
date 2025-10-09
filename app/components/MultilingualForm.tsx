@@ -117,8 +117,8 @@ export default function MultilingualForm({
       if (result instanceof Promise) {
         await result;
       }
-    } catch (error) {
-      console.error('Form submission error:', error);
+    } catch (err: unknown) {
+      console.error('Form submission error:', err instanceof Error ? err : String(err));
     } finally {
       setIsSubmitting(false);
     }

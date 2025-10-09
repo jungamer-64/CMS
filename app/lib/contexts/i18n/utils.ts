@@ -85,8 +85,8 @@ export async function loadTranslations(locale: Locale): Promise<NamespaceTransla
         }
         console.warn(`Failed to load ${namespace} for ${locale}`);
         return [namespace, {}];
-      } catch (error) {
-        console.warn(`Error loading ${namespace} for ${locale}:`, error);
+      } catch (err: unknown) {
+        console.warn(`Error loading ${namespace} for ${locale}:`, err instanceof Error ? err : String(err));
         return [namespace, {}];
       }
     });
@@ -96,8 +96,8 @@ export async function loadTranslations(locale: Locale): Promise<NamespaceTransla
 
     translationCache[locale] = translations;
     return translations;
-  } catch (error) {
-    console.error(`Failed to load translations for locale: ${locale}`, error);
+  } catch (err: unknown) {
+    console.error(`Failed to load translations for locale: ${locale}`, err instanceof Error ? err : String(err));
     return {};
   }
 }

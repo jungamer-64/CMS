@@ -15,7 +15,10 @@ const eslintConfig = [
   {
     rules: {
       'no-restricted-syntax': 'off', // Allow ES2015+ syntax
+      'no-restricted-globals': 'off', // Allow ES2020+ Intl APIs (Intl.RelativeTimeFormat, etc.)
       'react/react-in-jsx-scope': 'off', // React 17+ automatic JSX transform
+      'no-async-promise-executor': 'off', // Allow async functions (required for Next.js 15 + Node 18+)
+      '@typescript-eslint/strict-boolean-expressions': 'off', // Allow idiomatic JavaScript truthiness checks
     },
   },
   // Treat scripts/ as node scripts

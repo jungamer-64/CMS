@@ -74,8 +74,8 @@ export abstract class BaseRepository<
 
     try {
       return new RegExp(escapedSearch, 'i');
-    } catch (error) {
-      console.error('Invalid regex pattern:', error);
+    } catch (err: unknown) {
+      console.error('Invalid regex pattern:', err instanceof Error ? err : String(err));
       return undefined;
     }
   }

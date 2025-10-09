@@ -238,3 +238,44 @@ export function createNextErrorResponse(
   
   return NextResponse.json(response, { status });
 }
+
+/**
+ * URLSearchParamsからオプション文字列パラメータを取得
+ */
+export function getOptionalString(
+  params: URLSearchParams,
+  key: string
+): string | undefined {
+  const value = params.get(key);
+  return value ?? undefined;
+}
+
+/**
+ * カンマ区切り文字列を配列に変換
+ */
+export function getCommaSeparatedList(
+  params: URLSearchParams,
+  key: string
+): string[] {
+  const value = params.get(key);
+  if (!value) return [];
+  return value.split(',').map(v => v.trim()).filter(Boolean);
+}
+
+/**
+ * Enum型パラメータを取得
+ */
+export function getEnumParam<T extends string>(
+  params: URLSearchParams,
+  key: string,
+  validValues: readonly T[]
+): T | undefined {
+  const value = params.get(key);
+  if (!value) return undefined;
+  
+  if (validValues.includes(value as T)) {
+    return value as T;
+  }
+  
+  return undefined;
+}

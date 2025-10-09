@@ -414,8 +414,8 @@ export default function SettingsPage() {
         const errorMsg = !data.success && 'error' in data ? data.error : '設定の読み込みに失敗しました';
         throw new Error(errorMsg);
       }
-    } catch (error: unknown) {
-      const errorMsg = error instanceof Error ? error.message : '設定の読み込みに失敗しました';
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : '設定の読み込みに失敗しました';
       setErrorMessage(errorMsg);
       setSuccessMessage('');
     } finally {
@@ -464,8 +464,8 @@ export default function SettingsPage() {
       setTheme(prev => ({ ...prev, ui: themeData.data?.darkMode ?? prev.ui }));
       setSuccessMessage('設定が正常に保存されました');
       setErrorMessage('');
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : '設定の保存中にエラーが発生しました');
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : '設定の保存中にエラーが発生しました');
       setSuccessMessage('');
     } finally {
       setIsSaving(false);
@@ -508,8 +508,8 @@ export default function SettingsPage() {
         setSuccessMessage('キャッシュが正常にクリアされました');
       }
       setErrorMessage('');
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'キャッシュクリア中にエラーが発生しました');
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'キャッシュクリア中にエラーが発生しました');
       setSuccessMessage('');
     } finally {
       setIsCacheClearing(false);

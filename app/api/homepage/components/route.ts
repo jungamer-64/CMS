@@ -56,8 +56,8 @@ export const GET = createGetHandler<HomepageComponent[]>(
     
     try {
       return createSuccessResponse(mockComponents);
-    } catch (error) {
-      console.error('コンポーネント一覧取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('コンポーネント一覧取得エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('コンポーネントの取得に失敗しました');
     }
   }
@@ -77,8 +77,8 @@ export const PUT = createPutHandler<HomepageComponent[], HomepageComponent[]>(
       mockComponents = body;
       
       return createSuccessResponse(mockComponents);
-    } catch (error) {
-      console.error('コンポーネント更新エラー:', error);
+    } catch (err: unknown) {
+      console.error('コンポーネント更新エラー:', err instanceof Error ? err : String(err));
       return createErrorResponse('コンポーネントの更新に失敗しました');
     }
   }

@@ -165,9 +165,9 @@ export function createRestGetHandler<T>(
       // データレスポンス作成
       return createRestDataResponse(result, 'Request processed successfully');
 
-    } catch (error) {
+    } catch (err: unknown) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('GET handler error:', error);
+        console.error('GET handler error:', err instanceof Error ? err : String(err));
       }
       return createRestErrorResponse(
         RestErrorCode.INTERNAL_ERROR,
@@ -225,9 +225,9 @@ export function createRestPostHandler<TBody, TResponse>(
       // データレスポンス作成
       return createRestDataResponse(result, 'Resource created successfully', HttpStatus.CREATED);
 
-    } catch (error) {
+    } catch (err: unknown) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('POST handler error:', error);
+        console.error('POST handler error:', err instanceof Error ? err : String(err));
       }
       return createRestErrorResponse(
         RestErrorCode.INTERNAL_ERROR,
@@ -285,9 +285,9 @@ export function createRestPutHandler<TBody, TResponse>(
       // データレスポンス作成
       return createRestDataResponse(result, 'Resource updated successfully');
 
-    } catch (error) {
+    } catch (err: unknown) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('PUT handler error:', error);
+        console.error('PUT handler error:', err instanceof Error ? err : String(err));
       }
       return createRestErrorResponse(
         RestErrorCode.INTERNAL_ERROR,
@@ -346,9 +346,9 @@ export function createRestDeleteHandler<T>(
         },
       });
 
-    } catch (error) {
+    } catch (err: unknown) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('DELETE handler error:', error);
+        console.error('DELETE handler error:', err instanceof Error ? err : String(err));
       }
       return createRestErrorResponse(
         RestErrorCode.INTERNAL_ERROR,

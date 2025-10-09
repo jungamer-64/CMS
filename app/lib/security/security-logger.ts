@@ -92,8 +92,8 @@ export class SecurityLogger {
 
       const logLine = JSON.stringify(event) + '\n';
       await fs.appendFile(logFile, logLine, 'utf8');
-    } catch (error) {
-      console.error('Failed to write security log to file:', error);
+    } catch (err: unknown) {
+      console.error('Failed to write security log to file:', err instanceof Error ? err : String(err));
     }
   }
 
@@ -117,8 +117,8 @@ export class SecurityLogger {
       if (!response.ok) {
         throw new Error(`Log API responded with status: ${response.status}`);
       }
-    } catch (error) {
-      console.error('Failed to send security log to external system:', error);
+    } catch (err: unknown) {
+      console.error('Failed to send security log to external system:', err instanceof Error ? err : String(err));
     }
   }
 

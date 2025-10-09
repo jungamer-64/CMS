@@ -35,8 +35,8 @@ export const GET = createGetHandler<User>(
       }
 
       return createApiSuccess(userInfo, 'プロフィール情報を取得しました');
-    } catch (error) {
-      console.error('プロフィール取得エラー:', error);
+    } catch (err: unknown) {
+      console.error('プロフィール取得エラー:', err instanceof Error ? err : String(err));
       return createApiError(
         'プロフィール情報の取得に失敗しました',
         ApiErrorCode.INTERNAL_ERROR
@@ -86,10 +86,10 @@ export const PUT = createPutHandler<UserUpdateInput, User>(
 
       console.log('プロフィール更新成功 - ユーザーID:', id);
       return createApiSuccess(updatedUserInfo, 'プロフィールが正常に更新されました');
-    } catch (error) {
-      console.error('プロフィール更新エラー:', error);
+    } catch (err: unknown) {
+      console.error('プロフィール更新エラー:', err instanceof Error ? err : String(err));
       return createApiError(
-        error instanceof Error ? error.message : 'プロフィールの更新に失敗しました',
+        err instanceof Error ? err.message : 'プロフィールの更新に失敗しました',
         ApiErrorCode.INTERNAL_ERROR
       );
     }
