@@ -1,4 +1,4 @@
-import { handleApiError, handleSuccess, createUnifiedError } from '@/app/lib/core/error-handler';
+import { createUnifiedError, handleApiError, handleSuccess } from '@/app/lib/core/error-handler';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';

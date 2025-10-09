@@ -1,11 +1,11 @@
 /**
  * Homepage Helper Functions ユニットテスト
- * 
+ *
  * homepage.tsのリファクタリング後のヘルパー関数をテストします。
  * buildColorScheme, buildTypography, buildLayout, buildSpacingの動作を検証します。
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GlobalStylesInput } from '../app/lib/core/types/api-unified';
 
 // モジュールのモック
@@ -50,7 +50,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       expect(result.colorScheme.primary).toBe('#ff0000');
       expect(result.colorScheme.secondary).toBe('#00ff00');
       expect(result.colorScheme.accent).toBe('#0000ff');
@@ -68,7 +68,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       // デフォルト値の確認
       expect(result.colorScheme.primary).toBe('#000000');
       expect(result.colorScheme.secondary).toBe('#ffffff');
@@ -88,7 +88,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       expect(result.colorScheme.primary).toBe('#ff0000');
       expect(result.colorScheme.secondary).toBe('#ffffff'); // デフォルト
       expect(result.colorScheme.accent).toBe('#0070f3'); // デフォルト
@@ -114,7 +114,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       expect(result.typography.fontFamily).toBe('Roboto, sans-serif');
       expect(result.typography.fontSize.base).toBe('18px');
       expect(result.typography.fontSize.heading).toBe('32px');
@@ -128,7 +128,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       // デフォルト値の確認
       expect(result.typography.fontFamily).toBe('system-ui');
       expect(result.typography.fontSize.base).toBe('16px');
@@ -149,7 +149,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       expect(result.typography.fontFamily).toBe('Georgia, serif');
       expect(result.typography.fontSize.base).toBe('20px');
       expect(result.typography.fontSize.heading).toBeUndefined();
@@ -167,7 +167,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       expect(result.typography.fontFamily).toBe('system-ui'); // デフォルト
       expect(result.typography.fontSize.base).toBe('16px'); // デフォルト
       expect(result.typography.fontSize.heading).toBe('48px');
@@ -187,7 +187,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       expect(result.layout.maxWidth).toBe('1400px');
       expect(result.layout.spacing).toBe('2rem');
       expect(result.layout.borderRadius).toBe('8px');
@@ -200,7 +200,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       // デフォルト値の確認
       expect(result.layout.maxWidth).toBeUndefined();
       expect(result.layout.spacing).toBe('1rem');
@@ -217,7 +217,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       expect(result.layout.maxWidth).toBe('1600px');
       expect(result.layout.spacing).toBe('1rem'); // デフォルト
       expect(result.layout.borderRadius).toBe('4px'); // デフォルト
@@ -234,7 +234,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       expect(result.spacing.containerMaxWidth).toBe('1800px');
     });
 
@@ -245,7 +245,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       // デフォルト値の確認
       expect(result.spacing.containerMaxWidth).toBe('1200px');
     });
@@ -287,7 +287,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       // すべてのセクションが正しく設定されているか確認
       expect(result.primaryColor).toBe('#ff6b6b');
       expect(result.colorScheme.primary).toBe('#ff6b6b');
@@ -302,7 +302,7 @@ describe('Homepage Helper Functions', () => {
       };
 
       const result = await createGlobalStyles(input);
-      
+
       // すべてのフィールドがデフォルト値で埋まっているか確認
       expect(result.primaryColor).toBe('#000000');
       expect(result.colorScheme.primary).toBe('#000000');

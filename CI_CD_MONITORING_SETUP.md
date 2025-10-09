@@ -16,6 +16,7 @@
 #### 📁 `app/lib/core/logger.ts` (新規作成)
 
 **主な機能:**
+
 - ログレベル管理（error, warn, info, debug）
 - 構造化されたJSON形式のログ出力
 - コンテキスト/メタデータのサポート
@@ -25,6 +26,7 @@
 - 外部ロギングサービス統合ポイント（Sentry, Datadog等）
 
 **使用例:**
+
 ```typescript
 import { logger, createLogger, PerformanceLogger } from '@/app/lib/core/logger';
 
@@ -43,24 +45,28 @@ perfLogger.end({ rowCount: 100 });
 ```
 
 **ログレベルの優先順位:**
+
 1. **ERROR** (最高) - システムの動作に影響する問題
 2. **WARN** - 問題があるが動作は継続
 3. **INFO** - 通常の動作ログ
 4. **DEBUG** (最低) - 開発時の詳細情報
 
 **環境変数:**
+
 - `LOG_LEVEL`: ログレベルを設定（error, warn, info, debug）
 - `NODE_ENV`: development では見やすい形式、production ではJSON形式で出力
 
 #### 🔄 `app/lib/core/error-handler.ts` (更新)
 
 **変更内容:**
+
 - `logger` モジュールの統合
 - `logError` 関数を更新して `createLogger` を使用
 - エラー重要度に応じた適切なログレベルの選択
 - コンテキスト情報の構造化
 
 **Before (基本的なconsole.error):**
+
 ```typescript
 function logError(error: HandledError, severity: ErrorSeverity, context?: ErrorContext): void {
   const logData = { severity, message: error.message, code: error.code };
@@ -69,6 +75,7 @@ function logError(error: HandledError, severity: ErrorSeverity, context?: ErrorC
 ```
 
 **After (統一ロガー使用):**
+
 ```typescript
 function logError(error: HandledError, severity: ErrorSeverity, context?: ErrorContext): void {
   const errorLogger = createLogger('error-handler', {
@@ -95,29 +102,35 @@ function logError(error: HandledError, severity: ErrorSeverity, context?: ErrorC
 #### 📁 `.github/workflows/ci.yml` (新規作成)
 
 **トリガー:**
+
 - `push` イベント: `main`, `develop` ブランチ
 - `pull_request` イベント: `main`, `develop` ブランチへのPR
 
 **ジョブ:**
 
 ##### 1. **Test** ジョブ
+
 - Node.js 18.x と 20.x のマトリックスビルド
 - pnpm でのキャッシュ付き依存関係インストール
 - `pnpm test` によるテスト実行
 - Codecov へのカバレッジレポートアップロード（Node.js 20.x のみ）
 
 ##### 2. **Lint** ジョブ
+
 - ESLint によるコード品質チェック
 - `pnpm lint` の実行
 
 ##### 3. **Type Check** ジョブ
+
 - TypeScript の型チェック
 - `pnpm type-check` の実行
 
 ##### 4. **Format Check** ジョブ
+
 - コードフォーマットのチェック（オプション）
 
 **特徴:**
+
 - pnpm のキャッシュで高速化
 - 並列実行による時間短縮
 - frozen-lockfile での厳密な依存関係管理
@@ -125,24 +138,28 @@ function logError(error: HandledError, severity: ErrorSeverity, context?: ErrorC
 #### 📁 `.github/workflows/build.yml` (新規作成)
 
 **トリガー:**
+
 - `push` イベント: `main`, `develop` ブランチ
 - `pull_request` イベント: `main`, `develop` ブランチへのPR
 
 **ジョブ:**
 
 ##### **Build** ジョブ
+
 - 本番環境ビルドの検証
 - `pnpm build` の実行
 - `.next` ディレクトリの存在確認
 - ビルド成果物のアップロード（7日間保持）
 
 **特徴:**
+
 - 本番環境相当のビルドチェック
 - ビルド成果物の保存と共有
 
 #### 📁 `.github/workflows/security.yml` (新規作成)
 
 **トリガー:**
+
 - `push` イベント: `main`, `develop` ブランチ
 - `pull_request` イベント: `main`, `develop` ブランチへのPR
 - `schedule`: 毎週月曜日の午前0時（UTC）に実行
@@ -150,18 +167,22 @@ function logError(error: HandledError, severity: ErrorSeverity, context?: ErrorC
 **ジョブ:**
 
 ##### 1. **Dependency Scan** ジョブ
+
 - `pnpm audit` による依存関係の脆弱性スキャン
 - 古いパッケージのチェック
 
 ##### 2. **Code Security** ジョブ
+
 - GitHub CodeQL によるコードセキュリティ分析
 - JavaScript/TypeScript のセキュリティ脆弱性検出
 
 ##### 3. **Secrets Scan** ジョブ
+
 - Gitleaks による秘密情報の漏洩チェック
 - コミット履歴全体のスキャン
 
 **特徴:**
+
 - 定期的な自動セキュリティスキャン
 - 継続的なセキュリティ監視
 
@@ -174,12 +195,14 @@ function logError(error: HandledError, severity: ErrorSeverity, context?: ErrorC
 **エンドポイント:** `GET /api/health`
 
 **機能:**
+
 - システムの稼働状況を監視
 - データベース接続チェック（ping + レイテンシー測定）
 - メモリ使用状況チェック（警告: 75%、危機: 90%）
 - 環境情報の提供
 
 **レスポンス例:**
+
 ```json
 {
   "status": "healthy",
@@ -206,11 +229,13 @@ function logError(error: HandledError, severity: ErrorSeverity, context?: ErrorC
 ```
 
 **ステータス:**
+
 - `healthy` (200): すべてのチェックが正常
 - `degraded` (200): 一部のチェックで警告
 - `unhealthy` (503): 重大な問題が発生
 
 **使用例:**
+
 ```bash
 # ヘルスチェック
 curl http://localhost:3000/api/health
@@ -226,6 +251,7 @@ curl http://localhost:3000/api/health
 **エンドポイント:** `GET /api/metrics`
 
 **機能:**
+
 - システムメトリクスの収集
 - メモリ使用量（heap, RSS, external）
 - CPU使用率（user, system）
@@ -233,10 +259,12 @@ curl http://localhost:3000/api/health
 - 環境情報
 
 **認証:**
+
 - 開発環境: 認証なしでアクセス可能
 - 本番環境: `Authorization: Bearer <METRICS_TOKEN>` ヘッダーが必要
 
 **レスポンス例:**
+
 ```json
 {
   "timestamp": "2025-01-21T10:30:00.000Z",
@@ -266,6 +294,7 @@ curl http://localhost:3000/api/health
 ```
 
 **使用例:**
+
 ```bash
 # 開発環境
 curl http://localhost:3000/api/metrics
@@ -320,7 +349,7 @@ import { PerformanceLogger } from '@/app/lib/core/logger';
 
 async function fetchUsers() {
   const perfLogger = new PerformanceLogger('fetch-users', { endpoint: '/api/users' });
-  
+
   try {
     const users = await db.collection('users').find().toArray();
     perfLogger.end({ count: users.length });
@@ -338,10 +367,11 @@ async function fetchUsers() {
 
 1. **CODECOV_TOKEN** (オプション)
    - Codecov でのコードカバレッジレポート用
-   - 取得方法: https://codecov.io/
+   - 取得方法: <https://codecov.io/>
 
 2. **METRICS_TOKEN** (推奨)
    - 本番環境でのメトリクスエンドポイント認証用
+
    ```bash
    # ランダムトークン生成
    openssl rand -base64 32
@@ -358,6 +388,7 @@ async function fetchUsers() {
 #### ヘルスチェックエンドポイント
 
 **Kubernetes liveness probe:**
+
 ```yaml
 livenessProbe:
   httpGet:
@@ -368,6 +399,7 @@ livenessProbe:
 ```
 
 **Docker Compose healthcheck:**
+
 ```yaml
 healthcheck:
   test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
@@ -379,11 +411,13 @@ healthcheck:
 #### メトリクスエンドポイント
 
 **環境変数の設定 (`.env.local`):**
+
 ```env
 METRICS_TOKEN=your-secret-token-here
 ```
 
 **Prometheus スクレイピング (カスタムエクスポーター必要):**
+
 ```yaml
 scrape_configs:
   - job_name: 'nextjs-cms'
@@ -422,9 +456,10 @@ scrape_configs:
 ### ロギングシステム
 
 1. **外部ロギングサービス統合**
+
    ```typescript
    import { ExternalLogTransport, logger } from '@/app/lib/core/logger';
-   
+
    // Sentry、Datadog、Logtail等への送信
    const externalTransport = new ExternalLogTransport(
      process.env.LOG_ENDPOINT!,
@@ -503,16 +538,19 @@ scrape_configs:
 ## 📚 参考資料
 
 ### ロギング
+
 - [Winston](https://github.com/winstonjs/winston) - Node.js のロギングライブラリ
 - [Pino](https://github.com/pinojs/pino) - 高速JSONロガー
 - [Sentry](https://sentry.io/) - エラー監視サービス
 
 ### CI/CD
+
 - [GitHub Actions ドキュメント](https://docs.github.com/en/actions)
 - [pnpm CI セットアップ](https://pnpm.io/continuous-integration)
 - [Codecov](https://about.codecov.io/) - コードカバレッジ
 
 ### 監視
+
 - [Prometheus](https://prometheus.io/) - メトリクス収集
 - [Grafana](https://grafana.com/) - 可視化ダッシュボード
 - [Datadog](https://www.datadoghq.com/) - 統合監視プラットフォーム

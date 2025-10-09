@@ -1,11 +1,11 @@
 /**
  * Markdown & DOMPurify ユニットテスト
- * 
+ *
  * markdown.tsのDOMPurify統合とXSS対策を検証します。
  */
 
-import { describe, expect, it, beforeEach } from 'vitest';
 import { JSDOM } from 'jsdom';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 // JSDOM環境のセットアップ
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
@@ -13,7 +13,7 @@ global.document = dom.window.document as unknown as Document;
 global.DOMParser = dom.window.DOMParser as unknown as typeof DOMParser;
 
 // テスト対象のモジュールをインポート
-import { markdownToHtml, sanitizeHtml, escapeHtml, getContentPreview } from '../app/lib/utils/markdown';
+import { escapeHtml, getContentPreview, markdownToHtml, sanitizeHtml } from '../app/lib/utils/markdown';
 
 describe('Markdown & DOMPurify Integration', () => {
   beforeEach(() => {
@@ -259,7 +259,7 @@ console.log(greeting);
 [Visit my website](https://example.com)
 `;
       const result = markdownToHtml(blogPost);
-      
+
       expect(result).toContain('<h1');
       expect(result).toContain('My Blog Post');
       expect(result).toContain('<strong>');
@@ -278,7 +278,7 @@ Check out my site: [click here](javascript:alert('XSS'))
 <script>alert('XSS')</script>
 `;
       const result = markdownToHtml(userComment);
-      
+
       expect(result).toContain('Thanks for the post');
       expect(result).not.toContain('javascript:');
       expect(result).not.toContain('<script>');

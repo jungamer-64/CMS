@@ -1,12 +1,12 @@
 /**
  * UserModel ユニットテスト
- * 
+ *
  * リファクタリング後のバリデーション関数の動作を検証します。
  */
 
 import { describe, expect, it } from 'vitest';
-import { UserModel } from '../app/lib/data/models/user-model';
 import type { UserInput, UserUpdateInput } from '../app/lib/core/types';
+import { UserModel } from '../app/lib/data/models/user-model';
 
 describe('UserModel - validateInput', () => {
   describe('ユーザー名のバリデーション', () => {

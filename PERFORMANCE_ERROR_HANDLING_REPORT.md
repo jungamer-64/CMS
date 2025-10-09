@@ -1,7 +1,7 @@
 # パフォーマンス最適化とエラーハンドリング統一 - 完了レポート
 
-**実施日:** 2025年10月10日  
-**コミット:** `231a1e1`  
+**実施日:** 2025年10月10日
+**コミット:** `231a1e1`
 **ステータス:** ✅ 完了
 
 ---
@@ -99,6 +99,7 @@ interface ErrorContext {
 #### 変更前後の比較
 
 **変更前:**
+
 ```typescript
 function createApiError(error: string, code: number = 500) {
   return NextResponse.json({ success: false, error }, { status: code });
@@ -109,6 +110,7 @@ return createApiError('エラーメッセージ', 400);
 ```
 
 **変更後:**
+
 ```typescript
 import { handleApiError, createUnifiedError } from '@/app/lib/core/error-handler';
 
@@ -253,6 +255,7 @@ Total: +685 insertions, -45 deletions
 - `app/api/webhooks/route.ts` (GET)
 
 **適用パターン:**
+
 ```typescript
 // Before
 try {
@@ -282,7 +285,7 @@ import * as Sentry from '@sentry/nextjs';
 function logError(error: HandledError, severity: ErrorSeverity, context?: ErrorContext): void {
   // 既存のコンソールログ
   console.error('[Error]', logData);
-  
+
   // Sentryへの送信
   if (severity === ErrorSeverity.CRITICAL || severity === ErrorSeverity.ERROR) {
     Sentry.captureException(error.originalError, {
@@ -320,19 +323,19 @@ import { handleApiError, handleSuccess, createUnifiedError } from '@/app/lib/cor
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
+
     // バリデーション
     if (!data.field) {
       const error = createUnifiedError.validation('必須フィールドが不足しています');
       return handleApiError(error, { location: '/api/your-route' });
     }
-    
+
     // 処理実行
     const result = await performOperation(data);
-    
+
     // 成功レスポンス
     return handleSuccess(result, '処理が成功しました');
-    
+
   } catch (error) {
     // 自動エラーハンドリング
     return handleApiError(error, { location: '/api/your-route' });
@@ -422,6 +425,6 @@ import ErrorBoundary, { ErrorFallback } from '@/app/components/ErrorBoundary';
 
 ---
 
-**作成者:** GitHub Copilot  
-**レビュー:** 必要に応じてコードレビューを実施してください  
+**作成者:** GitHub Copilot
+**レビュー:** 必要に応じてコードレビューを実施してください
 **次のステップ:** 残りのAPIルートへの統一エラーハンドラー適用、外部ロギングサービスの統合

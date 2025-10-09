@@ -28,6 +28,7 @@
     "pm2:status": "pm2 status",
     "pm2:logs": "pm2 logs",
     "pm2:monit": "pm2 monit",
+    "test:monitoring": "node scripts/test-monitoring-endpoints.js",
     "test": "vitest"
   },
   "dependencies": {

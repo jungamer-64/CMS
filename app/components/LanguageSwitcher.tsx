@@ -1,8 +1,8 @@
 'use client';
 
-import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
-import { useState, useRef, useEffect, memo, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/router';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface Language {
   code: string;
@@ -50,27 +50,27 @@ function LanguageSwitcher({
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState<'left' | 'right' | 'center'>('center');
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   // currentLanguageをuseMemoで最適化
   const currentLanguage = useMemo(
     () => languages.find(lang => lang.code === i18n.language) || languages[0],
     [i18n.language]
   );
-  
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-    
+
     const adjustDropdownPosition = () => {
       if (dropdownRef.current) {
         const rect = dropdownRef.current.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
         const dropdownWidth = 320; // w-80 = 320px固定
         const margin = 32; // より大きなマージンを設定
-        
+
         // 画面の右半分にある場合は右寄せ
         if (rect.left > viewportWidth / 2) {
           setDropdownPosition('right');
@@ -78,33 +78,33 @@ function LanguageSwitcher({
         // 右端チェック：ドロップダウンが画面右端を超える場合も右寄せ
         else if (rect.left + dropdownWidth > viewportWidth - margin) {
           setDropdownPosition('right');
-        } 
+        }
         // 左端チェック：ドロップダウンが画面左端を超える場合は左寄せ
         else if (rect.right - dropdownWidth < margin) {
           setDropdownPosition('left');
-        } 
+        }
         // デフォルトは右寄せ
         else {
           setDropdownPosition('right');
         }
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('resize', adjustDropdownPosition);
     adjustDropdownPosition();
-    
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('resize', adjustDropdownPosition);
     };
   }, [variant]);
-  
+
   // handleLanguageChangeをuseCallbackで最適化
   const handleLanguageChange = useCallback(async (languageCode: string) => {
     const selectedLanguage = languages.find(lang => lang.code === languageCode);
     if (!selectedLanguage) return;
-    
+
     // RTL言語の場合はbody要素にdir属性を設定
     if (selectedLanguage.rtl) {
       document.documentElement.dir = 'rtl';
@@ -113,22 +113,22 @@ function LanguageSwitcher({
       document.documentElement.dir = 'ltr';
       document.documentElement.lang = languageCode;
     }
-    
+
     // ルーターで言語を変更
     const { pathname, asPath, query } = router;
     router.push({ pathname, query }, asPath, { locale: languageCode });
-    
+
     setIsOpen(false);
     onLanguageChange?.(languageCode);
   }, [router, onLanguageChange]);
-  
+
   const getDropdownPositionClass = () => {
     // ナビゲーションバーの右端にある場合は常に右寄せ
     if (dropdownPosition === 'right') return 'right-0';
     if (dropdownPosition === 'left') return 'left-0';
     return 'right-0'; // デフォルトも右寄せに変更
   };
-  
+
   if (variant === 'compact') {
     return (
       <div className={`relative ${className}`} ref={dropdownRef}>
@@ -148,7 +148,7 @@ function LanguageSwitcher({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        
+
         {isOpen && (
           <div className={`absolute top-full mt-1 w-80 min-w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50 max-h-80 overflow-y-auto language-selector-scroll ${getDropdownPositionClass()}`}>
             <div className="py-1">
@@ -156,9 +156,8 @@ function LanguageSwitcher({
                 <button
                   key={language.code}
                   onClick={() => handleLanguageChange(language.code)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2 language-button-hover ${
-                    currentLanguage.code === language.code ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : ''
-                  }`}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2 language-button-hover ${currentLanguage.code === language.code ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : ''
+                    }`}
                 >
                   {showFlag && <span className="text-base">{language.flag}</span>}
                   <div className="flex-1">
@@ -180,7 +179,7 @@ function LanguageSwitcher({
       </div>
     );
   }
-  
+
   if (variant === 'full') {
     return (
       <div className={`grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 ${className}`}>
@@ -188,11 +187,10 @@ function LanguageSwitcher({
           <button
             key={language.code}
             onClick={() => handleLanguageChange(language.code)}
-            className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-              currentLanguage.code === language.code
+            className={`p-3 rounded-lg border-2 transition-all duration-200 ${currentLanguage.code === language.code
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                 : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
+              }`}
             aria-label={`Switch to ${language.name}`}
           >
             <div className="flex items-center space-x-3">
@@ -209,7 +207,7 @@ function LanguageSwitcher({
       </div>
     );
   }
-  
+
   // デフォルトのドロップダウン
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -229,7 +227,7 @@ function LanguageSwitcher({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      
+
       {isOpen && (
         <div className={`absolute top-full mt-1 w-80 min-w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50 max-h-80 overflow-y-auto language-selector-scroll ${getDropdownPositionClass()}`}>
           <div className="py-1">
@@ -237,9 +235,8 @@ function LanguageSwitcher({
               <button
                 key={language.code}
                 onClick={() => handleLanguageChange(language.code)}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2 language-button-hover ${
-                  currentLanguage.code === language.code ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : ''
-                }`}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2 language-button-hover ${currentLanguage.code === language.code ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : ''
+                  }`}
               >
                 {showFlag && <span className="text-base">{language.flag}</span>}
                 <div className="flex-1 min-w-0">

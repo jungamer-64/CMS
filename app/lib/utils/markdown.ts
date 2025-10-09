@@ -1,7 +1,7 @@
 'use client';
 
-import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { marked } from 'marked';
 
 // マークダウンのレンダラー設定
 marked.setOptions({
@@ -13,7 +13,7 @@ marked.setOptions({
 const renderer = new marked.Renderer();
 
 // HTMLブロックをそのまま通す
-renderer.html = function(token: { text?: string; raw?: string }) {
+renderer.html = function (token: { text?: string; raw?: string }) {
   return token.text || token.raw || '';
 };
 
@@ -48,19 +48,19 @@ const DOMPURIFY_CONFIG = {
  */
 export function markdownToHtml(markdown: string): string {
   if (!markdown) return '';
-  
+
   try {
     // デバッグ用ログ
     console.log('markdownToHtml - 入力:', markdown);
-    
+
     // マークダウンをHTMLに変換
     const rawHtml = marked.parse(markdown) as string;
     console.log('markdownToHtml - markedの出力:', rawHtml);
-    
+
     // DOMPurifyでサニタイズ
     const sanitizedHtml = DOMPurify.sanitize(rawHtml, DOMPURIFY_CONFIG);
     console.log('markdownToHtml - サニタイズ後:', sanitizedHtml);
-    
+
     return sanitizedHtml;
   } catch (err: unknown) {
     console.error('マークダウン変換エラー:', err instanceof Error ? err : String(err));
@@ -91,18 +91,18 @@ export function escapeHtml(text: string): string {
  */
 export function getContentPreview(content: string, maxLength: number = 150): string {
   if (!content) return '';
-  
+
   // マークダウンをHTMLに変換（既にサニタイズ済み）
   const sanitizedHtml = markdownToHtml(content);
-  
+
   // DOMParserを使用してHTMLをパース（setInnerHTMLよりも安全）
   const parser = new DOMParser();
   const doc = parser.parseFromString(sanitizedHtml, 'text/html');
   const plainText = doc.body.textContent || doc.body.innerText || '';
-  
+
   if (plainText.length <= maxLength) {
     return plainText;
   }
-  
+
   return plainText.substring(0, maxLength) + '...';
 }

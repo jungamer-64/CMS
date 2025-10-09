@@ -1,6 +1,6 @@
 /**
  * ユーザーモデル
- * 
+ *
  * ユーザーエンティティのビジネスロジック、バリデーション、
  * ユーティリティメソッドを提供します。
  */
@@ -25,7 +25,7 @@ export class UserModel {
    */
   private static validateUsername(username: string | undefined): string[] {
     const errors: string[] = [];
-    
+
     if (username === undefined) {
       return errors;
     }
@@ -48,7 +48,7 @@ export class UserModel {
    */
   private static validateEmail(email: string | undefined): string[] {
     const errors: string[] = [];
-    
+
     if (email === undefined) {
       return errors;
     }
@@ -67,7 +67,7 @@ export class UserModel {
    */
   private static validatePassword(password: string | undefined): string[] {
     const errors: string[] = [];
-    
+
     if (password === undefined) {
       return errors;
     }
@@ -88,7 +88,7 @@ export class UserModel {
    */
   private static validateDisplayName(displayName: string | undefined): string[] {
     const errors: string[] = [];
-    
+
     if (displayName === undefined) {
       return errors;
     }
@@ -107,7 +107,7 @@ export class UserModel {
    */
   private static validateRole(role: string | undefined): string[] {
     const errors: string[] = [];
-    
+
     if (role !== undefined && !isUserRole(role)) {
       errors.push('有効なユーザーロールを指定してください');
     }

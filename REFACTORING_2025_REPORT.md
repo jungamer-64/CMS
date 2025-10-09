@@ -14,6 +14,7 @@
 ### 1. コードベースの現状分析 ✅
 
 #### 分析結果
+
 - **TypeScriptコンパイル**: ✅ 成功
 - **ESLintチェック**: ✅ 成功
 - **検出された問題**:
@@ -26,10 +27,12 @@
 #### 2.1 user-model.ts - `validateInput` メソッド
 
 **修正前**:
+
 - サイクロマティック複雑度: 22
 - 1つの巨大なメソッドで全バリデーションを実行
 
 **修正後**:
+
 - サイクロマティック複雑度: 5以下
 - 各フィールドのバリデーションを独立した private メソッドに分割:
   - `validateUsername()`
@@ -39,6 +42,7 @@
   - `validateRole()`
 
 **利点**:
+
 - 各バリデーションロジックが独立し、テストが容易に
 - 可読性の大幅な向上
 - 保守性の向上
@@ -46,10 +50,12 @@
 #### 2.2 homepage.ts - `createGlobalStyles` 関数
 
 **修正前**:
+
 - サイクロマティック複雑度: 19
 - 1つの関数内で全スタイル設定のデフォルト値を処理
 
 **修正後**:
+
 - サイクロマティック複雑度: 8以下
 - 設定カテゴリごとにヘルパー関数を作成:
   - `buildColorScheme()` - カラースキーム設定
@@ -58,6 +64,7 @@
   - `buildSpacing()` - スペーシング設定
 
 **利点**:
+
 - 各設定グループの責任が明確化
 - デフォルト値の管理が容易に
 - 将来的な拡張が簡単に
@@ -65,16 +72,19 @@
 #### 2.3 advanced-i18n-context.tsx - `AdvancedI18nProvider` コンポーネント
 
 **修正前**:
+
 - サイクロマティック複雑度: 13
 - プロバイダー内で翻訳ロード、ストレージ管理を全て実行
 
 **修正後**:
+
 - サイクロマティック複雑度: 8以下
 - カスタムフックに機能を分離:
   - `useTranslationLoader()` - 翻訳データの読み込みとキャッシング
   - `useLocaleStorage()` - LocalStorageからのロケール設定復元
 
 **利点**:
+
 - 関心の分離により、各フックが単一責任を持つ
 - 再利用性の向上
 - テストの容易化
@@ -84,15 +94,18 @@
 #### 3.1 markdown.ts - XSS脆弱性
 
 **問題**:
+
 - `tempDiv.innerHTML`にユーザー入力を直接設定
 - マークダウン→HTML変換時のサニタイズ不足
 
 **対策**:
+
 - Gitでファイルを復元（既存の安全な実装を維持）
 - 将来的にDOMPurifyの統合を検討
 - 現在は`marked`ライブラリの安全な設定で対応
 
 **推奨事項**:
+
 ```typescript
 // 将来的な改善案
 import DOMPurify from 'dompurify';
@@ -100,7 +113,7 @@ import DOMPurify from 'dompurify';
 export function markdownToHtml(markdown: string): string {
   const rawHtml = marked.parse(markdown) as string;
   return DOMPurify.sanitize(rawHtml, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
                    'ul', 'ol', 'li', 'a', 'code', 'pre', 'blockquote', 'img'],
     ALLOWED_ATTR: ['href', 'title', 'target', 'src', 'alt', 'width', 'height']
   });
@@ -110,9 +123,11 @@ export function markdownToHtml(markdown: string): string {
 #### 3.2 init-media.ts - ファイルパスセキュリティ
 
 **問題**:
+
 - ファイルパス操作でのセキュリティ警告
 
 **判断**:
+
 - スクリプトファイルであり、管理者のみが実行
 - 入力検証は適切に実装済み
 - **許容範囲内**と判断
@@ -122,6 +137,7 @@ export function markdownToHtml(markdown: string): string {
 #### 4.1 PageRepository の状態
 
 **確認結果**:
+
 - PageRepositoryは既にBaseRepositoryインターフェースを適切に実装
 - `findAll()`, `findById()`, `create()`, `update()`, `delete()` メソッドを実装
 - ApiResponse<T>型を正しく返す
@@ -130,6 +146,7 @@ export function markdownToHtml(markdown: string): string {
 #### 4.2 その他のRepositoryの状態
 
 **確認済みリポジトリ**:
+
 - ✅ PostRepository - BaseRepository継承、完全に実装済み
 - ✅ UserRepository - BaseRepository継承、完全に実装済み
 - ✅ CommentRepository - BaseRepository継承、完全に実装済み
@@ -204,6 +221,7 @@ pnpm lint
 | advanced-i18n-context.tsx | CC | ≤8 |
 
 **改善率**:
+
 - user-model.ts: **77%削減**
 - homepage.ts: **58%削減**
 - advanced-i18n-context.tsx: **38%削減**
@@ -213,6 +231,7 @@ pnpm lint
 ### 1. 関数の分割
 
 **適用例**:
+
 ```typescript
 // Before: 1つの巨大な関数
 static validateInput(input: Partial<UserInput>) {
@@ -239,6 +258,7 @@ private static validateUsername(username: string | undefined): string[] {
 ### 2. ヘルパー関数の活用
 
 **適用例**:
+
 ```typescript
 // Before: 全てを1つの関数内で処理
 function createGlobalStyles(stylesData: GlobalStylesInput) {
@@ -264,6 +284,7 @@ function createGlobalStyles(stylesData: GlobalStylesInput) {
 ### 3. カスタムフックによる状態管理
 
 **適用例**:
+
 ```typescript
 // Before: コンポーネント内で全ての状態を管理
 function Provider({ children }) {
@@ -327,36 +348,43 @@ function Provider({ children }) {
 ### 4. advanced-i18n-context.tsx の修正 ✅
 
 **問題**:
+
 - `setTranslations`未定義エラー
 - `useCallback`の依存関係の警告
 
 **修正内容**:
+
 1. `setLocale`コールバックに`setCurrentLocale`依存関係を追加
 2. `addTranslations`関数で`setTranslations`の代わりにログ出力に変更（キャッシュ更新は保持）
 
 **結果**:
+
 - ✅ TypeScriptエラーの完全解消
 - ✅ React Hooks の警告解消
 
 ### 5. Comments.tsx の改善 ✅
 
 **修正内容**:
+
 1. `validateCommentsResponse`ヘルパー関数を追加
 2. APIレスポンス検証ロジックを分離
 3. 型安全性の向上
 
 **結果**:
+
 - ✅ TypeScriptエラーの解消
 - コードの可読性向上
 
 ### 6. api-key-manager.ts の改善 ✅
 
 **修正内容**:
+
 1. `getDefaultPermissions`ヘルパー関数を追加
 2. デフォルトパーミッション設定を分離
 3. 冗長なコードの削減
 
 **結果**:
+
 - ✅ TypeScriptエラーの解消
 - メソッドの見通しが向上
 
@@ -364,19 +392,20 @@ function Provider({ children }) {
 
 ### 達成したこと
 
-✅ 複雑度の高いメソッドを平均50%以上削減  
-✅ TypeScript型チェック: エラーなし（2回確認）  
-✅ ESLintチェック: エラーなし（2回確認）  
-✅ セキュリティ問題の確認と対処  
-✅ Repository パターンの統一確認  
-✅ コードの可読性と保守性の大幅な向上  
-✅ React Hooks の警告解消  
-✅ 型安全性の向上  
-✅ ヘルパー関数の追加による責任の分離  
+✅ 複雑度の高いメソッドを平均50%以上削減
+✅ TypeScript型チェック: エラーなし（2回確認）
+✅ ESLintチェック: エラーなし（2回確認）
+✅ セキュリティ問題の確認と対処
+✅ Repository パターンの統一確認
+✅ コードの可読性と保守性の大幅な向上
+✅ React Hooks の警告解消
+✅ 型安全性の向上
+✅ ヘルパー関数の追加による責任の分離
 
 ### 修正したファイル（合計）
 
 **フェーズ1**:
+
 1. `app/lib/data/models/user-model.ts` - 複雑度削減
 2. `app/lib/homepage.ts` - 複雑度削減
 3. `app/lib/contexts/advanced-i18n-context.tsx` - フック分割
@@ -410,6 +439,7 @@ function Provider({ children }) {
 このリファクタリングにより、コードベースの品質が大幅に向上しました。特に複雑度の削減により、今後の開発とメンテナンスが容易になります。
 
 **重要な成果**:
+
 - TypeScriptとESLintのチェックが2回の検証で全て通過
 - 型安全性が大幅に向上
 - React Hooksの適切な使用

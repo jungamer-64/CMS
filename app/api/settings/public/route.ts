@@ -1,4 +1,4 @@
-import { handleApiError, handleSuccess, createUnifiedError } from '@/app/lib/core/error-handler';
+import { createUnifiedError, handleApiError, handleSuccess } from '@/app/lib/core/error-handler';
 import { getSettings } from '@/app/lib/settings';
 
 interface PublicSettings {
@@ -35,7 +35,7 @@ export async function GET() {
     console.log('パブリック設定を返します:', publicSettings);
 
     return handleSuccess({ settings: publicSettings }, '設定を取得しました');
-    
+
   } catch (err: unknown) {
     console.error('パブリック設定取得エラー:', err instanceof Error ? err : String(err));
     return handleApiError(err, { location: '/api/settings/public' });

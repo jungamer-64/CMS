@@ -1,4 +1,4 @@
-import { handleApiError, handleSuccess, createUnifiedError } from '@/app/lib/core/error-handler';
+import { createUnifiedError, handleApiError, handleSuccess } from '@/app/lib/core/error-handler';
 import { isApiSuccess } from '@/app/lib/core/utils/type-guards';
 import { UserRepository } from '@/app/lib/data/repositories/user-repository';
 import jwt from 'jsonwebtoken';
