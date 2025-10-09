@@ -1,20 +1,12 @@
+import { handleApiError, handleSuccess, createUnifiedError } from '@/app/lib/core/error-handler';
 import { isApiSuccess } from '@/app/lib/core/utils/type-guards';
 import { UserRepository } from '@/app/lib/data/repositories/user-repository';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 // 環境変数からJWTシークレットを取得
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
-
-// 簡単な成功・エラーレスポンス作成関数
-function createApiSuccess<T>(data: T, message?: string) {
-  return NextResponse.json({ success: true, data, message }, { status: 200 });
-}
-
-function createApiError(error: string, code: number = 500) {
-  return NextResponse.json({ success: false, error }, { status: code });
-}
 
 // ログイン要求の型
 interface LoginRequest {
@@ -48,7 +40,8 @@ export async function POST(request: NextRequest) {
 
     // 基本的なバリデーション
     if (!username || !password) {
-      return createApiError('ユーザー名とパスワードが必要です', 400);
+      const validationError = createUnifiedError.validation('ユーザー名とパスワードが必要です');
+      return handleApiError(validationError, { location: '/api/auth/login' });
     }
 
     // データベースでユーザー認証
@@ -63,7 +56,8 @@ export async function POST(request: NextRequest) {
     if (!isApiSuccess(authResult) || !authResult.data) {
       console.log('認証失敗');
       const errorMessage = !isApiSuccess(authResult) ? authResult.error : 'ユーザー名またはパスワードが正しくありません';
-      return createApiError(errorMessage, 401);
+      const authError = createUnifiedError.unauthorized(errorMessage);
+      return handleApiError(authError, { location: '/api/auth/login' });
     }
 
     const user = authResult.data;
@@ -115,13 +109,10 @@ export async function POST(request: NextRequest) {
       tokenLength: token.length
     });
 
-    return createApiSuccess(userResponse, 'ログインに成功しました');
+    return handleSuccess(userResponse, 'ログインに成功しました');
 
   } catch (err: unknown) {
     console.error('ログインエラー:', err instanceof Error ? err : String(err));
-    return createApiError(
-      err instanceof Error ? err.message : 'ログインに失敗しました',
-      500
-    );
+    return handleApiError(err, { location: '/api/auth/login' });
   }
 }

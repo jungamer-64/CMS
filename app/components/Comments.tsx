@@ -1,7 +1,7 @@
 'use client';
 
 import { Comment } from '@/app/lib/core/types';
-import { useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 
 interface CommentsProps {
   readonly postSlug: string;
@@ -13,7 +13,7 @@ interface CommentFormData {
   content: string;
 }
 
-export default function Comments({ postSlug }: CommentsProps) {
+function Comments({ postSlug }: CommentsProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -336,3 +336,6 @@ export default function Comments({ postSlug }: CommentsProps) {
     </div>
   );
 }
+
+// postSlugのみに依存するため、React.memoで最適化
+export default memo(Comments);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { useExtendedTranslation } from '../lib/hooks/useExtendedTranslation';
 import { executeValidationMethods, FormValidator, getValidationMethods, ValidationRule } from './form-validation';
 
@@ -33,7 +33,7 @@ interface FieldError {
 /**
  * 多言語対応フォームバリデーションコンポーネント
  */
-export default function MultilingualForm({
+function MultilingualForm({
   fields,
   onSubmit,
   className = '',
@@ -248,3 +248,7 @@ export default function MultilingualForm({
     </form>
   );
 }
+
+// fieldsとonSubmitの深い比較が必要なため、React.memoで最適化
+// 注: fields配列の参照が変わらない限り、再レンダリングしない
+export default memo(MultilingualForm);

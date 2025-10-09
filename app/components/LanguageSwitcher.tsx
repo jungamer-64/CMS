@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo, useMemo, useCallback } from 'react';
 
 interface Language {
   code: string;
@@ -38,7 +38,7 @@ interface LanguageSwitcherProps {
   readonly onLanguageChange?: (language: string) => void;
 }
 
-export default function LanguageSwitcher({
+function LanguageSwitcher({
   variant = 'dropdown',
   showFlag = true,
   showNativeName = true,
@@ -51,7 +51,11 @@ export default function LanguageSwitcher({
   const [dropdownPosition, setDropdownPosition] = useState<'left' | 'right' | 'center'>('center');
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
+  // currentLanguageをuseMemoで最適化
+  const currentLanguage = useMemo(
+    () => languages.find(lang => lang.code === i18n.language) || languages[0],
+    [i18n.language]
+  );
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -96,7 +100,8 @@ export default function LanguageSwitcher({
     };
   }, [variant]);
   
-  const handleLanguageChange = async (languageCode: string) => {
+  // handleLanguageChangeをuseCallbackで最適化
+  const handleLanguageChange = useCallback(async (languageCode: string) => {
     const selectedLanguage = languages.find(lang => lang.code === languageCode);
     if (!selectedLanguage) return;
     
@@ -115,7 +120,7 @@ export default function LanguageSwitcher({
     
     setIsOpen(false);
     onLanguageChange?.(languageCode);
-  };
+  }, [router, onLanguageChange]);
   
   const getDropdownPositionClass = () => {
     // ナビゲーションバーの右端にある場合は常に右寄せ
@@ -256,3 +261,20 @@ export default function LanguageSwitcher({
     </div>
   );
 }
+
+// Props比較関数 - variantとshowFlagなどのprimitiveな値を比較
+const arePropsEqual = (
+  prevProps: LanguageSwitcherProps,
+  nextProps: LanguageSwitcherProps
+): boolean => {
+  return (
+    prevProps.variant === nextProps.variant &&
+    prevProps.showFlag === nextProps.showFlag &&
+    prevProps.showNativeName === nextProps.showNativeName &&
+    prevProps.className === nextProps.className &&
+    prevProps.onLanguageChange === nextProps.onLanguageChange
+  );
+};
+
+// React.memoで最適化 - props変更時のみ再レンダリング
+export default memo(LanguageSwitcher, arePropsEqual);
