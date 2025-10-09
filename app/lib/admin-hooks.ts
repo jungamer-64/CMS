@@ -1,13 +1,13 @@
 /**
  * 管理者機能フック互換性ファイル
- * 
+ *
  * 管理者画面で使用される各種フックを提供し、
  * 既存のコンポーネントとの互換性を保ちます。
  */
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Post } from './core/types';
 
 // ============================================================================
@@ -30,11 +30,11 @@ export function useAdminPosts() {
           'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch posts');
       }
-      
+
       const data = await response.json();
       setPosts(data.posts || []);
     } catch (err) {
@@ -72,11 +72,11 @@ export function useAdminStats() {
           'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch stats');
       }
-      
+
       const data = await response.json();
       setStats(data);
     } catch (err) {
@@ -108,18 +108,18 @@ export function usePostActions() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(`/api/posts/${postId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to delete post');
       }
-      
+
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -133,7 +133,7 @@ export function usePostActions() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(`/api/posts/${postId}`, {
         method: 'PATCH',
         headers: {
@@ -142,11 +142,11 @@ export function usePostActions() {
         },
         body: JSON.stringify({ status: 'published' })
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to publish post');
       }
-      
+
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -160,7 +160,7 @@ export function usePostActions() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(`/api/posts/${postId}`, {
         method: 'PATCH',
         headers: {
@@ -169,11 +169,11 @@ export function usePostActions() {
         },
         body: JSON.stringify({ status: 'draft' })
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to unpublish post');
       }
-      
+
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');

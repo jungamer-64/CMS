@@ -99,8 +99,8 @@ const RoleToggleButton = ({ user, onRoleChange }: { user: UiUser; onRoleChange: 
   <button
     onClick={() => onRoleChange(user.id, user.role === 'admin' ? 'user' : 'admin')}
     className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 hover:scale-105 ${user.role === 'admin'
-        ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white focus:ring-gray-500 shadow-md'
-        : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white focus:ring-blue-500 shadow-md'
+      ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white focus:ring-gray-500 shadow-md'
+      : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white focus:ring-blue-500 shadow-md'
       }`}
     aria-label={`${user.displayName}を${user.role === 'admin' ? '一般ユーザー' : '管理者'}にする`}
   >

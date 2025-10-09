@@ -1,10 +1,10 @@
 'use client';
+import { ErrorMessage, LoadingSpinner, SuccessMessage } from '@/app/admin/components';
 import { useCMSI18n } from '@/app/lib/contexts/cms-i18n-context';
 import type { ApiResponse } from '@/app/lib/core/types/response-types';
 import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
 import { useAuth } from '@/app/lib/ui/contexts/auth-context';
 import { useTheme } from '@/app/lib/ui/contexts/theme-context';
-import { LoadingSpinner, SuccessMessage, ErrorMessage } from '@/app/admin/components';
 import Link from 'next/link';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 
@@ -298,8 +298,8 @@ const DangerZone: React.FC<DangerZoneProps> = ({ onCacheClear, isCacheClearing }
           onClick={onCacheClear}
           disabled={isCacheClearing}
           className={`px-4 py-2 text-white rounded-md transition-colors ${isCacheClearing
-              ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
-              : 'bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-700'
+            ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
+            : 'bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-700'
             }`}
         >
           {isCacheClearing ? 'クリア中...' : 'キャッシュクリア'}
@@ -543,8 +543,8 @@ export default function SettingsPage() {
               onClick={saveSettings}
               disabled={isSaving}
               className={`px-4 py-2 rounded-lg transition-colors ${isSaving
-                  ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
-                  : 'bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800 text-white'
+                ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
+                : 'bg-slate-600 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-800 text-white'
                 }`}
             >
               {isSaving ? t('settings.saving') : t('settings.saveSettings')}

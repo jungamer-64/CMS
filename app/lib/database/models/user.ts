@@ -1,6 +1,6 @@
-import { Collection, ObjectId, Db } from 'mongodb';
-import { getDatabase } from '../connection';
+import { Collection, Db, ObjectId } from 'mongodb';
 import { UserRole } from '../../core/types';
+import { getDatabase } from '../connection';
 
 // ============================================================================
 // User Database Model（統一パターン）
@@ -37,7 +37,7 @@ export class UserModel {
       await this.collection.createIndex({ id: 1 }, { unique: true });
       await this.collection.createIndex({ username: 1 }, { unique: true });
       await this.collection.createIndex({ email: 1 }, { unique: true });
-      
+
       // 検索用インデックス
       await this.collection.createIndex({ role: 1 });
       await this.collection.createIndex({ isActive: 1 });
@@ -50,14 +50,14 @@ export class UserModel {
   // ユーザー作成
   async create(userData: Omit<UserDocument, '_id' | 'createdAt' | 'updatedAt'>): Promise<UserDocument> {
     const now = new Date();
-    
+
     // パスワードハッシュ化
     let passwordHash = userData.passwordHash;
     if (userData.password) {
       const bcrypt = await import('bcryptjs');
       passwordHash = await bcrypt.hash(userData.password, 12);
     }
-    
+
     const userDoc: UserDocument = {
       ...userData,
       passwordHash,
@@ -88,15 +88,15 @@ export class UserModel {
   }
 
   // 全ユーザー取得（管理者用）
-  async findAll(options: { 
-    role?: UserRole; 
-    isActive?: boolean; 
+  async findAll(options: {
+    role?: UserRole;
+    isActive?: boolean;
     search?: string;
     page?: number;
     limit?: number;
   } = {}): Promise<UserDocument[]> {
     const { role, isActive, search, page = 1, limit = 20 } = options;
-    
+
     // フィルター構築
     const filter: Record<string, unknown> = {};
     if (role) filter.role = role;
@@ -108,10 +108,10 @@ export class UserModel {
         { displayName: { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     // ページネーション
     const skip = (page - 1) * limit;
-    
+
     return await this.collection
       .find(filter)
       .sort({ createdAt: -1 })
@@ -153,11 +153,11 @@ export class UserModel {
   async update(id: string, updateData: Partial<Omit<UserDocument, '_id' | 'id' | 'createdAt'>>): Promise<boolean> {
     const result = await this.collection.updateOne(
       { id },
-      { 
-        $set: { 
-          ...updateData, 
-          updatedAt: new Date() 
-        } 
+      {
+        $set: {
+          ...updateData,
+          updatedAt: new Date()
+        }
       }
     );
     return result.modifiedCount > 0;

@@ -1,13 +1,13 @@
 'use client';
 
 
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/app/lib/ui/contexts/auth-context';
+import { ErrorMessage, LoadingSpinner } from '@/app/admin/components';
 import { useCMSI18n } from '@/app/lib/contexts/cms-i18n-context';
-import Link from 'next/link';
-import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
-import { LoadingSpinner, ErrorMessage } from '@/app/admin/components';
 import type { Post, User } from '@/app/lib/core/types';
+import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
+import { useAuth } from '@/app/lib/ui/contexts/auth-context';
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
 
 interface DashboardStats {
   totalPosts: number;
@@ -24,14 +24,14 @@ interface DashboardStats {
   }>;
 }
 
-const StatCard = ({ icon, labelKey, value, color }: { 
-  icon: React.ReactNode; 
-  labelKey: string; 
-  value: number; 
-  color: string; 
+const StatCard = ({ icon, labelKey, value, color }: {
+  icon: React.ReactNode;
+  labelKey: string;
+  value: number;
+  color: string;
 }) => {
   const { t } = useCMSI18n();
-  
+
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
       <div className="flex items-center">
@@ -92,7 +92,7 @@ const ChevronDownIcon = () => (
 
 const WelcomeSection = ({ userName }: { userName: string }) => {
   const { t } = useCMSI18n();
-  
+
   return (
     <div className="bg-gradient-to-r from-slate-600 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-lg p-8 text-white">
       <h1 className="text-3xl font-bold mb-2">
@@ -105,13 +105,13 @@ const WelcomeSection = ({ userName }: { userName: string }) => {
 
 const RecentPosts = ({ posts }: { posts: DashboardStats['recentPosts'] }) => {
   const { t } = useCMSI18n();
-  
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
       <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('dashboard.recentPosts.title')}</h3>
-          <Link 
+          <Link
             href="/admin/posts"
             className="text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 text-sm font-medium"
           >
@@ -129,7 +129,7 @@ const RecentPosts = ({ posts }: { posts: DashboardStats['recentPosts'] }) => {
             <p className="text-gray-500 dark:text-gray-400 mb-4">
               最初の投稿を作成して、サイトにコンテンツを追加しましょう！
             </p>
-            <Link 
+            <Link
               href="/admin/posts/new"
               className="inline-flex items-center px-4 py-2 bg-slate-600 dark:bg-slate-700 text-white rounded-lg hover:bg-slate-700 dark:hover:bg-slate-800 transition-colors"
             >
@@ -144,7 +144,7 @@ const RecentPosts = ({ posts }: { posts: DashboardStats['recentPosts'] }) => {
             {posts.map((post) => (
               <div key={post.id} className="flex justify-between items-center">
                 <div>
-                  <Link 
+                  <Link
                     href={`/articles/${post.slug}`}
                     className="text-slate-900 dark:text-white hover:text-slate-600 dark:hover:text-slate-300 font-medium"
                   >
@@ -184,7 +184,7 @@ const QuickActions = () => {
       {!isCollapsed && (
         <div className="p-6 grid grid-cols-1 gap-3">
           {/* 新規投稿 - メインアクション */}
-          <Link 
+          <Link
             href="/admin/posts/new"
             className="flex items-center justify-center w-full px-4 py-3 bg-slate-600 dark:bg-slate-700 text-white rounded-lg hover:bg-slate-700 dark:hover:bg-slate-800"
           >
@@ -196,7 +196,7 @@ const QuickActions = () => {
 
           {/* その他のアクション */}
           <div className="grid grid-cols-2 gap-3">
-            <Link 
+            <Link
               href="/admin/posts"
               className="flex items-center justify-center px-3 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm"
             >
@@ -205,7 +205,7 @@ const QuickActions = () => {
               </svg>
               投稿管理
             </Link>
-            <Link 
+            <Link
               href="/admin/comments"
               className="flex items-center justify-center px-3 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm"
             >
@@ -214,7 +214,7 @@ const QuickActions = () => {
               </svg>
               コメント管理
             </Link>
-            <Link 
+            <Link
               href="/admin/media"
               className="flex items-center justify-center px-3 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm"
             >
@@ -223,7 +223,7 @@ const QuickActions = () => {
               </svg>
               メディア管理
             </Link>
-            <Link 
+            <Link
               href="/admin/users"
               className="flex items-center justify-center px-3 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm"
             >
@@ -294,7 +294,7 @@ const AdminHome: React.FC = () => {
         pagination?: { page: number; limit: number; totalPages: number };
       };
     }
-    
+
     interface UsersApiResponse {
       data?: {
         users?: User[];
@@ -302,10 +302,10 @@ const AdminHome: React.FC = () => {
         pagination?: { page: number; limit: number; totalPages: number };
       };
     }
-    
+
     const postsData = postsJson as PostsApiResponse;
     const usersData = usersJson as UsersApiResponse;
-    
+
     // 投稿データの処理
     let posts: Post[] = [];
     if (Array.isArray(postsData?.data?.posts)) {
@@ -316,7 +316,7 @@ const AdminHome: React.FC = () => {
     } else if (postsData?.data?.posts) {
       console.warn('投稿データが予期しない形式です:', postsData.data);
     }
-    
+
     // ユーザーデータの処理
     let users: User[] = [];
     if (Array.isArray(usersData?.data?.users)) {
@@ -362,7 +362,7 @@ const AdminHome: React.FC = () => {
   const fetchDashboardData = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     setError(''); // エラーをクリア
-    
+
     try {
       const [postsResponse, usersResponse] = await Promise.allSettled([
         fetch('/api/posts?admin=true').then(res => res.json()).catch(() => ({ success: false, data: [] })),
@@ -383,7 +383,7 @@ const AdminHome: React.FC = () => {
       const { posts, users } = processApiData(postsJson, usersJson);
       const newStats = generateStats(posts, users);
       setStats(newStats);
-      
+
       // データが空の場合のメッセージ（エラーではない）
       if (posts.length === 0 && users.length === 0) {
         console.info('ダッシュボード: データが見つかりませんでした。初期状態か、データベースが空の可能性があります。');
@@ -450,35 +450,35 @@ const AdminHome: React.FC = () => {
 
           {/* 統計カード */}
           <div className="admin-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            <StatCard 
-              icon={<PostIcon />} 
+            <StatCard
+              icon={<PostIcon />}
               labelKey="dashboard.statistics.totalPosts"
-              value={stats.totalPosts} 
-              color="bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800" 
+              value={stats.totalPosts}
+              color="bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800"
             />
-            <StatCard 
-              icon={<VisibleIcon />} 
+            <StatCard
+              icon={<VisibleIcon />}
               labelKey="dashboard.statistics.totalPosts"
-              value={stats.publishedPosts} 
-              color="bg-gradient-to-br from-green-100 to-green-200 dark:from-green-800 dark:to-green-900" 
+              value={stats.publishedPosts}
+              color="bg-gradient-to-br from-green-100 to-green-200 dark:from-green-800 dark:to-green-900"
             />
-            <StatCard 
-              icon={<DeleteIcon />} 
+            <StatCard
+              icon={<DeleteIcon />}
               labelKey="dashboard.statistics.totalPosts"
-              value={stats.deletedPosts} 
-              color="bg-gradient-to-br from-red-100 to-red-200 dark:from-red-800 dark:to-red-900" 
+              value={stats.deletedPosts}
+              color="bg-gradient-to-br from-red-100 to-red-200 dark:from-red-800 dark:to-red-900"
             />
-            <StatCard 
-              icon={<UserIcon />} 
+            <StatCard
+              icon={<UserIcon />}
               labelKey="dashboard.statistics.totalUsers"
-              value={stats.totalUsers} 
-              color="bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-900" 
+              value={stats.totalUsers}
+              color="bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-900"
             />
-            <StatCard 
-              icon={<AdminIcon />} 
+            <StatCard
+              icon={<AdminIcon />}
               labelKey="dashboard.statistics.totalUsers"
-              value={stats.adminUsers} 
-              color="bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-800 dark:to-orange-900" 
+              value={stats.adminUsers}
+              color="bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-800 dark:to-orange-900"
             />
           </div>
 

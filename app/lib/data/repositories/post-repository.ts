@@ -1,12 +1,12 @@
 /**
  * 投稿リポジトリ
  * LIB_COMMONIZATION_PLAN.md フェーズ5対応
- * 
+ *
  * 既存のposts.tsから移行
  */
 
 import { Collection } from 'mongodb';
-import type { Post, PostInput, ApiResponse, PostType } from '../../core/types';
+import type { ApiResponse, Post, PostInput, PostType } from '../../core/types';
 import { getDatabase } from '../connections';
 import { BaseRepository, type BaseEntity, type RepositoryFilters, type RepositoryResult } from './base-repository';
 
@@ -133,7 +133,7 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
   async findById(id: string): Promise<ApiResponse<PostEntity>> {
     try {
       const collection = await this.getCollection();
-      const post = await collection.findOne({ 
+      const post = await collection.findOne({
         $or: [{ id }, { slug: id }],
         isDeleted: { $ne: true }
       });
@@ -160,11 +160,11 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
   async create(data: PostInput): Promise<ApiResponse<PostEntity>> {
     try {
       const collection = await this.getCollection();
-      
+
       // 一意なIDとスラッグを生成
       const id = crypto.randomUUID();
       const slug = data.slug || this.generateSlugFromTitle(data.title);
-      
+
       const post: Post = {
         id,
         ...data,
@@ -172,7 +172,7 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      
+
       const result = await collection.insertOne(post);
       const createdPost = { ...post, _id: result.insertedId.toString() };
 
@@ -191,7 +191,7 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
   async update(id: string, data: Partial<PostInput>): Promise<ApiResponse<PostEntity>> {
     try {
       const collection = await this.getCollection();
-      
+
       const updateData = {
         ...data,
         updatedAt: new Date(),
@@ -225,15 +225,15 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
   async delete(id: string): Promise<ApiResponse<boolean>> {
     try {
       const collection = await this.getCollection();
-      
+
       // ソフトデリート
       const result = await collection.updateOne(
         { $or: [{ id }, { slug: id }] },
-        { 
-          $set: { 
-            isDeleted: true, 
-            updatedAt: new Date() 
-          } 
+        {
+          $set: {
+            isDeleted: true,
+            updatedAt: new Date()
+          }
         }
       );
 
@@ -289,7 +289,7 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
   async updateBySlug(slug: string, data: Partial<PostInput>): Promise<ApiResponse<PostEntity>> {
     try {
       const collection = await this.getCollection();
-      
+
       const updateData: Record<string, unknown> = {
         ...data,
         updatedAt: new Date(),
@@ -324,11 +324,11 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
   async deleteBySlug(slug: string): Promise<ApiResponse<boolean>> {
     try {
       const collection = await this.getCollection();
-      
+
       const result = await collection.updateOne(
         { slug, isDeleted: { $ne: true } },
-        { 
-          $set: { 
+        {
+          $set: {
             isDeleted: true,
             updatedAt: new Date()
           }
@@ -358,10 +358,10 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
   async restore(id: string): Promise<ApiResponse<boolean>> {
     try {
       const collection = await this.getCollection();
-      
+
       const result = await collection.updateOne(
         { $or: [{ id }, { slug: id }], isDeleted: true },
-        { 
+        {
           $unset: { isDeleted: "" },
           $set: { updatedAt: new Date() }
         }
@@ -390,7 +390,7 @@ export class PostRepository extends BaseRepository<PostEntity, PostInput, Partia
   async permanentlyDelete(id: string): Promise<ApiResponse<boolean>> {
     try {
       const collection = await this.getCollection();
-      
+
       const result = await collection.deleteOne(
         { $or: [{ id }, { slug: id }] }
       );

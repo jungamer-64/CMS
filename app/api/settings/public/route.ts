@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { getSettings } from '@/app/lib/settings';
+import { NextResponse } from 'next/server';
 
 interface PublicSettings {
   enableComments: boolean;
@@ -12,10 +12,10 @@ interface PublicSettings {
 export async function GET() {
   try {
     console.log('パブリック設定API呼び出し');
-    
+
     // 管理者設定から公開可能な情報を取得
     const settingsResult = await getSettings();
-    
+
     if (!settingsResult.success) {
       console.error('設定取得失敗:', settingsResult.error);
       return NextResponse.json(
@@ -25,7 +25,7 @@ export async function GET() {
     }
 
     const adminSettings = settingsResult.data;
-    
+
     // 型安全なパブリック設定オブジェクトを作成
     const publicSettings: PublicSettings = {
       enableComments: Boolean(adminSettings?.commentsEnabled || false),
@@ -33,9 +33,9 @@ export async function GET() {
       siteDescription: adminSettings?.siteDescription || 'Next.js 15で構築された動的ブログサイト',
       postsPerPage: 10
     };
-    
+
     console.log('パブリック設定を返します:', publicSettings);
-    
+
     return NextResponse.json({
       success: true,
       data: { settings: publicSettings }

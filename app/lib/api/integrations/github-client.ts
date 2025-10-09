@@ -191,7 +191,7 @@ export class GitHubClient {
       .digest('hex');
 
     const actualSignature = signature.replace('sha256=', '');
-    
+
     return crypto.timingSafeEqual(
       Buffer.from(expectedSignature, 'hex'),
       Buffer.from(actualSignature, 'hex')
@@ -205,22 +205,22 @@ export class GitHubClient {
     try {
       // ここでWebhookペイロードに基づいて処理を実行
       // 例：プッシュイベント、プルリクエストイベントなど
-      
+
       if (payload.action === 'push') {
         // プッシュイベントの処理
         return { success: true, message: 'Push event processed' };
       }
-      
+
       if (payload.action === 'pull_request') {
         // プルリクエストイベントの処理
         return { success: true, message: 'Pull request event processed' };
       }
-      
+
       return { success: true, message: 'Webhook processed' };
     } catch (err: unknown) {
-      return { 
-        success: false, 
-        message: err instanceof Error ? err.message : 'Unknown error' 
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Unknown error'
       };
     }
   }

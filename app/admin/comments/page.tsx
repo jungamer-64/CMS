@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
 import { Comment } from '@/app/lib/core/types';
 import type { ApiResponse } from '@/app/lib/core/types/response-types';
 import { isApiSuccess } from '@/app/lib/core/utils/type-guards';
+import AdminLayout from '@/app/lib/ui/components/layouts/AdminLayout';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 type FilterType = 'all' | 'pending' | 'approved';
 
@@ -37,12 +37,12 @@ type FilterButtonProps = {
   disabled?: boolean;
 };
 
-const FilterButton = memo<FilterButtonProps>(({ 
-  isActive, 
-  onClick, 
-  children, 
+const FilterButton = memo<FilterButtonProps>(({
+  isActive,
+  onClick,
+  children,
   variant = 'default',
-  disabled = false 
+  disabled = false
 }) => {
   const getActiveColor = useCallback(() => {
     switch (variant) {
@@ -58,11 +58,10 @@ const FilterButton = memo<FilterButtonProps>(({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`px-4 py-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-        isActive 
+      className={`px-4 py-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isActive
           ? activeColor
           : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-      }`}
+        }`}
     >
       {children}
     </button>
@@ -77,9 +76,9 @@ type CommentFiltersProps = {
   loading?: boolean;
 };
 
-const CommentFilters = memo<CommentFiltersProps>(({ 
-  currentFilter, 
-  onFilterChange, 
+const CommentFilters = memo<CommentFiltersProps>(({
+  currentFilter,
+  onFilterChange,
   comments,
   loading = false
 }) => {
@@ -92,7 +91,7 @@ const CommentFilters = memo<CommentFiltersProps>(({
         approved: 0,
       };
     }
-    
+
     return {
       all: comments.filter(c => !c.isDeleted).length,
       pending: comments.filter(c => !c.isApproved && !c.isDeleted).length,
@@ -136,13 +135,12 @@ CommentFilters.displayName = 'CommentFilters';
 
 const CommentStatus = memo<{ isApproved: boolean | undefined }>(({ isApproved }) => {
   const approved = Boolean(isApproved);
-  
+
   return (
-    <span className={`px-2 py-1 rounded text-xs font-medium ${
-      approved 
-        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' 
+    <span className={`px-2 py-1 rounded text-xs font-medium ${approved
+        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
         : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400'
-    }`}>
+      }`}>
       {approved ? '承認済み' : '承認待ち'}
     </span>
   );
@@ -156,11 +154,11 @@ type CommentActionsProps = {
   loadingState: LoadingState;
 };
 
-const CommentActions = memo<CommentActionsProps>(({ 
-  comment, 
-  onApprove, 
-  onDelete, 
-  loadingState 
+const CommentActions = memo<CommentActionsProps>(({
+  comment,
+  onApprove,
+  onDelete,
+  loadingState
 }) => {
   const isApproving = loadingState.isApproving === comment.id;
   const isDeleting = loadingState.isDeleting === comment.id;
@@ -208,11 +206,11 @@ type CommentCardProps = {
   loadingState: LoadingState;
 };
 
-const CommentCard = memo<CommentCardProps>(({ 
-  comment, 
-  onApprove, 
-  onDelete, 
-  loadingState 
+const CommentCard = memo<CommentCardProps>(({
+  comment,
+  onApprove,
+  onDelete,
+  loadingState
 }) => {
   const formattedDate = useMemo(() => {
     return new Date(comment.createdAt).toLocaleDateString('ja-JP', {
@@ -240,15 +238,15 @@ const CommentCard = memo<CommentCardProps>(({
             {formattedDate}
           </time>
         </div>
-        
-        <CommentActions 
-          comment={comment} 
-          onApprove={onApprove} 
+
+        <CommentActions
+          comment={comment}
+          onApprove={onApprove}
           onDelete={onDelete}
           loadingState={loadingState}
         />
       </div>
-      
+
       <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded">
         <p className="text-gray-900 dark:text-white whitespace-pre-wrap">{comment.content}</p>
       </div>
@@ -282,12 +280,12 @@ type CommentsListProps = {
   loadingState: LoadingState;
 };
 
-const CommentsList = memo<CommentsListProps>(({ 
-  comments, 
-  filter, 
-  onApprove, 
-  onDelete, 
-  loadingState 
+const CommentsList = memo<CommentsListProps>(({
+  comments,
+  filter,
+  onApprove,
+  onDelete,
+  loadingState
 }) => {
   const filteredComments = useMemo(() => {
     return comments.filter(comment => {
@@ -339,7 +337,7 @@ const CommentsManagement: React.FC = () => {
       console.log('📡 レスポンス受信:', { status: response.status, ok: response.ok });
       const data: ApiResponse<Comment[]> = await response.json();
       console.log('📋 受信データ:', data);
-      
+
       if (!response.ok || !isApiSuccess(data)) {
         console.log('❌ エラー条件:', { responseOk: response.ok, isApiSuccess: isApiSuccess(data) });
         setComments([]);

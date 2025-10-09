@@ -21,7 +21,7 @@
  */
 
 import { Collection, Filter } from 'mongodb';
-import type { Comment, ApiResponse } from '../../core/types';
+import type { ApiResponse, Comment } from '../../core/types';
 import { getDatabase } from '../connections';
 import { BaseRepository, type BaseEntity, type RepositoryFilters, type RepositoryResult } from './base-repository';
 
@@ -148,7 +148,7 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
   async findById(id: string): Promise<ApiResponse<CommentEntity>> {
     try {
       const collection = await this.getCollection();
-      const comment = await collection.findOne({ 
+      const comment = await collection.findOne({
         id,
         isDeleted: { $ne: true }
       });
@@ -175,7 +175,7 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
   async create(data: CommentInput): Promise<ApiResponse<CommentEntity>> {
     try {
       const collection = await this.getCollection();
-      
+
       const id = crypto.randomUUID();
       const comment: Comment = {
         id,
@@ -187,7 +187,7 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
         isDeleted: false,
         isApproved: false,
       };
-      
+
       const result = await collection.insertOne(comment);
       const createdComment = { ...comment, _id: result.insertedId.toString() };
 
@@ -206,9 +206,9 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
   async update(id: string, data: Partial<CommentInput>): Promise<ApiResponse<CommentEntity>> {
     try {
       const collection = await this.getCollection();
-      
+
       const updateData: Record<string, unknown> = {};
-      
+
       if (data.content !== undefined) {
         updateData.content = data.content.trim();
       }
@@ -254,7 +254,7 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
   async delete(id: string): Promise<ApiResponse<boolean>> {
     try {
       const collection = await this.getCollection();
-      
+
       // ソフトデリート
       const result = await collection.updateOne(
         { id },
@@ -284,7 +284,7 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
   async findByPostSlug(postSlug: string, includeDeleted = false): Promise<ApiResponse<CommentEntity[]>> {
     try {
       const collection = await this.getCollection();
-      
+
       const query: Filter<Comment> = { postSlug, isApproved: true };
       if (!includeDeleted) {
         Object.assign(query, { isDeleted: { $ne: true } });
@@ -311,7 +311,7 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
   async findByPostSlugWithPagination(postSlug: string, includeDeleted = false): Promise<ApiResponse<RepositoryResult<CommentEntity>>> {
     try {
       const collection = await this.getCollection();
-      
+
       const query: Record<string, unknown> = { postSlug };
       if (!includeDeleted) {
         query.isDeleted = { $ne: true };
@@ -368,11 +368,11 @@ export class CommentRepository extends BaseRepository<CommentEntity, CommentInpu
   async approve(id: string): Promise<ApiResponse<CommentEntity>> {
     try {
       const collection = await this.getCollection();
-      
+
       const result = await collection.findOneAndUpdate(
         { id, isDeleted: { $ne: true } },
-        { 
-          $set: { 
+        {
+          $set: {
             isApproved: true,
             updatedAt: new Date()
           }

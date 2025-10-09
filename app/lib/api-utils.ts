@@ -1,14 +1,14 @@
 /**
  * 高速・厳格型安全APIユーティリティ関数
- * 
+ *
  * - 型安全なレスポンス生成
  * - 一貫したエラーハンドリング
  * - パフォーマンス最適化
  */
 
-import type { ApiSuccess, ApiError } from './core/types';
-import { ApiErrorCode } from './core/types';
 import { NextResponse } from 'next/server';
+import type { ApiError, ApiSuccess } from './core/types';
+import { ApiErrorCode } from './core/types';
 
 /**
  * 成功レスポンスを作成
@@ -25,7 +25,7 @@ export function createSuccessResponse<T>(
     success: true as const,
     data,
   };
-  
+
   if (message && meta) {
     return {
       ...baseResponse,
@@ -36,14 +36,14 @@ export function createSuccessResponse<T>(
       },
     };
   }
-  
+
   if (message) {
     return {
       ...baseResponse,
       message,
     };
   }
-  
+
   if (meta) {
     return {
       ...baseResponse,
@@ -53,7 +53,7 @@ export function createSuccessResponse<T>(
       },
     };
   }
-  
+
   return baseResponse;
 }
 
@@ -70,7 +70,7 @@ export function createErrorResponse(
 ): ApiError {
   // 数値の場合はHTTPステータスコードとして扱い、適切なApiErrorCodeに変換
   let code: ApiErrorCode | undefined;
-  
+
   if (typeof codeOrStatus === 'number') {
     switch (codeOrStatus) {
       case 400:
@@ -141,9 +141,9 @@ export async function parseJsonSafely<T>(
     const data = await request.json();
     return { success: true, data };
   } catch {
-    return { 
-      success: false, 
-      error: 'Invalid JSON format' 
+    return {
+      success: false,
+      error: 'Invalid JSON format'
     };
   }
 }
@@ -159,7 +159,7 @@ export function parsePaginationParams(searchParams: URLSearchParams): {
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '10', 10)));
   const offset = (page - 1) * limit;
-  
+
   return { page, limit, offset };
 }
 
@@ -177,7 +177,7 @@ export function parseSortParams(
   const sortField = searchParams.get('sort') || defaultField;
   const order = searchParams.get('order');
   const sortOrder = order === 'asc' ? 'asc' : defaultOrder;
-  
+
   return { sortField, sortOrder };
 }
 
@@ -189,14 +189,14 @@ export function parseFilterParams(
   allowedFilters: string[]
 ): Record<string, string> {
   const filters: Record<string, string> = {};
-  
+
   for (const filter of allowedFilters) {
     const value = searchParams.get(filter);
     if (value) {
       filters[filter] = value;
     }
   }
-  
+
   return filters;
 }
 
@@ -221,7 +221,7 @@ export function createNextErrorResponse(
   details?: Record<string, unknown>
 ): NextResponse<ApiError> {
   const response = createErrorResponse(error, codeOrStatus, details);
-  
+
   // HTTPステータスコードを決定
   let status = 500;
   if (typeof codeOrStatus === 'number') {
@@ -235,7 +235,7 @@ export function createNextErrorResponse(
   } else if (codeOrStatus === ApiErrorCode.NOT_FOUND) {
     status = 404;
   }
-  
+
   return NextResponse.json(response, { status });
 }
 
@@ -272,10 +272,10 @@ export function getEnumParam<T extends string>(
 ): T | undefined {
   const value = params.get(key);
   if (!value) return undefined;
-  
+
   if (validValues.includes(value as T)) {
     return value as T;
   }
-  
+
   return undefined;
 }

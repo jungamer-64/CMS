@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { Comment } from '@/app/lib/core/types';
+import { useCallback, useEffect, useState } from 'react';
 
 interface CommentsProps {
   readonly postSlug: string;
@@ -32,7 +32,7 @@ export default function Comments({ postSlug }: CommentsProps) {
   const checkSettings = async () => {
     try {
       const response = await fetch('/api/settings/public');
-      
+
       if (!response.ok) {
         const errorMsg = `設定API エラー: ${response.status} ${response.statusText}`;
         console.warn(errorMsg);
@@ -41,9 +41,9 @@ export default function Comments({ postSlug }: CommentsProps) {
         setSettingsLoaded(true); // 必ず設定を完了する
         return;
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.data?.settings) {
         const settings = data.data.settings;
         const allowCommentsValue = settings.enableComments !== false;
@@ -73,16 +73,16 @@ export default function Comments({ postSlug }: CommentsProps) {
   const loadComments = useCallback(async () => {
     try {
       const response = await fetch(`/api/comments?postSlug=${encodeURIComponent(postSlug)}`);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       console.log('取得したコメントデータ:', data);
-      
+
       if (data.success) {
         const commentsData = Array.isArray(data.data) ? data.data : data.comments;
         setComments(commentsData || []);
@@ -112,23 +112,23 @@ export default function Comments({ postSlug }: CommentsProps) {
         setSettingsLoaded(true);
       }
     };
-    
+
     initializeComments();
   }, [postSlug, loadComments]);
 
   useEffect(() => {
-        if (settingsLoaded && allowComments) {
-            console.log('コメントデータ:', comments);
-        }
-    }, [settingsLoaded, allowComments, comments]);
+    if (settingsLoaded && allowComments) {
+      console.log('コメントデータ:', comments);
+    }
+  }, [settingsLoaded, allowComments, comments]);
 
   // 開発環境でのみ表示するログを制限
   if (process.env.NODE_ENV === 'development') {
-    console.log('コメントコンポーネント レンダリング:', { 
-      settingsLoaded, 
-      allowComments, 
-      loading, 
-      commentsCount: comments.length 
+    console.log('コメントコンポーネント レンダリング:', {
+      settingsLoaded,
+      allowComments,
+      loading,
+      commentsCount: comments.length
     });
   }
 
@@ -183,7 +183,7 @@ export default function Comments({ postSlug }: CommentsProps) {
         setMessage(data.message);
         setMessageType('success');
         setFormData({ authorName: '', authorEmail: '', content: '' });
-        
+
         // コメントを常に再読み込み
         await loadComments();
       } else {
@@ -210,7 +210,7 @@ export default function Comments({ postSlug }: CommentsProps) {
   return (
     <div className="mt-12 border-t pt-8">
       <h3 className="text-2xl font-bold mb-6 text-gray-900">コメント ({comments.filter(comment => comment.isApproved && !comment.isDeleted).length})</h3>
-      
+
       {/* コメント一覧 */}
       {loading ? (
         <div className="text-center py-4">
@@ -248,13 +248,12 @@ export default function Comments({ postSlug }: CommentsProps) {
       {/* コメント投稿フォーム */}
       <div className="bg-gray-50 p-6 rounded-lg">
         <h4 className="text-lg font-semibold mb-4 text-gray-900">コメントを投稿</h4>
-        
+
         {message && (
-          <div className={`mb-4 p-3 rounded ${
-            messageType === 'success' 
-              ? 'bg-green-100 border border-green-400 text-green-700' 
+          <div className={`mb-4 p-3 rounded ${messageType === 'success'
+              ? 'bg-green-100 border border-green-400 text-green-700'
               : 'bg-red-100 border border-red-400 text-red-700'
-          }`}>
+            }`}>
             {message}
           </div>
         )}
@@ -276,7 +275,7 @@ export default function Comments({ postSlug }: CommentsProps) {
                 placeholder="お名前を入力してください"
               />
             </div>
-            
+
             <div>
               <label htmlFor="authorEmail" className="block text-sm font-medium text-gray-900 mb-1">
                 メールアドレス <span className="text-red-500">*</span>
@@ -314,11 +313,10 @@ export default function Comments({ postSlug }: CommentsProps) {
           <button
             type="submit"
             disabled={submitting}
-            className={`px-6 py-2 rounded-md font-medium transition-colors ${
-              submitting
+            className={`px-6 py-2 rounded-md font-medium transition-colors ${submitting
                 ? 'bg-gray-400 cursor-not-allowed text-white'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
+              }`}
           >
             {submitting ? (
               <span className="flex items-center">

@@ -1,9 +1,9 @@
-import { NextRequest } from 'next/server';
 import { createGetHandler, createPutHandler } from '@/app/lib/api-factory';
-import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
+import { createErrorResponse, createSuccessResponse } from '@/app/lib/api-utils';
 import { User } from '@/app/lib/core/types';
 import { connectToDatabase } from '@/app/lib/database/connection';
 import { createSettingsModel } from '@/app/lib/database/models/settings';
+import { NextRequest } from 'next/server';
 
 // ============================================================================
 // 管理者専用設定API - データベース統合版
@@ -37,7 +37,7 @@ export const GET = createGetHandler<{ settings: SettingsData }>(
 
       // 設定を取得
       let settingsDoc = await settingsModel.getSystemSettings();
-      
+
       // 設定が存在しない場合はデフォルトを作成
       if (!settingsDoc) {
         console.log('📝 デフォルト設定を作成中...');
@@ -63,7 +63,7 @@ export const GET = createGetHandler<{ settings: SettingsData }>(
       if (user.role !== 'admin') {
         settingsToReturn.apiKey = '[HIDDEN]';
       }
-      
+
       return createSuccessResponse({ settings: settingsToReturn });
     } catch (err: unknown) {
       console.error('設定取得エラー:', err instanceof Error ? err : String(err));
@@ -82,7 +82,7 @@ export const PUT = createPutHandler<Partial<SettingsData>, { settings: SettingsD
     if (user.role !== 'admin') {
       return createErrorResponse('管理者権限が必要です');
     }
-    
+
     try {
       // データベース接続
       await connectToDatabase();
@@ -105,7 +105,7 @@ export const PUT = createPutHandler<Partial<SettingsData>, { settings: SettingsD
         allowComments: updatedSettings.allowComments,
         requireApproval: updatedSettings.requireApproval
       };
-      
+
       return createSuccessResponse({ settings: responseData });
     } catch (err: unknown) {
       console.error('設定更新エラー:', err instanceof Error ? err : String(err));

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/lib/ui/contexts/auth-context';
 import { useAdvancedI18n } from '@/app/lib/contexts/advanced-i18n-context';
+import { useAuth } from '@/app/lib/ui/contexts/auth-context';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -65,8 +65,8 @@ export default function LoginPage() {
             disabled={isSubmitting}
           />
         </div>
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
           disabled={isSubmitting}
         >

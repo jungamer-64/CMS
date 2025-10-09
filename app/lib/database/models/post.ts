@@ -1,4 +1,4 @@
-import { Collection, ObjectId, Db } from 'mongodb';
+import { Collection, Db, ObjectId } from 'mongodb';
 import { getDatabase } from '../connection';
 
 // ============================================================================
@@ -40,7 +40,7 @@ export class PostModel {
       // ユニークインデックス
       await this.collection.createIndex({ id: 1 }, { unique: true });
       await this.collection.createIndex({ slug: 1 }, { unique: true });
-      
+
       // 検索用インデックス
       await this.collection.createIndex({ title: 'text', content: 'text', excerpt: 'text' });
       await this.collection.createIndex({ status: 1 });
@@ -112,14 +112,14 @@ export class PostModel {
 
     // フィルター構築
     const filter: Record<string, unknown> = {};
-    
+
     if (!includeDeleted) {
       filter.isDeleted = false;
     }
-    
+
     if (status) filter.status = status;
     if (authorId) filter.authorId = authorId;
-    
+
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -127,11 +127,11 @@ export class PostModel {
         { excerpt: { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     if (tags && tags.length > 0) {
       filter.tags = { $in: tags };
     }
-    
+
     if (categories && categories.length > 0) {
       filter.categories = { $in: categories };
     }
@@ -167,11 +167,11 @@ export class PostModel {
   async update(id: string, updateData: Partial<Omit<PostDocument, '_id' | 'id' | 'createdAt'>>): Promise<boolean> {
     const result = await this.collection.updateOne(
       { id, isDeleted: false },
-      { 
-        $set: { 
-          ...updateData, 
-          updatedAt: new Date() 
-        } 
+      {
+        $set: {
+          ...updateData,
+          updatedAt: new Date()
+        }
       }
     );
     return result.modifiedCount > 0;
@@ -181,11 +181,11 @@ export class PostModel {
   async deleteById(id: string): Promise<boolean> {
     const result = await this.collection.updateOne(
       { id },
-      { 
-        $set: { 
-          isDeleted: true, 
-          updatedAt: new Date() 
-        } 
+      {
+        $set: {
+          isDeleted: true,
+          updatedAt: new Date()
+        }
       }
     );
     return result.modifiedCount > 0;
@@ -195,11 +195,11 @@ export class PostModel {
   async restoreById(id: string): Promise<boolean> {
     const result = await this.collection.updateOne(
       { id },
-      { 
-        $set: { 
-          isDeleted: false, 
-          updatedAt: new Date() 
-        } 
+      {
+        $set: {
+          isDeleted: false,
+          updatedAt: new Date()
+        }
       }
     );
     return result.modifiedCount > 0;
@@ -212,20 +212,20 @@ export class PostModel {
   }
 
   // 投稿数カウント
-  async count(filter: { 
+  async count(filter: {
     status?: PostStatus;
     authorId?: string;
     includeDeleted?: boolean;
   } = {}): Promise<number> {
     const queryFilter: Record<string, unknown> = {};
-    
+
     if (!filter.includeDeleted) {
       queryFilter.isDeleted = false;
     }
-    
+
     if (filter.status) queryFilter.status = filter.status;
     if (filter.authorId) queryFilter.authorId = filter.authorId;
-    
+
     return await this.collection.countDocuments(queryFilter);
   }
 

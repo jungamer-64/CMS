@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
 
 // 環境変数からJWTシークレットを取得
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
@@ -85,18 +85,18 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date()
     };
 
-    console.log('ユーザー作成成功:', { 
+    console.log('ユーザー作成成功:', {
       id: newUser.id,
       username: newUser.username,
-      email: newUser.email 
+      email: newUser.email
     });
 
     // JWTトークンを生成
     const token = jwt.sign(
-      { 
+      {
         userId: newUser.id,
         username: newUser.username,
-        role: newUser.role 
+        role: newUser.role
       },
       JWT_SECRET,
       { expiresIn: '7d' }
@@ -129,9 +129,9 @@ export async function POST(request: NextRequest) {
       maxAge: 7 * 24 * 60 * 60 // 7日間
     });
 
-    console.log('ユーザー登録完了:', { 
+    console.log('ユーザー登録完了:', {
       userId: newUser.id,
-      tokenLength: token.length 
+      tokenLength: token.length
     });
 
     return createApiSuccess(userResponse, 'ユーザー登録に成功しました');

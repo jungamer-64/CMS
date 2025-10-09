@@ -1,4 +1,4 @@
-import { MongoClient, Db } from 'mongodb';
+import { Db, MongoClient } from 'mongodb';
 
 // ============================================================================
 // MongoDB接続管理（統一パターン）
@@ -20,7 +20,7 @@ class DatabaseManager {
     lastConnected: null
   };
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): DatabaseManager {
     if (!DatabaseManager.instance) {
@@ -43,7 +43,7 @@ class DatabaseManager {
       }
 
       console.log('🔌 MongoDBに接続中...');
-      
+
       this.connection.client = new MongoClient(uri);
       await this.connection.client.connect();
       this.connection.db = this.connection.client.db(dbName);
@@ -52,7 +52,7 @@ class DatabaseManager {
 
       console.log(`✅ MongoDB接続成功: ${dbName}`);
       return this.connection.db;
-      
+
     } catch (err: unknown) {
       console.error('❌ MongoDB接続エラー:', err instanceof Error ? err : String(err));
       throw new Error(`データベース接続に失敗しました: ${err instanceof Error ? err.message : 'Unknown error'}`);

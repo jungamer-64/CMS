@@ -1,4 +1,4 @@
-import { Collection, ObjectId, Db } from 'mongodb';
+import { Collection, Db, ObjectId } from 'mongodb';
 import { getDatabase } from '../connection';
 
 // ============================================================================
@@ -51,7 +51,7 @@ export class SettingsModel {
     updatedBy: string
   ): Promise<SettingsDocument> {
     const now = new Date();
-    
+
     const result = await this.collection.findOneAndUpdate(
       { id: this.SYSTEM_ID },
       {

@@ -1,6 +1,6 @@
 /**
  * 統合MongoDB接続システム
- * 
+ *
  * - 厳格な型安全性
  * - コネクションプール最適化
  * - パフォーマンス監視
@@ -8,8 +8,8 @@
  * - 後方互換性削除済み
  */
 
-import { MongoClient, Db, MongoClientOptions } from 'mongodb';
-import { MONGODB_URI, MONGODB_DB, NODE_ENV } from '../../core/config/environment';
+import { Db, MongoClient, MongoClientOptions } from 'mongodb';
+import { MONGODB_DB, MONGODB_URI, NODE_ENV } from '../../core/config/environment';
 
 // 型定義の再エクスポート
 export type { Db, MongoClient } from 'mongodb';
@@ -43,7 +43,7 @@ const validateConfig = (): DatabaseConfig => {
   if (!MONGODB_DB) {
     throw new Error('MONGODB_DB環境変数が設定されていません');
   }
-  
+
   return {
     uri: MONGODB_URI,
     dbName: MONGODB_DB,
@@ -120,11 +120,11 @@ export const getConnectionWithMetrics = async () => {
   const startTime = performance.now();
   const client = await clientPromise;
   const endTime = performance.now();
-  
+
   if (config.isDevelopment) {
     console.debug(`MongoDB connection time: ${(endTime - startTime).toFixed(2)}ms`);
   }
-  
+
   return client;
 };
 

@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
 // JWT ペイロードの型定義
 interface JWTPayload {
@@ -39,11 +39,11 @@ interface UserSessionInfo {
 export async function GET() {
   try {
     console.log('セッション確認開始');
-    
+
     // 認証チェック
     const cookieStore = await cookies();
     const authToken = cookieStore.get('auth-token');
-    
+
     if (!authToken?.value) {
       return createApiError('認証情報がありません', 401);
     }
@@ -61,12 +61,12 @@ export async function GET() {
     // データベースから実際のユーザー情報を取得
     const userRepository = await import('@/app/lib/data/repositories/user-repository');
     const userResult = await userRepository.userRepository.findById(decodedToken.userId);
-    
+
     if (!userResult.success || !userResult.data) {
       console.log('ユーザーが見つかりません:', decodedToken.userId);
       return createApiError('ユーザーが見つかりません', 404);
     }
-    
+
     const user = userResult.data;
 
     // 実際のユーザーデータからセッション情報を構築
@@ -101,10 +101,10 @@ export async function DELETE() {
     // セッションクッキーを削除
     const cookieStore = await cookies();
     cookieStore.delete('auth-token');
-    
+
     console.log('ログアウト処理完了');
     return createApiSuccess(
-      { message: 'ログアウトしました' }, 
+      { message: 'ログアウトしました' },
       'ログアウトしました'
     );
   } catch (err: unknown) {

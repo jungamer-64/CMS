@@ -1,14 +1,14 @@
 /**
  * ユーザーリポジトリ
  * LIB_COMMONIZATION_PLAN.md フェーズ5対応
- * 
+ *
  * 既存のusers.tsから移行
  */
 
-import { Collection, Filter, ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import type { User, UserInput, ApiResponse, UserRole } from '../../core/types';
+import { Collection, Filter, ObjectId } from 'mongodb';
+import type { ApiResponse, User, UserInput, UserRole } from '../../core/types';
 import { getDatabase } from '../connections';
 import { BaseRepository, type BaseEntity, type RepositoryFilters, type RepositoryResult } from './base-repository';
 
@@ -129,7 +129,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
   async findById(id: string): Promise<ApiResponse<UserEntity>> {
     try {
       const collection = await this.getCollection();
-      
+
       // 複数のクエリパターンを試す
       const queries = [
         { id },                    // カスタムIDフィールド
@@ -138,7 +138,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
         { _id: id },               // 文字列形式のMongoID
         ObjectId.isValid(id) ? { _id: new ObjectId(id) } : null // ObjectId形式
       ].filter(Boolean);
-      
+
       let user = null;
       for (const query of queries) {
         user = await collection.findOne(query as Filter<User>);
@@ -169,7 +169,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
   async create(data: UserInput): Promise<ApiResponse<UserEntity>> {
     try {
       const collection = await this.getCollection();
-      
+
       // 重複チェック
       const duplicateQuery: Filter<User> = {
         $or: [
@@ -188,7 +188,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
 
       // パスワードハッシュ化
       const passwordHash = await bcrypt.hash(data.password, this.saltRounds);
-      
+
       const id = crypto.randomUUID();
       const user: User = {
         id,
@@ -202,7 +202,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      
+
       const result = await collection.insertOne(user);
       const createdUser = { ...user, _id: result.insertedId.toString() };
 
@@ -221,7 +221,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
   async update(id: string, data: Partial<UserInput>): Promise<ApiResponse<UserEntity>> {
     try {
       const collection = await this.getCollection();
-      
+
       const updateData: Record<string, unknown> = {
         ...data,
         updatedAt: new Date(),
@@ -240,7 +240,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
         { _id: id },               // 文字列形式のMongoID
         ObjectId.isValid(id) ? { _id: new ObjectId(id) } : null // ObjectId形式
       ].filter(Boolean);
-      
+
       let result = null;
       for (const query of queries) {
         result = await collection.findOneAndUpdate(
@@ -275,7 +275,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
   async delete(id: string): Promise<ApiResponse<boolean>> {
     try {
       const collection = await this.getCollection();
-      
+
       // 複数のクエリパターンを試す
       const queries = [
         { id },                    // カスタムIDフィールド
@@ -283,17 +283,17 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
         { _id: id },               // 文字列形式のMongoID
         ObjectId.isValid(id) ? { _id: new ObjectId(id) } : null // ObjectId形式
       ].filter(Boolean);
-      
+
       let result = null;
       for (const query of queries) {
         // ソフトデリート（isActiveをfalseに）
         result = await collection.updateOne(
           query as Filter<User>,
-          { 
-            $set: { 
-              isActive: false, 
-              updatedAt: new Date() 
-            } 
+          {
+            $set: {
+              isActive: false,
+              updatedAt: new Date()
+            }
           }
         );
         if (result.matchedCount > 0) {
@@ -324,7 +324,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
   async permanentDelete(id: string): Promise<ApiResponse<boolean>> {
     try {
       const collection = await this.getCollection();
-      
+
       // 複数のクエリパターンを試す
       const queries = [
         { id },                    // カスタムIDフィールド
@@ -332,7 +332,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
         { _id: id },               // 文字列形式のMongoID
         ObjectId.isValid(id) ? { _id: new ObjectId(id) } : null // ObjectId形式
       ].filter(Boolean);
-      
+
       let result = null;
       for (const query of queries) {
         // ハードデリート（完全削除）
@@ -450,7 +450,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
   async authenticateUser(username: string, password: string): Promise<ApiResponse<UserEntity>> {
     try {
       const collection = await this.getCollection();
-      const user = await collection.findOne({ 
+      const user = await collection.findOne({
         username,
         isActive: { $ne: false }
       });
@@ -489,7 +489,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
       const collection = await this.getCollection();
       const result = await collection.updateOne(
         { id: userId },
-        { 
+        {
           $set: { lastLoginAt: new Date() },
           $currentDate: { updatedAt: true }
         }
@@ -526,7 +526,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
       const collection = await this.getCollection();
       const result = await collection.updateOne(
         { id: userId },
-        { 
+        {
           $set: { passwordHash: hashedPassword },
           $currentDate: { updatedAt: true }
         }
@@ -550,7 +550,7 @@ export class UserRepository extends BaseRepository<UserEntity, UserInput, Partia
       const collection = await this.getCollection();
       const result = await collection.updateOne(
         { id: userId },
-        { 
+        {
           $set: { darkMode },
           $currentDate: { updatedAt: true }
         }

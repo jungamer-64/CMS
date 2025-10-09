@@ -1,4 +1,4 @@
-import { Collection, ObjectId, Db } from 'mongodb';
+import { Collection, Db, ObjectId } from 'mongodb';
 import { getDatabase } from '../connection';
 
 // ============================================================================
@@ -80,7 +80,7 @@ export class ApiKeyModel {
     };
 
     const result = await this.collection.insertOne(apiKeyDoc as ApiKeyDocument);
-    
+
     const created = await this.collection.findOne({ _id: result.insertedId });
     if (!created) {
       throw new Error('APIキーの作成に失敗しました');

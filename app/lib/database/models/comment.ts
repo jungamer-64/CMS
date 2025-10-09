@@ -1,4 +1,4 @@
-import { Collection, ObjectId, Db } from 'mongodb';
+import { Collection, Db, ObjectId } from 'mongodb';
 import { getDatabase } from '../connection';
 
 // ============================================================================
@@ -37,7 +37,7 @@ export class CommentModel {
     try {
       // ユニークインデックス
       await this.collection.createIndex({ id: 1 }, { unique: true });
-      
+
       // 検索用インデックス
       await this.collection.createIndex({ postId: 1 });
       await this.collection.createIndex({ parentId: 1 });
@@ -46,7 +46,7 @@ export class CommentModel {
       await this.collection.createIndex({ userId: 1 });
       await this.collection.createIndex({ createdAt: -1 });
       await this.collection.createIndex({ isDeleted: 1 });
-      
+
       // 複合インデックス
       await this.collection.createIndex({ postId: 1, status: 1, isDeleted: 1 });
     } catch (err: unknown) {
@@ -96,11 +96,11 @@ export class CommentModel {
 
     // フィルター構築
     const filter: Record<string, unknown> = { postId };
-    
+
     if (!includeDeleted) {
       filter.isDeleted = false;
     }
-    
+
     if (status.length > 0) {
       filter.status = { $in: status };
     }
@@ -165,18 +165,18 @@ export class CommentModel {
 
     // フィルター構築
     const filter: Record<string, unknown> = {};
-    
+
     if (!includeDeleted) {
       filter.isDeleted = false;
     }
-    
+
     if (status && status.length > 0) {
       filter.status = { $in: status };
     }
-    
+
     if (postId) filter.postId = postId;
     if (authorEmail) filter.authorEmail = authorEmail;
-    
+
     if (search) {
       filter.$or = [
         { content: { $regex: search, $options: 'i' } },
@@ -216,11 +216,11 @@ export class CommentModel {
   async update(id: string, updateData: Partial<Omit<CommentDocument, '_id' | 'id' | 'createdAt'>>): Promise<boolean> {
     const result = await this.collection.updateOne(
       { id, isDeleted: false },
-      { 
-        $set: { 
-          ...updateData, 
-          updatedAt: new Date() 
-        } 
+      {
+        $set: {
+          ...updateData,
+          updatedAt: new Date()
+        }
       }
     );
     return result.modifiedCount > 0;
@@ -230,11 +230,11 @@ export class CommentModel {
   async deleteById(id: string): Promise<boolean> {
     const result = await this.collection.updateOne(
       { id },
-      { 
-        $set: { 
-          isDeleted: true, 
-          updatedAt: new Date() 
-        } 
+      {
+        $set: {
+          isDeleted: true,
+          updatedAt: new Date()
+        }
       }
     );
     return result.modifiedCount > 0;
@@ -244,11 +244,11 @@ export class CommentModel {
   async restoreById(id: string): Promise<boolean> {
     const result = await this.collection.updateOne(
       { id },
-      { 
-        $set: { 
-          isDeleted: false, 
-          updatedAt: new Date() 
-        } 
+      {
+        $set: {
+          isDeleted: false,
+          updatedAt: new Date()
+        }
       }
     );
     return result.modifiedCount > 0;
@@ -286,11 +286,11 @@ export class CommentModel {
     } = options;
 
     const filter: Record<string, unknown> = { postId };
-    
+
     if (!includeDeleted) {
       filter.isDeleted = false;
     }
-    
+
     if (status.length > 0) {
       filter.status = { $in: status };
     }
@@ -306,7 +306,7 @@ export class CommentModel {
     ];
 
     const result = await this.collection.aggregate(pipeline).toArray();
-    
+
     const counts: Record<CommentStatus, number> = {
       pending: 0,
       approved: 0,

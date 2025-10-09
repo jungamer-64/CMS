@@ -1,8 +1,8 @@
-import { NextRequest } from 'next/server';
-import { createGetHandler, createPutHandler, createDeleteHandler } from '@/app/lib/api-factory';
+import { createDeleteHandler, createGetHandler, createPutHandler } from '@/app/lib/api-factory';
+import { createErrorResponse, createSuccessResponse } from '@/app/lib/api-utils';
 import { requireAdmin } from '@/app/lib/auth-middleware';
-import { createSuccessResponse, createErrorResponse } from '@/app/lib/api-utils';
 import { User } from '@/app/lib/core/types';
+import { NextRequest } from 'next/server';
 
 // ============================================================================
 // RESTful Resource: Pages (/api/pages) - 固定ページ管理
@@ -54,7 +54,7 @@ export const GET = createGetHandler<StaticPage[]>(
     if (!requireAdmin(authContext)) {
       return createErrorResponse('管理者権限が必要です');
     }
-    
+
     try {
       return createSuccessResponse(mockPages);
     } catch (err: unknown) {
@@ -72,29 +72,29 @@ export const PUT = createPutHandler<PageUpdateRequest, StaticPage>(
     if (!requireAdmin(authContext)) {
       return createErrorResponse('管理者権限が必要です');
     }
-    
+
     const url = new URL(request.url);
     const pageId = url.searchParams.get('id');
-    
+
     if (!pageId) {
       return createErrorResponse('ページIDが必要です');
     }
-    
+
     try {
       const pageIndex = mockPages.findIndex(page => page.id === pageId);
       if (pageIndex === -1) {
         return createErrorResponse('ページが見つかりません');
       }
-      
+
       // ページ更新
       const updatedPage = {
         ...mockPages[pageIndex],
         ...body,
         updatedAt: new Date()
       };
-      
+
       mockPages[pageIndex] = updatedPage;
-      
+
       return createSuccessResponse(updatedPage);
     } catch (err: unknown) {
       console.error('固定ページ更新エラー:', err instanceof Error ? err : String(err));
@@ -111,23 +111,23 @@ export const DELETE = createDeleteHandler(
     if (!requireAdmin(authContext)) {
       return createErrorResponse('管理者権限が必要です');
     }
-    
+
     const url = new URL(request.url);
     const pageId = url.searchParams.get('id');
-    
+
     if (!pageId) {
       return createErrorResponse('ページIDが必要です');
     }
-    
+
     try {
       const pageIndex = mockPages.findIndex(page => page.id === pageId);
       if (pageIndex === -1) {
         return createErrorResponse('ページが見つかりません');
       }
-      
+
       // ページ削除
       mockPages.splice(pageIndex, 1);
-      
+
       return createSuccessResponse({ message: 'ページが正常に削除されました' });
     } catch (err: unknown) {
       console.error('固定ページ削除エラー:', err instanceof Error ? err : String(err));
