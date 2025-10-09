@@ -9,64 +9,123 @@ import type { User, UserInput, UserUpdateInput } from '../../core/types';
 import { isUserRole, isValidEmail } from '../../core/utils';
 
 /**
+ * バリデーション結果型
+ */
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+/**
  * ユーザーモデルクラス
  */
 export class UserModel {
   /**
-   * ユーザー入力データのバリデーション
+   * ユーザー名のバリデーション
    */
-  static validateInput(input: Partial<UserInput>): {
-    isValid: boolean;
-    errors: string[];
-  } {
+  private static validateUsername(username: string | undefined): string[] {
     const errors: string[] = [];
-
-    // ユーザー名バリデーション
-    if (input.username !== undefined) {
-      if (!input.username || input.username.trim().length === 0) {
-        errors.push('ユーザー名は必須です');
-      } else if (input.username.length < 3) {
-        errors.push('ユーザー名は3文字以上である必要があります');
-      } else if (input.username.length > 30) {
-        errors.push('ユーザー名は30文字以下である必要があります');
-      } else if (!/^[a-zA-Z0-9_-]+$/.test(input.username)) {
-        errors.push('ユーザー名は英数字、アンダースコア、ハイフンのみ使用可能です');
-      }
+    
+    if (username === undefined) {
+      return errors;
     }
 
-    // メールアドレスバリデーション
-    if (input.email !== undefined) {
-      if (!input.email || input.email.trim().length === 0) {
-        errors.push('メールアドレスは必須です');
-      } else if (!isValidEmail(input.email)) {
-        errors.push('有効なメールアドレスを入力してください');
-      }
+    if (!username || username.trim().length === 0) {
+      errors.push('ユーザー名は必須です');
+    } else if (username.length < 3) {
+      errors.push('ユーザー名は3文字以上である必要があります');
+    } else if (username.length > 30) {
+      errors.push('ユーザー名は30文字以下である必要があります');
+    } else if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      errors.push('ユーザー名は英数字、アンダースコア、ハイフンのみ使用可能です');
     }
 
-    // パスワードバリデーション
-    if (input.password !== undefined) {
-      if (!input.password || input.password.length === 0) {
-        errors.push('パスワードは必須です');
-      } else if (input.password.length < 8) {
-        errors.push('パスワードは8文字以上である必要があります');
-      } else if (input.password.length > 128) {
-        errors.push('パスワードは128文字以下である必要があります');
-      }
+    return errors;
+  }
+
+  /**
+   * メールアドレスのバリデーション
+   */
+  private static validateEmail(email: string | undefined): string[] {
+    const errors: string[] = [];
+    
+    if (email === undefined) {
+      return errors;
     }
 
-    // 表示名バリデーション
-    if (input.displayName !== undefined) {
-      if (!input.displayName || input.displayName.trim().length === 0) {
-        errors.push('表示名は必須です');
-      } else if (input.displayName.length > 50) {
-        errors.push('表示名は50文字以下である必要があります');
-      }
+    if (!email || email.trim().length === 0) {
+      errors.push('メールアドレスは必須です');
+    } else if (!isValidEmail(email)) {
+      errors.push('有効なメールアドレスを入力してください');
     }
 
-    // ロールバリデーション
-    if (input.role !== undefined && !isUserRole(input.role)) {
+    return errors;
+  }
+
+  /**
+   * パスワードのバリデーション
+   */
+  private static validatePassword(password: string | undefined): string[] {
+    const errors: string[] = [];
+    
+    if (password === undefined) {
+      return errors;
+    }
+
+    if (!password || password.length === 0) {
+      errors.push('パスワードは必須です');
+    } else if (password.length < 8) {
+      errors.push('パスワードは8文字以上である必要があります');
+    } else if (password.length > 128) {
+      errors.push('パスワードは128文字以下である必要があります');
+    }
+
+    return errors;
+  }
+
+  /**
+   * 表示名のバリデーション
+   */
+  private static validateDisplayName(displayName: string | undefined): string[] {
+    const errors: string[] = [];
+    
+    if (displayName === undefined) {
+      return errors;
+    }
+
+    if (!displayName || displayName.trim().length === 0) {
+      errors.push('表示名は必須です');
+    } else if (displayName.length > 50) {
+      errors.push('表示名は50文字以下である必要があります');
+    }
+
+    return errors;
+  }
+
+  /**
+   * ロールのバリデーション
+   */
+  private static validateRole(role: string | undefined): string[] {
+    const errors: string[] = [];
+    
+    if (role !== undefined && !isUserRole(role)) {
       errors.push('有効なユーザーロールを指定してください');
     }
+
+    return errors;
+  }
+
+  /**
+   * ユーザー入力データのバリデーション
+   */
+  static validateInput(input: Partial<UserInput>): ValidationResult {
+    const errors: string[] = [
+      ...this.validateUsername(input.username),
+      ...this.validateEmail(input.email),
+      ...this.validatePassword(input.password),
+      ...this.validateDisplayName(input.displayName),
+      ...this.validateRole(input.role),
+    ];
 
     return {
       isValid: errors.length === 0,
@@ -121,7 +180,7 @@ export class UserModel {
   /**
    * ユーザーがアクティブかどうかを判定
    */
-  static isActive(_user: User): boolean {
+  static isActive(): boolean {
     // 将来的にisActiveフィールドが追加された場合に対応
     return true; // 現在は全ユーザーがアクティブ
   }

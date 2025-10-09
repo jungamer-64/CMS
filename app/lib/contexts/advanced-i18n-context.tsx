@@ -499,16 +499,16 @@ interface AdvancedI18nProviderProps {
   readonly fallbackLocale?: Locale;
 }
 
-export function AdvancedI18nProvider({
-  children,
-  initialLocale = 'ja',
-  fallbackLocale = 'en'
-}: AdvancedI18nProviderProps) {
-  const [currentLocale, setCurrentLocale] = useState<Locale>(initialLocale);
+/**
+ * 翻訳データの読み込みとキャッシング
+ */
+function useTranslationLoader(
+  currentLocale: Locale,
+  fallbackLocale: Locale
+) {
   const [translations, setTranslations] = useState<NamespaceTranslations>({});
   const [fallbackTranslations, setFallbackTranslations] = useState<NamespaceTranslations>({});
 
-  // 翻訳データの読み込み
   useEffect(() => {
     const loadLocaleData = async () => {
       try {
@@ -530,13 +530,32 @@ export function AdvancedI18nProvider({
     loadLocaleData();
   }, [currentLocale, fallbackLocale]);
 
-  // LocalStorageから言語設定を復元
+  return { translations, fallbackTranslations };
+}
+
+/**
+ * LocalStorageからロケール設定を復元
+ */
+function useLocaleStorage(initialLocale: Locale) {
+  const [currentLocale, setCurrentLocale] = useState<Locale>(initialLocale);
+
   useEffect(() => {
     const savedLocale = localStorage.getItem('i18n-locale') as Locale;
     if (savedLocale && Object.keys(LOCALE_INFO).includes(savedLocale)) {
       setCurrentLocale(savedLocale);
     }
   }, []);
+
+  return [currentLocale, setCurrentLocale] as const;
+}
+
+export function AdvancedI18nProvider({
+  children,
+  initialLocale = 'ja',
+  fallbackLocale = 'en'
+}: AdvancedI18nProviderProps) {
+  const [currentLocale, setCurrentLocale] = useLocaleStorage(initialLocale);
+  const { translations, fallbackTranslations } = useTranslationLoader(currentLocale, fallbackLocale);
 
   // 翻訳関数
   const t = useCallback((key: string, variables?: Record<string, string | number>): string => {
@@ -588,7 +607,7 @@ export function AdvancedI18nProvider({
     if (Object.keys(LOCALE_INFO).includes(locale)) {
       setCurrentLocale(locale);
     }
-  }, []);
+  }, [setCurrentLocale]);
 
   // プリロード機能
   const preloadLocale = useCallback(async (locale: Locale) => {
@@ -707,14 +726,10 @@ export function AdvancedI18nProvider({
       ...newTranslations
     };
 
+    // 現在のロケールの場合は再ロードを促す
     if (locale === currentLocale) {
-      setTranslations(prev => ({
-        ...prev,
-        [namespace]: {
-          ...prev[namespace],
-          ...newTranslations
-        }
-      }));
+      // 翻訳キャッシュが更新されたので、次のロード時に反映される
+      console.log(`Translations added for ${locale}/${namespace}. Reload to see changes.`);
     }
   }, [currentLocale]);
 

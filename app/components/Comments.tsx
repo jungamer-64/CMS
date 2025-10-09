@@ -69,6 +69,15 @@ export default function Comments({ postSlug }: CommentsProps) {
     }
   };
 
+  // APIレスポンスの検証
+  const validateCommentsResponse = (data: { success: boolean; data?: unknown; comments?: unknown; error?: string }): Comment[] => {
+    if (!data.success) {
+      throw new Error(data.error || 'コメントの読み込みに失敗しました');
+    }
+    const commentsData = Array.isArray(data.data) ? data.data : data.comments;
+    return (commentsData || []) as Comment[];
+  };
+
   // コメントを読み込む
   const loadComments = useCallback(async () => {
     try {
@@ -80,18 +89,13 @@ export default function Comments({ postSlug }: CommentsProps) {
       }
 
       const data = await response.json();
-
       console.log('取得したコメントデータ:', data);
 
-      if (data.success) {
-        const commentsData = Array.isArray(data.data) ? data.data : data.comments;
-        setComments(commentsData || []);
-      } else {
-        throw new Error(data.error || 'コメントの読み込みに失敗しました');
-      }
+      const commentsData = validateCommentsResponse(data);
+      setComments(commentsData);
     } catch (err: unknown) {
       console.error('コメント読み込みエラー:', err instanceof Error ? err : String(err));
-      throw err; // エラーを再スローして上位でキャッチできるように
+      throw err;
     } finally {
       setLoading(false);
     }

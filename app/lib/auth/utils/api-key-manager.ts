@@ -4,7 +4,7 @@
  */
 
 import { BaseError } from '../../core/errors';
-import type { ApiKey, ApiKeyCreateRequest } from '../../core/types/api-unified';
+import type { ApiKey, ApiKeyCreateRequest, ApiKeyPermissions } from '../../core/types/api-unified';
 
 /**
  * API キー管理エラー
@@ -45,6 +45,21 @@ export class ApiKeyManager {
   }
 
   /**
+   * デフォルトのパーミッション設定を取得
+   */
+  private static getDefaultPermissions(): ApiKeyPermissions {
+    return {
+      posts: { create: false, read: true, update: false, delete: false },
+      comments: { read: true, create: false, update: false, moderate: false, delete: false },
+      users: { read: false, create: false, update: false, delete: false },
+      media: { read: false, upload: false, delete: false },
+      settings: { read: false, update: false },
+      uploads: { create: false, read: true, delete: false },
+      admin: false
+    };
+  }
+
+  /**
    * 新しいAPIキーを作成
    */
   static async createApiKey(
@@ -52,52 +67,17 @@ export class ApiKeyManager {
     request: ApiKeyCreateRequest
   ): Promise<ApiKey> {
     try {
-      // APIキーの生成
       const keyValue = ApiKeyManager.generateApiKey();
+      const now = new Date();
 
       const apiKey: ApiKey = {
-        id: `ak_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        id: `ak_${now.getTime()}_${Math.random().toString(36).substring(2, 9)}`,
         name: request.name,
         key: keyValue,
         userId,
-        permissions: request.permissions || {
-          posts: {
-            create: false,
-            read: true,
-            update: false,
-            delete: false
-          },
-          comments: {
-            read: true,
-            create: false,
-            update: false,
-            moderate: false,
-            delete: false
-          },
-          users: {
-            read: false,
-            create: false,
-            update: false,
-            delete: false
-          },
-          media: {
-            read: false,
-            upload: false,
-            delete: false
-          },
-          settings: {
-            read: false,
-            update: false
-          },
-          uploads: {
-            create: false,
-            read: true,
-            delete: false
-          },
-          admin: false
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        permissions: request.permissions || ApiKeyManager.getDefaultPermissions(),
+        createdAt: now,
+        updatedAt: now,
         lastUsed: undefined,
         isActive: true,
       };

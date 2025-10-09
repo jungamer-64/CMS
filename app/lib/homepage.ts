@@ -191,6 +191,53 @@ export async function getActiveGlobalStyles(): Promise<GlobalStyles | null> {
   return await collection.findOne({ isActive: true });
 }
 
+/**
+ * カラースキームのデフォルト値を設定
+ */
+function buildColorScheme(input: GlobalStylesInput): GlobalStyles['colorScheme'] {
+  return {
+    primary: input.colorScheme?.primary || '#000000',
+    secondary: input.colorScheme?.secondary || '#ffffff',
+    accent: input.colorScheme?.accent || '#0070f3',
+    background: input.colorScheme?.background || '#ffffff',
+    text: input.colorScheme?.text || '#212529',
+  };
+}
+
+/**
+ * タイポグラフィ設定のデフォルト値を設定
+ */
+function buildTypography(input: GlobalStylesInput): GlobalStyles['typography'] {
+  return {
+    fontFamily: input.typography?.fontFamily || 'system-ui',
+    fontSize: {
+      base: input.typography?.fontSize?.base || '16px',
+      heading: input.typography?.fontSize?.heading,
+      small: input.typography?.fontSize?.small || '14px',
+    },
+  };
+}
+
+/**
+ * レイアウト設定のデフォルト値を設定
+ */
+function buildLayout(input: GlobalStylesInput): GlobalStyles['layout'] {
+  return {
+    maxWidth: input.layout?.maxWidth,
+    spacing: input.layout?.spacing || '1rem',
+    borderRadius: input.layout?.borderRadius || '4px',
+  };
+}
+
+/**
+ * スペーシング設定のデフォルト値を設定
+ */
+function buildSpacing(input: GlobalStylesInput): GlobalStyles['spacing'] {
+  return {
+    containerMaxWidth: input.spacing?.containerMaxWidth || '1200px',
+  };
+}
+
 // スタイル作成
 export async function createGlobalStyles(stylesData: GlobalStylesInput): Promise<GlobalStyles> {
   const collection = await getGlobalStylesCollection();
@@ -201,16 +248,6 @@ export async function createGlobalStyles(stylesData: GlobalStylesInput): Promise
     await collection.updateMany({}, { $set: { isActive: false } });
   }
 
-  // themeSettingsの処理は現在未使用のため、将来の実装のためにコメントアウト
-  // TODO: themeSettings機能を実装する際に有効化
-  /*
-  let processedThemeSettings: ThemeSettings | undefined;
-  if ((stylesData as any).themeSettings) {
-    const themeInput = (stylesData as any).themeSettings;
-    // ... theme processing logic ...
-  }
-  */
-
   const styles: GlobalStyles & { createdAt: Date; updatedAt: Date } = {
     primaryColor: stylesData.primaryColor || '#000000',
     secondaryColor: stylesData.secondaryColor || '#ffffff',
@@ -219,29 +256,10 @@ export async function createGlobalStyles(stylesData: GlobalStylesInput): Promise
     fontFamily: stylesData.fontFamily || 'system-ui',
     fontSize: stylesData.fontSize || '16px',
     darkMode: false,
-    colorScheme: {
-      primary: stylesData.colorScheme?.primary || '#000000',
-      secondary: stylesData.colorScheme?.secondary || '#ffffff',
-      accent: stylesData.colorScheme?.accent || '#0070f3',
-      background: stylesData.colorScheme?.background || '#ffffff',
-      text: stylesData.colorScheme?.text || '#212529',
-    },
-    typography: {
-      fontFamily: stylesData.typography?.fontFamily || 'system-ui',
-      fontSize: {
-        base: stylesData.typography?.fontSize?.base || '16px',
-        heading: stylesData.typography?.fontSize?.heading,
-        small: stylesData.typography?.fontSize?.small || '14px',
-      },
-    },
-    spacing: {
-      containerMaxWidth: stylesData.spacing?.containerMaxWidth || '1200px',
-    },
-    layout: {
-      maxWidth: stylesData.layout?.maxWidth,
-      spacing: stylesData.layout?.spacing || '1rem',
-      borderRadius: stylesData.layout?.borderRadius || '4px',
-    },
+    colorScheme: buildColorScheme(stylesData),
+    typography: buildTypography(stylesData),
+    spacing: buildSpacing(stylesData),
+    layout: buildLayout(stylesData),
     variables: stylesData.variables,
     customCss: stylesData.customCss,
     createdAt: now,
