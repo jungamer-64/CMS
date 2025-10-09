@@ -1,5 +1,5 @@
+import { handleApiError, handleSuccess, createUnifiedError } from '@/app/lib/core/error-handler';
 import { getSettings } from '@/app/lib/settings';
-import { NextResponse } from 'next/server';
 
 interface PublicSettings {
   enableComments: boolean;
@@ -18,10 +18,8 @@ export async function GET() {
 
     if (!settingsResult.success) {
       console.error('設定取得失敗:', settingsResult.error);
-      return NextResponse.json(
-        { success: false, error: '設定の取得に失敗しました' },
-        { status: 500 }
-      );
+      const error = createUnifiedError.internal('設定の取得に失敗しました');
+      return handleApiError(error, { location: '/api/settings/public' });
     }
 
     const adminSettings = settingsResult.data;
@@ -36,15 +34,10 @@ export async function GET() {
 
     console.log('パブリック設定を返します:', publicSettings);
 
-    return NextResponse.json({
-      success: true,
-      data: { settings: publicSettings }
-    });
+    return handleSuccess({ settings: publicSettings }, '設定を取得しました');
+    
   } catch (err: unknown) {
     console.error('パブリック設定取得エラー:', err instanceof Error ? err : String(err));
-    return NextResponse.json(
-      { success: false, error: '設定の取得中にエラーが発生しました' },
-      { status: 500 }
-    );
+    return handleApiError(err, { location: '/api/settings/public' });
   }
 }

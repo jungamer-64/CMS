@@ -1,7 +1,8 @@
 import { getOptionalString, parsePaginationParams } from '@/app/lib/api-utils';
+import { handleApiError, handleSuccess } from '@/app/lib/core/error-handler';
 import DatabaseManager, { getDatabase } from '@/app/lib/database/connection';
 import { PostModel } from '@/app/lib/database/models/post';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 // 動的レンダリングを強制
 export const dynamic = 'force-dynamic';
@@ -38,16 +39,10 @@ export async function GET(request: NextRequest) {
       updatedAt: post.updatedAt instanceof Date ? post.updatedAt.toISOString() : post.updatedAt
     }));
 
-    return NextResponse.json({
-      success: true,
-      data: publicPosts
-    });
+    return handleSuccess(publicPosts, '投稿を取得しました');
 
   } catch (err: unknown) {
     console.error('パブリック投稿取得エラー:', err instanceof Error ? err : String(err));
-    return NextResponse.json(
-      { success: false, error: err instanceof Error ? err.message : '投稿取得に失敗しました' },
-      { status: 500 }
-    );
+    return handleApiError(err, { location: '/api/posts/public' });
   }
 }
