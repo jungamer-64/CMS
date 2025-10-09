@@ -192,7 +192,11 @@ function logError(error: HandledError, severity: ErrorSeverity, context?: ErrorC
   switch (severity) {
     case ErrorSeverity.CRITICAL:
     case ErrorSeverity.ERROR:
-      errorLogger.error(error.message, logContext, error.originalError);
+      errorLogger.error(
+        error.message,
+        logContext,
+        error.originalError instanceof Error ? error.originalError : undefined
+      );
       break;
     case ErrorSeverity.WARNING:
       errorLogger.warn(error.message, logContext);
