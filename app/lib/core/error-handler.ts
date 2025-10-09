@@ -29,6 +29,7 @@
 import { NextResponse } from 'next/server';
 import { ApiErrorCode } from './types';
 import type { ApiError, ApiSuccess } from './types';
+import { logger, LogLevel, createLogger } from './logger';
 
 /**
  * エラーコンテキスト - エラー発生時の追加情報
@@ -174,32 +175,32 @@ function determineErrorSeverity(error: HandledError): ErrorSeverity {
  * エラーをログに記録 (将来的にはロギングシステムと統合)
  */
 function logError(error: HandledError, severity: ErrorSeverity, context?: ErrorContext): void {
-  const logData = {
-    severity,
-    timestamp: new Date().toISOString(),
-    message: error.message,
+  const errorLogger = createLogger('error-handler', {
+    location: context?.location,
+    userId: context?.userId,
+    requestId: context?.requestId,
+  });
+
+  const logContext = {
     code: error.code,
     statusCode: error.statusCode,
-    context,
     details: error.details,
+    ...context?.metadata,
   };
 
-  // 開発環境では詳細にログ出力
-  if (process.env.NODE_ENV === 'development') {
-    console.error('[Error Handler]', logData);
-    if (error.originalError) {
-      console.error('[Original Error]', error.originalError);
-    }
-  } else {
-    // 本番環境では重要度に応じてログ出力
-    if (severity === ErrorSeverity.CRITICAL || severity === ErrorSeverity.ERROR) {
-      console.error('[Error]', JSON.stringify(logData));
-    } else if (severity === ErrorSeverity.WARNING) {
-      console.warn('[Warning]', JSON.stringify(logData));
-    }
+  // 重要度に応じてログ出力
+  switch (severity) {
+    case ErrorSeverity.CRITICAL:
+    case ErrorSeverity.ERROR:
+      errorLogger.error(error.message, logContext, error.originalError);
+      break;
+    case ErrorSeverity.WARNING:
+      errorLogger.warn(error.message, logContext);
+      break;
+    case ErrorSeverity.INFO:
+      errorLogger.info(error.message, logContext);
+      break;
   }
-
-  // TODO: 将来的には外部ロギングサービス (Sentry, Datadog等) に送信
 }
 
 /**
